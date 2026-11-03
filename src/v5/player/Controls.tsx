@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { input, now } from './input'
+import { input, now, MIN_HOLD } from './input'
 import { usePlayerUI } from './uiState'
 
 /**
@@ -146,13 +146,13 @@ export default function Controls() {
       {touchUI && prompt && (
         <button
           className="gjv5-btn gjv5-use" data-qa="v5-use"
-          onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); input.useAt = now() }}
+          onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); input.useAt = now() + MIN_HOLD }}
         >{prompt.label}</button>
       )}
       {touchUI && (
         <button
           className="gjv5-btn gjv5-jump" data-qa="v5-jump" aria-label="Jump"
-          onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); input.jumpAt = now() }}
+          onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); input.jumpAt = now() + MIN_HOLD }}
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M5 15l7-7 7 7" />

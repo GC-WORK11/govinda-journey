@@ -5,7 +5,7 @@ import * as THREE from 'three'
 import { clay, C, blobMat } from '../../world/kit'
 import * as core from '../core'
 import { blockers, cinematic, interactables, player, playerEmote, walkables, V5_ORDER } from '../core'
-import { ISLAND_POS, ENTRY, nearestIsland } from '../world/layout'
+import { ISLAND_POS, ENTRY, EXIT, nearestIsland } from '../world/layout'
 import { input, installInput, isDown, now, pressKey } from './input'
 import { usePlayerUI, currentUse } from './uiState'
 import { carryAnchor, carryQuat } from './anchor'
@@ -172,6 +172,7 @@ const BASE_DIST = 9.5
 
 const DBG = typeof location !== 'undefined' && /[?&](qa|sandbox)/.test(location.search)
 const _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3(), _v3 = new THREE.Vector3()
+const _wish = new THREE.Vector3() // dedicated — the wall pass inside the substep loop reuses _v3
 const _n1 = new THREE.Vector3(), _n2 = new THREE.Vector3() // scratch for near()/nearSeg() — never share with _v*
 const _ray = new THREE.Raycaster()
 const _down = new THREE.Vector3(0, -1, 0)
@@ -224,7 +225,7 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
 
   const S = useRef({
     pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0,
-    grounded: false, coyote: 0, groundY: 0, airT: 0, prevVy: 0,
+    grounded: false, coyote: 0, groundY: 0, airT: 0, prevVy: 0, groundName: '',
     lastSafe: new THREE.Vector3(), hist: [] as THREE.Vector3[], histT: 0,
     stepAcc: 0, camYaw: 0, camPitch: 0.42, camDist: BASE_DIST, camDistT: BASE_DIST, zoomMul: 1.0,
     targetSm: new THREE.Vector3(), first: true, respawnT: 0,
@@ -282,17 +283,39 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
     }
     const fwd = _v1.set(-Math.sin(s.camYaw), 0, -Math.cos(s.camYaw))
     const rgt = _v2.set(-fwd.z, 0, fwd.x)
-    const wish = _v3.set(0, 0, 0).addScaledVector(fwd, -iz).addScaledVector(rgt, ix)
+    const wish = _wish.set(0, 0, 0).addScaledVector(fwd, -iz).addScaledVector(rgt, ix)
     const wishLen = Math.min(1, wish.length())
     if (wishLen > 1e-4) wish.normalize()
     const run = isDown('ShiftLeft', 'ShiftRight') || (input.joy.active && wishLen > 0.92)
     const speed = (run ? RUN : WALK) * wishLen
 
+    /* path magnetism at the bridge mouth: while grounded on the island's own
+       flat top (walk-<id>) and heading roughly toward its exit, bend the wish
+       toward the mouth point. Pure direction math — frame-time independent —
+       and it only biases heading already aimed at the exit, so free roaming
+       along the rim is unaffected. At low fps this is what converges short
+       probe bursts through furniture pockets onto the path corridor. */
+    const bi = nearestIsland(s.pos)
+    if (s.grounded && wishLen > 0.05 && s.groundName === `walk-${V5_ORDER[bi]}` && bi < V5_ORDER.length - 1) {
+      const ex = ISLAND_POS[bi].x + EXIT.x, ez = ISLAND_POS[bi].z + EXIT.z
+      const dx = ex - s.pos.x, dz = ez - s.pos.z
+      const dd = Math.hypot(dx, dz)
+      if (dd > 0.9 && dd < 5.5) {
+        const tx = dx / dd, tz = dz / dd
+        const align = wish.x * tx + wish.z * tz
+        if (align > 0.1) {
+          const k = Math.min(0.5, (1 - dd / 5.5) * 0.55) * Math.min(1, align * 1.4)
+          wish.x += tx * k; wish.z += tz * k
+          const l = Math.hypot(wish.x, wish.z) || 1; wish.x /= l; wish.z /= l
+        }
+      }
+    }
+
     /* ---- physics: substep so sim speed survives slow frames (was: one capped
        step → at ~10 fps the sim ran at a third of real speed and scripted
        walks fell behind the world) ---- */
     let hSpeed = Math.hypot(s.vel.x, s.vel.z)
-    let rem = Math.min(rawDt, 0.18) // ~6 substeps — keeps real pace down to ~6 fps
+    let rem = Math.min(rawDt, 0.26) // ~8 substeps — keeps real pace down to ~4 fps
     while (rem > 1e-5) {
       const h = Math.min(rem, 1 / 30); rem -= h
 
@@ -369,7 +392,7 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
         }
       }
       s.grounded = grounded
-      if (grounded) { s.coyote = COYOTE; s.airT = 0 }
+      if (grounded) { s.coyote = COYOTE; s.airT = 0; s.groundName = groundObj?.name ?? '' }
 
       /* bridge rail guide: near/on a walk-bridge strip, steer lateral offset
          back to its centreline — the deck drifts diagonally between islands,
@@ -456,8 +479,7 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
     /* ---- write core.player ---- */
     player.pos.copy(s.pos); player.vel.copy(s.vel)
     player.facing = s.yaw; player.grounded = s.grounded
-    const bi = nearestIsland(s.pos)
-    if (player.island !== V5_ORDER[bi]) player.island = V5_ORDER[bi]
+    player.island = V5_ORDER[nearestIsland(s.pos)]
 
     /* ---- interactables: nearest enabled in radius ---- */
     let bestIt = null as core.Interactable | null, bestD = 1e9

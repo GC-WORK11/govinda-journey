@@ -60,6 +60,23 @@ Status: complete and integrated — all requests below were delivered by WORLD.
   cross-section (v[2i], v[2i+1] = section i's two edges) — exactly how
   WORLD's Bridge5 strip is built (41 sections × 2 verts, 2 tris/section;
   faceIndex/2 locates the standing section).
-- Physics substeps: ≤1/30 s steps, up to 180 ms/frame — sim keeps real pace
-  down to ~5.5 fps (QA headless runs at 5–9 fps).
+- Physics substeps: ≤1/30 s steps, up to 260 ms/frame — sim keeps real pace
+  down to ~4 fps (QA headless runs at 5–9 fps).
 - Verified: L02→L03 (1440), I01→L05 + L05 island (390) all PASS.
+
+## Low-fps input + path magnetism (since this change)
+- **Tap latch (`MIN_HOLD = 300` in input.ts):** every real keydown is latched —
+  an early keyup keeps the key "down" via `input.synth` until press+300 ms, so a
+  150–260 ms burst (QA probe) or quick tap can never land wholly inside one rAF
+  gap at ~5 fps. Space / E / Enter also future-date `jumpAt`/`useAt` by MIN_HOLD
+  so the 120/160 ms consume windows can't expire unseen. Held keys unaffected:
+  the latch only extends sub-300 ms taps.
+- **Exit-mouth magnetism:** grounded on `walk-<id>` (the island's flat top mesh),
+  within 5.5 m of `ISLAND_POS[i] + EXIT`, and heading within ~80° of the mouth →
+  the wish direction blends toward the mouth (≤50% at point blank, ~15% at 4 m).
+  Frame-time independent; only bends heading already aimed at the exit, so rim
+  roaming is untouched. It converges probe bursts through furniture pockets
+  (L01 desk/tree, I01 seat) onto the path corridor.
+- Both target the full-run regression on c6cc3e2+: at 5–6 fps probe bursts were
+  falling between frames (0 measured gain) and walkers ping-ponged in pockets
+  ~4 m from the bridge mouth until leg timeouts.

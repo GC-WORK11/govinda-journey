@@ -27,6 +27,13 @@ export const input = {
 
 export const now = () => performance.now()
 
+/** Minimum effective hold for a real key press (ms). At ~5 fps a 150-260ms QA
+ * burst — or a quick human tap — can land entirely inside one rAF gap: keydown
+ * and keyup both fire before the next frame reads input.keys and the press is
+ * invisible. Latch every press until downAt+MIN_HOLD so ~3 fps still sees it. */
+export const MIN_HOLD = 300
+const downAt = new Map<string, number>()
+
 export function isDown(...codes: string[]) {
   const t = now()
   for (const c of codes) if (input.keys.has(c) || (input.synth.get(c) ?? 0) > t) return true
@@ -47,13 +54,22 @@ export function installInput() {
     const tag = (e.target as HTMLElement | null)?.tagName
     if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement | null)?.isContentEditable) return
     if (GAME_KEYS.has(e.code)) e.preventDefault()
-    if (e.code === 'Space' && !e.repeat) input.jumpAt = now()
-    if ((e.code === 'KeyE' || e.code === 'Enter') && !e.repeat) input.useAt = now()
+    if (!e.repeat) {
+      downAt.set(e.code, now())
+      // future-dated buffers: the 120/160ms consume windows can't expire inside
+      // a frame gap before the press is seen (same trick as qa press()).
+      if (e.code === 'Space') input.jumpAt = now() + MIN_HOLD
+      if (e.code === 'KeyE' || e.code === 'Enter') input.useAt = now() + MIN_HOLD
+    }
     input.keys.add(e.code)
     input.touch = false // real keyboard → desktop UI
   }
-  const up = (e: KeyboardEvent) => { input.keys.delete(e.code) }
-  const blur = () => { input.keys.clear(); input.synth.clear() }
+  const up = (e: KeyboardEvent) => {
+    input.keys.delete(e.code)
+    const until = (downAt.get(e.code) ?? 0) + MIN_HOLD
+    if (until > now()) input.synth.set(e.code, until)
+  }
+  const blur = () => { input.keys.clear(); input.synth.clear(); downAt.clear() }
   window.addEventListener('keydown', down)
   window.addEventListener('keyup', up)
   window.addEventListener('blur', blur)
