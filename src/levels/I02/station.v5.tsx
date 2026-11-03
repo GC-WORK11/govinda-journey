@@ -147,6 +147,8 @@ export function useTrack(pts: V3[], seed = 5): TrackSpec {
     const geos: THREE.BufferGeometry[] = []
     const rnd = (n: number) => { const x = Math.sin(seed * 91.7 + n * 12.9898) * 43758.5453; return x - Math.floor(x) }
     const N = 64
+    // mergeGeometries needs identical attribute sets + uniform indexing → de-index everything
+    const push = (g0: THREE.BufferGeometry) => geos.push(g0.index ? g0.toNonIndexed() : g0)
     const left: THREE.Vector3[] = [], right: THREE.Vector3[] = []
     const pt = new THREE.Vector3(), tan = new THREE.Vector3(), side = new THREE.Vector3()
     for (let i = 0; i <= N; i++) {
@@ -159,7 +161,7 @@ export function useTrack(pts: V3[], seed = 5): TrackSpec {
     for (const arr of [left, right]) {
       const rail = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(arr), 72, 0.018, 6)
       paintGeo(rail, '#6b5a4c', undefined, 0.05)
-      geos.push(rail)
+      push(rail)
     }
     // sleepers
     const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), sc = new THREE.Vector3(1, 1, 1)
@@ -172,32 +174,35 @@ export function useTrack(pts: V3[], seed = 5): TrackSpec {
       e.set(0, yaw + Math.PI / 2, 0); q.setFromEuler(e)
       g.applyMatrix4(m.compose(pt.clone().setY(pt.y - 0.035), q, sc))
       paintGeo(g, i % 4 ? C.wood : C.woodLight, undefined, 0.08)
-      geos.push(g)
+      push(g)
     }
     // stone ribbon under the rails (a narrow floating bed)
     {
-      const verts: number[] = [], cols: number[] = []
+      const verts: number[] = [], cols: number[] = [], uvs: number[] = []
       const c1 = new THREE.Color('#9a8f80'), c2 = new THREE.Color('#7d7264'), tmp = new THREE.Color()
-      for (let i = 0; i <= N; i++) {
-        const u = i / N
-        curve.getPointAt(u, pt); curve.getTangentAt(u, tan)
+      for (let i = 0; i < N; i++) {
+        const u0 = i / N, u1 = (i + 1) / N
+        curve.getPointAt(u0, pt); curve.getTangentAt(u0, tan)
         side.set(-tan.z, 0, tan.x).normalize()
-        for (const s of [1, -1]) {
-          const v = pt.clone().addScaledVector(side, s * 0.24).addScaledVector(up, -0.075)
-          verts.push(v.x, v.y, v.z)
+        const a = pt.clone().addScaledVector(side, 0.24).addScaledVector(up, -0.075)
+        const b = pt.clone().addScaledVector(side, -0.24).addScaledVector(up, -0.075)
+        curve.getPointAt(u1, pt); curve.getTangentAt(u1, tan)
+        side.set(-tan.z, 0, tan.x).normalize()
+        const c = pt.clone().addScaledVector(side, 0.24).addScaledVector(up, -0.075)
+        const d = pt.clone().addScaledVector(side, -0.24).addScaledVector(up, -0.075)
+        for (const [v, uu] of [[a, u0], [b, u0], [c, u1], [b, u0], [d, u1], [c, u1]] as const) {
+          verts.push(v.x, v.y, v.z); uvs.push(uu * 8, 0)
           tmp.copy(i % 2 ? c1 : c2).multiplyScalar(0.92 + rnd(i * 3) * 0.16)
           cols.push(tmp.r, tmp.g, tmp.b)
         }
       }
-      const idx: number[] = []
-      for (let i = 0; i < N; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2) }
       const g = new THREE.BufferGeometry()
       g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3))
       g.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3))
-      g.setIndex(idx)
+      g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2))
       g.computeVertexNormals()
       // underside lip
-      geos.push(g)
+      push(g)
       const drop = g.clone()
       drop.translate(0, -0.05, 0)
       geos.push(drop)
@@ -211,7 +216,7 @@ export function useTrack(pts: V3[], seed = 5): TrackSpec {
         e.set(rnd(u * 100 + j) * 3, rnd(u * 200 + j) * 3, 0); q.setFromEuler(e)
         g.applyMatrix4(m.compose(new THREE.Vector3(pt.x + (rnd(u * 300 + j) - 0.5) * 0.08, pt.y - 0.18 - j * r * 1.7, pt.z + (rnd(u * 400 + j) - 0.5) * 0.08), q, sc))
         paintGeo(g, '#8c7a66', undefined, 0.1)
-        geos.push(g)
+        push(g)
       }
     }
     const geo = mergeGeometries(geos, false)!
