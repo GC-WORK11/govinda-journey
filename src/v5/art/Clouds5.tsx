@@ -75,9 +75,11 @@ export function Clouds5({
         metalness: 0,
         transparent: true,
         opacity: 0.95,
+        depthWrite: false,
       }),
     [],
   )
+  const op = useRef(0.95)
   const items = useMemo<Item[]>(() => {
     const sea: Item[] = []
     const k = Math.max(3, Math.round(span / 18))
@@ -112,13 +114,21 @@ export function Clouds5({
     tint.copy(env.mid).lerp(env.top, 0.42).lerp(PAPER, (1 - env.night) * 0.5)
     mat.color.copy(tint)
     mat.emissive.copy(tint).multiplyScalar(0.12)
+    // the pull-back sees the whole cloud layer edge-on as one dark mass —
+    // dissolve it as the finale opens so only the lit path remains
+    op.current += ((0.95 * (1 - env.finale * 0.92)) - op.current) * (1 - Math.exp(-dt * 2))
+    mat.opacity = op.current
     const t = s.clock.elapsedTime
     g0.children.forEach((c, i) => {
       const it = items[i]
-      if (!it || RM) return
-      c.position.x += dt * it.v
-      if (c.position.x > it.lane[1]) c.position.x = it.lane[0]
-      c.position.y = it.p[1] + Math.sin(t * 0.2 + i * 2.1) * 0.3 - it.sink * env.finale * 10
+      if (!it) return
+      if (!RM) {
+        c.position.x += dt * it.v
+        if (c.position.x > it.lane[1]) c.position.x = it.lane[0]
+        c.position.y = it.p[1] + Math.sin(t * 0.2 + i * 2.1) * 0.3 - it.sink * env.finale * 14
+      } else {
+        c.position.y = it.p[1] - it.sink * env.finale * 14
+      }
     })
   })
   return (
