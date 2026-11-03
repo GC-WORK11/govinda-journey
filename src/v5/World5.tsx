@@ -176,6 +176,8 @@ function FinaleCam() {
  * effects run children-first, so write into the shared object, don't replace). */
 function QaProbe() {
   const { camera, gl, scene } = useThree()
+  const frameDt = useRef(0)
+  useFrame((_, dt) => { frameDt.current = dt })
   useEffect(() => {
     const w = window as any
     const v5 = ((w.__journey ??= {}).v5 ??= {})
@@ -189,6 +191,12 @@ function QaProbe() {
       const o = scene.getObjectByName(name); if (!o) return null
       const w2 = new THREE.Vector3(); o.getWorldPosition(w2); return px(w2)
     }
+    // perf snapshot for the V6 release check — draw calls, triangles, JS ms
+    v5.stats = () => ({
+      calls: gl.info.render.calls, tris: gl.info.render.triangles,
+      geos: gl.info.memory.geometries, progs: gl.info.programs?.length ?? 0,
+      dpr: gl.getPixelRatio(), ms: Math.round(frameDt.current * 10000) / 10,
+    })
   }, [camera, gl, scene])
   return null
 }

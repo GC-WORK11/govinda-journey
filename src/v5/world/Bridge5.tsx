@@ -11,6 +11,7 @@ import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import { C, clay, clayVC, paint } from '../../world/kit'
 import { Lanterns, bridgeLampSpots } from '../../world/Lanterns'
 import { useWalkable } from '../core'
@@ -78,11 +79,25 @@ function bridgeGeo(from: THREE.Vector3, to: THREE.Vector3) {
   walk.setAttribute('position', new THREE.BufferAttribute(new Float32Array(strip), 3))
   walk.setIndex(idx)
   walk.computeVertexNormals()
-  return { planks, rails, walk, lat }
+  // The deck's resting state as ONE mesh — during the drop-in each plank needs
+  // its own transform (~18 draw calls/bridge), so once the reveal lands the
+  // individuals hide and this merged deck takes over at the same pose.
+  const deckParts: THREE.BufferGeometry[] = []
+  for (let j = 0; j < planks.length; j++) {
+    const pl = planks[j]
+    const g = new RoundedBoxGeometry(0.95, 0.07, 0.26, 2, 0.03)
+    paint(g, j % 2 ? C.wood : C.woodLight, undefined, 0.06)
+    eu.set(0, pl.r, (j % 3 - 1) * 0.03); q.setFromEuler(eu)
+    g.applyMatrix4(mtx.compose(pl.p, q, sc.set(1, 1, 1)))
+    deckParts.push(g)
+  }
+  const deck = mergeGeometries(deckParts, false)!
+  deckParts.forEach((x) => x.dispose())
+  return { planks, rails, walk, deck, lat }
 }
 
 export function Bridge5({ i, shown }: { i: number; shown: boolean }) {
-  const { planks, rails, walk, spots, yaw, mid } = useMemo(() => {
+  const { planks, rails, walk, deck, spots, yaw, mid } = useMemo(() => {
     const from = exitWorld(i), to = entryWorld(i + 1)
     const g = bridgeGeo(from, to)
     return {
@@ -97,6 +112,7 @@ export function Bridge5({ i, shown }: { i: number; shown: boolean }) {
   const railsWrap = useRef<THREE.Group>(null)
   const lampWrap = useRef<THREE.Group>(null)
   const plRef = useRef<(THREE.Group | null)[]>([])
+  const deckRef = useRef<THREE.Mesh>(null)
   const st = useRef({ p: shown ? 1 : 0, landed: shown })
   useFrame((_, dt) => {
     const k = st.current
@@ -106,15 +122,17 @@ export function Bridge5({ i, shown }: { i: number; shown: boolean }) {
     if (railsWrap.current) { railsWrap.current.scale.set(Math.max(0.0001, re), 1, 1); railsWrap.current.visible = rp > 0.001 }
     if (lampWrap.current) { const s = Math.max(0.0001, re); lampWrap.current.scale.setScalar(s); lampWrap.current.visible = s > 0.3 }
     const n = planks.length
+    const landed = k.p >= 1
     for (let j = 0; j < n; j++) {
       const g = plRef.current[j]; if (!g) continue
       const k2 = RM ? k.p : Math.min(1, Math.max(0, (k.p * 1.08 - (j / (n + 1)) * 0.9) / 0.18))
-      g.visible = k2 > 0.001
+      g.visible = k2 > 0.001 && !landed
       g.position.y = planks[j].p.y + (1 - k2) * (1 - k2) * 0.85
       const sc = Math.max(0.0001, 1 + Math.sin(Math.min(1, k2) * Math.PI) * 0.14)
       g.scale.set(sc, k2 < 0.92 ? Math.max(0.0001, 0.6 + 0.4 * (k2 / 0.92)) : 1, sc)
     }
-    if (shown && k.p >= 1 && !k.landed) { k.landed = true }
+    if (deckRef.current) deckRef.current.visible = landed
+    if (shown && landed && !k.landed) { k.landed = true }
     if (!shown) k.landed = false
   })
   return (
@@ -139,6 +157,7 @@ export function Bridge5({ i, shown }: { i: number; shown: boolean }) {
           </group>
         </group>
       </group>
+      <mesh ref={deckRef} geometry={deck} material={clayVC()} castShadow receiveShadow visible={false} />
       {planks.map((pl, j) => (
         <group key={j} ref={(el) => { plRef.current[j] = el }} position={pl.p} rotation={[0, pl.r, (j % 3 - 1) * 0.03]} visible={st.current.p > 0}>
           <RoundedBox args={[0.95, 0.07, 0.26]} radius={0.03} material={clay(j % 2 ? C.wood : C.woodLight)} castShadow receiveShadow />

@@ -190,7 +190,7 @@ export default function Sky5() {
     <>
       <hemisphereLight ref={hemi} args={['#fff3e0', '#b7a086', 1.1]} />
       <directionalLight ref={sun} intensity={1.9} color="#ffe2b6" castShadow
-        shadow-mapSize={[1024, 1024]} shadow-bias={-0.0004} shadow-normalBias={0.03}
+        shadow-mapSize={[512, 512]} shadow-bias={-0.0004} shadow-normalBias={0.03}
         shadow-camera-left={-9} shadow-camera-right={9} shadow-camera-top={9} shadow-camera-bottom={-9} shadow-camera-far={60} />
       <directionalLight ref={fill} position={[-7, 5, -6]} intensity={0.4} color="#dfe9e4" />
       <mesh renderOrder={-1} frustumCulled={false}>

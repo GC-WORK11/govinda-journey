@@ -15,7 +15,7 @@ export const EXIT = new THREE.Vector3(0, 0, -4.2)
 export const ISLAND_POS: THREE.Vector3[] = V5_ORDER.map((_, i) => new THREE.Vector3(
   Math.sin(i * 0.62) * 6.8 + Math.sin(i * 0.23) * 2.2,          // soft S sway
   i * 1.05 + Math.sin(i * 1.7 + 0.6) * 0.75,                    // slow rise + variety
-  -i * 16,
+  -i * 14,
 ))
 
 export const islandIndex = (id: IslandId) => V5_ORDER.indexOf(id)

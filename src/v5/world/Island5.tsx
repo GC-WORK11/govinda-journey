@@ -5,7 +5,7 @@
  * swings open once done, and lantern stands that warm up after dark.
  * Local frame: top surface y = 0, path enters (0,0,4.2) → exits (0,0,-4.2).
  */
-import { Suspense, useMemo, useRef } from 'react'
+import { Suspense, useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
@@ -14,7 +14,7 @@ import { Lanterns } from '../../world/Lanterns'
 import { env } from '../../world/sky'
 import { useV5, useWalkable, useBlocker, walkables, blockers, interactables, V5_ORDER, type IslandId } from '../core'
 import { ISLAND_R, ISLAND_POS } from './layout'
-import { OBSTACLES, DIORAMAS, hasObstacle, Guard } from './modules'
+import { OBSTACLES, DIORAMAS, hasObstacle, Guard, preloadIsland } from './modules'
 import { useWorldUI } from './progress'
 import { LEVELS } from '../../levels/registry'
 
@@ -209,6 +209,8 @@ export function Island5({ id, i }: { id: IslandId; i: number }) {
   // obstacles + dioramas mount when the player could see them (and stay mounted
   // — island state must not be lost by walking away); the finale mounts all.
   const near = finale || (i >= idx - 1 && i <= idx + 2)
+  // and the lazy chunks are fetched another island out — arrival mounts warm.
+  useEffect(() => { if (i > idx && i <= idx + 3) preloadIsland(id) }, [idx, i, id])
   const mounted = useRef(false)
   if (near) mounted.current = true
   return (
