@@ -100,7 +100,7 @@ export default function Game({ onWin }: GameProps) {
 
   return (
     <div className="i01">
-      <div className="i01-wash" style={{ opacity: 0.02 + p * 0.52 }} />
+      <div className="i01-wash" style={{ opacity: 0.02 + p * 0.42 }} />
       <p className="i01-guide" aria-live="polite">{guide}</p>
       <button
         className="i01-stage" data-qa="breathe" aria-label="Hold to breathe in, let go to breathe out"
@@ -111,7 +111,7 @@ export default function Game({ onWin }: GameProps) {
         onKeyUp={(e) => { if (e.key === ' ' || e.key === 'Enter') release() }}
         style={{ filter: `brightness(${1 + p * 0.05}) saturate(${1 + p * 0.08})` }}
       >
-        <svg viewBox="0 0 380 250" aria-hidden="true">
+        <svg viewBox="44 38 296 198" aria-hidden="true">
           {/* soft ground */}
           <ellipse cx="190" cy="153" rx="143" ry="92" fill={P.stone} opacity="0.1" />
           <path

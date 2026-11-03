@@ -24,9 +24,9 @@ a { color: inherit; }
 /* ---- voice ---- */
 .voice-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-right: 7px; vertical-align: 1px;
   animation: calm 2.6s ease-in-out infinite; }
-.heard { opacity: .6; animation: heardIn .3s ease both; }
+.heard { animation: heardLife 1.5s ease both; }
 @keyframes calm { 0%, 100% { transform: scale(.65); opacity: .45; } 50% { transform: scale(1); opacity: 1; } }
-@keyframes heardIn { from { opacity: 0; } }
+@keyframes heardLife { 0% { opacity: 0; } 12% { opacity: .6; } 70% { opacity: .55; } 100% { opacity: 0; } }
 
 /* ---- type ---- */
 .btn { display: inline-block; text-decoration: none; padding: 12px 22px; border-radius: 999px; background: var(--ink); color: var(--paper);
@@ -53,6 +53,7 @@ h2 { font-size: clamp(32px, 4.2vw, 48px); margin: 8px 0 10px; }
 .intro .sub { color: var(--ink2); font-size: 16px; max-width: 400px; margin-bottom: 28px; }
 .intro .btn { animation: wIn .9s .9s cubic-bezier(.19,.7,.22,1) both; }
 .arrive { left: 7vw; bottom: 9vh; max-width: 460px; }
+.arrive .eyebrow { animation: wIn .7s both; }
 .arrive .line { color: var(--ink2); font-size: 16px; margin-bottom: 22px; text-wrap: pretty; }
 .arrive .row { animation: wIn .9s .75s cubic-bezier(.19,.7,.22,1) both; }
 .row { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
@@ -90,7 +91,7 @@ h2 { font-size: clamp(32px, 4.2vw, 48px); margin: 8px 0 10px; }
 .badge b { display: block; font: 500 14px var(--serif); } .badge small { color: var(--ink2); font-size: 12px; }
 
 /* the clay "press" moment after a win */
-.earned { position: absolute; top: calc(max(20px, env(safe-area-inset-top)) + 34px); right: 24px; z-index: 6;
+.earned { position: absolute; top: calc(max(20px, env(safe-area-inset-top)) + 34px); right: 24px; z-index: 5;
   display: grid; justify-items: center; gap: 6px; animation: earnedBye .5s ease 3.3s both; }
 .earned .em { width: 56px; height: 56px; padding: 9px;
   box-shadow: inset 0 -3px 0 rgba(0,0,0,.12), 0 14px 30px -14px rgba(60,40,20,.45), 0 1px 0 rgba(255,255,255,.7);
@@ -109,9 +110,9 @@ h2 { font-size: clamp(32px, 4.2vw, 48px); margin: 8px 0 10px; }
 .path { position: absolute; left: 50%; bottom: max(12px, env(safe-area-inset-bottom)); transform: translateX(-50%);
   width: min(660px, 58vw); height: 42px; display: flex; align-items: flex-end; }
 .path-rail { position: absolute; left: 0; right: 0; bottom: 11px; height: 1.5px; border-radius: 2px;
-  background: linear-gradient(90deg, transparent, var(--line) 8%, var(--line) 92%, transparent); }
+  background: linear-gradient(90deg, transparent, rgba(47,41,37,.22) 8%, rgba(47,41,37,.22) 92%, transparent); }
 .stop { position: relative; flex: 1; height: 42px; display: grid; place-items: end center; padding: 0; }
-.stop .tick { display: block; width: 2px; height: 7px; border-radius: 2px; background: rgba(47,41,37,.28); margin-bottom: 8px;
+.stop .tick { display: block; width: 2px; height: 8px; border-radius: 2px; background: rgba(47,41,37,.32); margin-bottom: 8px;
   transition: height .2s, background .2s, transform .2s; }
 .stop.done .tick { width: 7px; height: 7px; margin-bottom: 8px; background: var(--ink);
   border-radius: 48% 52% 55% 45% / 52% 48% 52% 48%; }

@@ -74,9 +74,9 @@ export default function Diorama({ unlocked }: DioramaProps) {
   useFrame((st) => {
     const t = st.clock.elapsedTime
     screens.forEach((m, i) => {
-      m.emissiveIntensity = unlocked ? 0.5 + Math.sin(t * 1.8 + i * 1.4) * 0.12 : 0
+      m.emissiveIntensity = unlocked ? 0.8 + Math.sin(t * 1.8 + i * 1.4) * 0.15 : 0
     })
-    led.emissiveIntensity = unlocked ? 0.5 + (Math.sin(t * 5) > 0 ? 0.5 : 0.1) : 0
+    led.emissiveIntensity = unlocked ? 0.7 + (Math.sin(t * 5) > 0 ? 0.6 : 0.1) : 0
     const tk = token.current
     if (tk) {
       if (!unlocked) { tk.visible = false; return }
@@ -116,7 +116,7 @@ export default function Diorama({ unlocked }: DioramaProps) {
       {/* round wooden table */}
       <group position={TABLE}>
         <mesh position={[0, TOP - 0.035, 0]} material={clay(C.woodLight)} castShadow receiveShadow><cylinderGeometry args={[0.82, 0.82, 0.07, 28]} /></mesh>
-        <mesh position={[0, TOP - 0.085, 0]} material={clay(C.wood)}><torusGeometry args={[0.72, 0.025, 8, 28]} /></mesh>
+        <mesh position={[0, TOP - 0.085, 0]} rotation={[Math.PI / 2, 0, 0]} material={clay(C.wood)}><torusGeometry args={[0.72, 0.025, 8, 28]} /></mesh>
         <mesh position={[0, 0.26, 0]} material={clay(C.wood)} castShadow><cylinderGeometry args={[0.07, 0.1, 0.5, 10]} /></mesh>
         <mesh position={[0, 0.03, 0]} material={clay(C.wood)} castShadow><cylinderGeometry args={[0.3, 0.34, 0.06, 20]} /></mesh>
       </group>

@@ -14,20 +14,25 @@ const LITE = typeof location !== 'undefined' && new URLSearchParams(location.sea
 const RM = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches
 const HORIZON = '#efe2cb'
 
+// stable references so merged geometry is built once, not per render
+const PATHS = LEVELS.map((_, i) => pathLocal(i))
+const BRIDGES = LEVELS.slice(0, -1).map((_, i) => ({ from: edge(i, i + 1), to: edge(i + 1, i) }))
+
 /** Soft warm vertical sky gradient on a big dome (distant islands fade into the horizon haze). */
 function SkyDome() {
   const mat = useMemo(() => new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, fog: false,
     uniforms: {
-      top: { value: new THREE.Color('#b6d1d7') },
+      top: { value: new THREE.Color('#bcd6da') },
       mid: { value: new THREE.Color(HORIZON) },
-      bot: { value: new THREE.Color('#dfc9a8') },
+      bot: { value: new THREE.Color('#dcc2a0') },
     },
     vertexShader: 'varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
     fragmentShader:
       'varying vec3 vP; uniform vec3 top; uniform vec3 mid; uniform vec3 bot;' +
-      'void main(){ float h = normalize(vP).y;' +
-      ' vec3 c = h > 0.0 ? mix(mid, top, smoothstep(0.0, 0.5, h)) : mix(mid, bot, smoothstep(0.0, 0.4, -h));' +
+      'void main(){ float h = normalize(vP).y;' + // camera looks down: frame spans roughly h in [-0.75, -0.25]
+      ' vec3 c = mix(bot, mid, smoothstep(-0.75, -0.4, h));' +
+      ' c = mix(c, top, smoothstep(-0.52, -0.22, h));' +
       ' gl_FragColor = vec4(c, 1.0); }',
   }), [])
   return (
@@ -74,7 +79,7 @@ function Islands() {
       {LEVELS.map((L, i) => (
         <group key={L.id} position={CENTERS[i]}>
           <Island ground={L.palette.ground} seed={i + 1} />
-          <Scatter ground={L.palette.ground} accent={L.palette.accent} seed={i * 7 + 2} path={pathLocal(i)} />
+          <Scatter ground={L.palette.ground} accent={L.palette.accent} seed={i * 7 + 2} path={PATHS[i]} />
           {near(i) && (
             <Suspense fallback={null}>
               <L.Diorama unlocked={solved.includes(L.id)} active={i === current && (phase === 'playing' || phase === 'panel')} />
@@ -82,7 +87,7 @@ function Islands() {
           )}
         </group>
       ))}
-      {LEVELS.slice(0, -1).map((_, i) => <Bridge key={i} from={edge(i, i + 1)} to={edge(i + 1, i)} />)}
+      {BRIDGES.map((b, i) => <Bridge key={i} from={b.from} to={b.to} />)}
     </group>
   )
 }
@@ -146,10 +151,10 @@ function TravellerRig() {
     const close = phase === 'playing' || phase === 'panel'
     const ci = w ? w.to : current
     const ctr = CENTERS[ci]
-    const aim = g.position.clone().lerp(new THREE.Vector3(ctr.x, ctr.y + 0.55, ctr.z), w ? 0.4 : 0.55)
+    const aim = g.position.clone().lerp(new THREE.Vector3(ctr.x, ctr.y + 0.55, ctr.z), w ? 0.4 : portrait ? 0.65 : 0.55)
     if (portrait) aim.y -= 1.3 // building sits in the top half, text at the bottom
     else { aim.addScaledVector(SIDE, -1.05); aim.y -= 0.25 } // building in the right two-thirds, text bottom-left
-    const dist = (portrait ? 1.95 : 1) * (close ? (portrait ? 0.85 : 0.78) : 1)
+    const dist = (portrait ? 2.3 : 1) * (close ? (portrait ? 0.88 : 0.78) : 1)
     const want = aim.clone().addScaledVector(OFF, dist)
     if (w && !RM) { const a = Math.sin(w.e * Math.PI); want.addScaledVector(SIDE, a * 1.4); want.y += a * 0.6 } // gentle arc while gliding
     camera.position.lerp(want, Math.min(1, dt * 1.7))

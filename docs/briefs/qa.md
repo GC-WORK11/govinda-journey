@@ -6,6 +6,8 @@ Write scripts/playthrough.mjs: opens http://localhost:5190/?qa&lite (base URL as
 (else fall back to window.__journey.win()), wait for the panel, screenshot proofs/play-<viewport>-<NN>-<ID>.png, click
 "Walk on", wait for arrival (phase === 'arrived'). At the end screenshot the finale panel. Run at 1440x900 and 390x844.
 Report per level: real QA script used or fallback, won or not, console errors. Also test "Skip to the end" from a fresh
-start and that a page reload keeps progress (localStorage). Then every ~20 minutes for the next 3 hours re-run it and
-append the results table to docs/notes/qa.md, and for each failing level append a precise bug note to
-docs/notes/<ID>.md (what step, what you saw). Don't fix other agents' code.
+start and that a page reload keeps progress (localStorage). IMPORTANT box rules: copy the shared-browser lock block from the top of scripts/level-check.mjs (the /tmp/gj-chrome.lock
+mkdir loop + unlock on exit) into playthrough.mjs so only one Chrome runs at a time. Use ONE browser for both viewports,
+generous timeouts (page.setDefaultTimeout(120000)), and give up a level after 90 s (record it, move on). Run the full
+playthrough at most TWICE total. Append the results table to docs/notes/qa.md, and for each failing level append a
+precise bug note to docs/notes/<ID>.md (what step, what you saw). Don't fix other agents' code.

@@ -105,11 +105,20 @@ export default function Game({ onWin }: GameProps) {
           <circle cx="398" cy="176" r="22" fill="#8fb36b" />
         </g>
 
-        {/* bushes + stones */}
+        {/* bushes + stones + flowers */}
         <circle cx="116" cy="262" r="12" fill="#8fb36b" />
         <circle cx="342" cy="258" r="10" fill="#8fb36b" />
         <circle cx="352" cy="262" r="7" fill="#6f9a55" />
         <ellipse cx="132" cy="320" rx="9" ry="5" fill="#c9bfb0" />
+        <g fill="#fbf6ee">
+          <circle cx="150" cy="276" r="2" /><circle cx="160" cy="281" r="1.6" />
+          <circle cx="330" cy="286" r="2" /><circle cx="318" cy="292" r="1.5" />
+          <circle cx="120" cy="298" r="1.8" /><circle cx="352" cy="308" r="1.7" />
+        </g>
+        <g fill="#eec978">
+          <circle cx="156" cy="283" r="1.5" /><circle cx="324" cy="289" r="1.4" />
+          <circle cx="112" cy="290" r="1.4" />
+        </g>
 
         {/* the path home */}
         <path d="M222,340 C216,314 216,296 226,278 C234,264 238,256 234,250 L256,250
@@ -124,7 +133,7 @@ export default function Game({ onWin }: GameProps) {
         </g>
 
         {/* catch stray taps, then the dusk veil above the whole scene */}
-        <rect width="480" height="340" fill="transparent" onPointerDown={nudge} />
+        <rect className="bg" width="480" height="340" fill="transparent" onPointerDown={nudge} />
         <rect className="veil" width="480" height="340" />
 
         {/* stars + moon above the veil */}
@@ -146,10 +155,10 @@ export default function Game({ onWin }: GameProps) {
             <circle className="glow" cx="0" cy="-31" r="30" fill="url(#l01-glow)" />
             <ellipse cx="0" cy="1" rx="7" ry="2.4" fill="#4a3f38" />
             <rect x="-1.8" y="-27" width="3.6" height="28" rx="1.8" fill="#4a3f38" />
-            <ellipse className="pot" cx="0" cy="-28" rx="7.5" ry="4" />
+            <ellipse className="pot" cx="0" cy="-28" rx="8.5" ry="4.5" />
             <path className="flame" fill="url(#l01-flame)"
-              d="M0,-41.5 C3.6,-36 3.6,-31.8 0,-30.6 C-3.6,-31.8 -3.6,-36 0,-41.5 Z" />
-            <rect className="hit" data-qa={`lamp-${i}`} x="-18" y="-47" width="36" height="52"
+              d="M0,-42.5 C3.8,-36.5 3.8,-32 0,-30.8 C-3.8,-32 -3.8,-36.5 0,-42.5 Z" />
+            <rect className="hit" data-qa={`lamp-${i}`} x="-20" y="-48" width="40" height="54"
               fill="transparent" onPointerDown={() => light(i)} />
           </g>
         ))}
@@ -175,7 +184,9 @@ const CSS = `
 .l01 { display: grid; gap: 10px; justify-items: center; width: 100%; }
 .l01-svg { width: 100%; max-width: 480px; height: auto; display: block; border-radius: 18px;
   box-shadow: 0 18px 40px -22px rgba(60,40,20,.5); touch-action: manipulation; user-select: none; }
-.l01-svg .veil { fill: #453f5c; opacity: .52; transition: opacity 2.1s ease; pointer-events: none; }
+.l01-svg .veil { fill: #453f5c; opacity: .46; transition: opacity 2.1s ease; pointer-events: none; }
+.l01-svg * { pointer-events: none; }
+.l01-svg .hit, .l01-svg .bg { pointer-events: auto; }
 .l01-svg.dawn .veil { opacity: 0; }
 .l01-svg .sun { opacity: 0; transform: translateY(18px); transition: opacity 2s ease .3s, transform 2s ease .3s; }
 .l01-svg.dawn .sun { opacity: 1; transform: translateY(0); }

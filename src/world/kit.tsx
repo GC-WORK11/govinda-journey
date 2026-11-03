@@ -73,7 +73,7 @@ function islandGeo(radius: number, ground: string, seed: number) {
     pos.setX(i, pos.getX(i) * k); pos.setZ(i, pos.getZ(i) * k); pos.setY(i, y + (rnd(i + 99) - 0.5) * 0.28)
   }
   under.computeVertexNormals()
-  paint(under, C.earth, (c, _x, y) => c.multiplyScalar(0.55 + 0.5 * smooth(-0.55, -1.2, y) - 0.25 * smooth(-3.4, -4.2, y)), 0.07)
+  paint(under, C.earth, (c, _x, y) => c.multiplyScalar(0.66 + 0.44 * smooth(-0.55, -1.2, y) - 0.22 * smooth(-3.4, -4.2, y)), 0.08)
   const g = mergeGeometries([top, under], false)!
   top.dispose(); under.dispose()
   return g
@@ -112,7 +112,9 @@ export function scatterGeo({ radius = 3.2, ground = C.leaf, accent = C.terracott
   const geos: THREE.BufferGeometry[] = []
   const rnd = (n: number) => { const x = Math.sin(seed * 91.7 + n * 12.9898) * 43758.5453; return x - Math.floor(x) }
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), s = new THREE.Vector3()
-  const put = (g: THREE.BufferGeometry, x: number, y: number, z: number, ry = 0, sc = 1, rx = 0, rz = 0, hex?: string, jit = 0) => {
+  const put = (g0: THREE.BufferGeometry, x: number, y: number, z: number, ry = 0, sc = 1, rx = 0, rz = 0, hex?: string, jit = 0) => {
+    const g = g0.index ? g0.toNonIndexed() : g0 // keep index layout uniform for merging
+    if (g !== g0) g0.dispose()
     e.set(rx, ry, rz); q.setFromEuler(e); s.setScalar(sc)
     g.applyMatrix4(m.compose(new THREE.Vector3(x, y, z), q, s))
     if (hex) paint(g, hex, undefined, jit)

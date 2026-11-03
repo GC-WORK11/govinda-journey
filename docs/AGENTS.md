@@ -52,3 +52,5 @@ off the building, gives a badge and opens the project story. Read src/levels/reg
 ## Shared box etiquette (added by coordinator)
 - Headless Chrome is serialized: scripts/level-check.mjs waits for a shared slot ("waiting for the shared browser slot…"). That is normal; just wait. Do NOT write your own puppeteer scripts or launch Chrome directly — use level-check.mjs only, and at most once or twice per agent.
 - Run `npx tsc -p . --noEmit` at most a few times; filter output for your folder.
+- NEVER run pkill/killall/kill on chrome, node, or anything else. Other people's work runs on this box. If a check hangs, just wait or report it in your notes.
+- Never start/stop the dev server. It runs on :5190; if it's down, wait a minute (the coordinator restarts it).

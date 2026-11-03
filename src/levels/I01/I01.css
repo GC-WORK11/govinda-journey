@@ -8,9 +8,9 @@
 }
 .i01-wash {
   position: absolute;
-  inset: -44px -34px -22px;
+  inset: -40px -18px -16px;
   border-radius: 60px;
-  background: radial-gradient(circle at 50% 46%, rgba(255, 250, 238, .95), rgba(255, 250, 238, 0) 72%);
+  background: radial-gradient(circle at 50% 46%, rgba(255, 250, 238, .95), rgba(255, 250, 238, 0) 80%);
   pointer-events: none;
 }
 .i01-guide {

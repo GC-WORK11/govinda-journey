@@ -11,10 +11,10 @@ const POND_R = 1.45
 const STONE: [number, number, number] = [1.4, 0, 0.85]
 
 const PADS: [number, number, number, number][] = [
-  [-0.55, -1.15, 0.26, 0.4],
-  [0.45, -0.72, 0.2, 2.6],
-  [0.1, -1.35, 0.17, 4.4],
-  [0.85, -0.4, 0.15, 5.6],
+  [-0.62, -1.12, 0.26, 0.4],
+  [0.52, -0.95, 0.2, 2.6],
+  [0.06, -1.32, 0.17, 4.4],
+  [-0.42, -0.28, 0.19, 1.2],
 ]
 
 /** Slow rings spreading over the water once the island is open. */
@@ -29,7 +29,7 @@ function Ripples({ on }: { on: boolean }) {
     ref.current?.children.forEach((child, i) => {
       const k = (t * 0.14 + i / 3) % 1
       child.scale.setScalar(0.36 + k * 0.94)
-      mats[i].opacity = on ? 0.3 * (1 - k) : 0
+      mats[i].opacity = on ? 0.36 * (1 - k) : 0
     })
   })
   return (
@@ -43,14 +43,14 @@ function Ripples({ on }: { on: boolean }) {
 function Fireflies({ on, active }: { on: boolean; active: boolean }) {
   const ref = useRef<THREE.Group>(null)
   const mat = useMemo(() => new THREE.MeshBasicMaterial({
-    color: '#f2d09a', transparent: true, opacity: 0, depthWrite: false,
+    color: '#eec27e', transparent: true, opacity: 0, depthWrite: false,
   }), [])
   const seeds = useMemo(() => Array.from({ length: 7 }, (_, i) => ({
     a: i * 0.9, r: 0.42 + (i % 3) * 0.33, y: 0.3 + (i % 4) * 0.12,
   })), [])
   useFrame(({ clock }, dt) => {
     const t = clock.elapsedTime
-    mat.opacity += ((on ? 0.82 : 0) - mat.opacity) * Math.min(1, dt * 2)
+    mat.opacity += ((on ? 0.9 : 0) - mat.opacity) * Math.min(1, dt * 2)
     ref.current?.children.forEach((m, i) => {
       const f = seeds[i]
       const a = t * (active ? 0.24 : 0.16) + f.a
@@ -59,7 +59,7 @@ function Fireflies({ on, active }: { on: boolean; active: boolean }) {
   })
   return (
     <group ref={ref}>
-      {seeds.map((_, i) => <mesh key={i} material={mat}><sphereGeometry args={[0.027, 8, 6]} /></mesh>)}
+      {seeds.map((_, i) => <mesh key={i} material={mat}><sphereGeometry args={[0.032, 8, 6]} /></mesh>)}
     </group>
   )
 }
@@ -82,7 +82,7 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
           <mesh geometry={padGeo} scale={[r, r, 1]} material={clay(i % 2 ? C.leaf : C.leafDark)} castShadow />
         </group>
       ))}
-      <mesh position={[POND_X - 0.55, 0.13, POND_Z - 1.15]} material={clay(C.paper)} castShadow>
+      <mesh position={[POND_X - 0.62, 0.13, POND_Z - 1.12]} material={clay(C.paper)} castShadow>
         <sphereGeometry args={[0.045, 10, 8]} />
       </mesh>
 
@@ -111,7 +111,7 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
       <Ripples on={unlocked} />
       <Fireflies on={unlocked} active={active} />
 
-      <Scaffold open={unlocked} position={STONE} size={[1.1, 0.85, 0.9]} />
+      <Scaffold open={unlocked} position={STONE} size={[1.05, 0.5, 0.95]} />
     </group>
   )
 }
