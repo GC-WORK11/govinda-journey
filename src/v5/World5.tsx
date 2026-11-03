@@ -211,16 +211,20 @@ export default function World5() {
     const at = q.get('at') as IslandId | null
     if (at && (V5_ORDER as readonly string[]).includes(at)) {
       if (q.has('unlock')) for (const id of V5_ORDER.slice(0, islandIndex(at))) useV5.getState().complete(id)
-      // PLAYER may still be seeding its spawn when we teleport — keep retrying
-      // until the position actually lands, then stop (bounded ~8 s).
+      // PLAYER mounts lazily and re-seeds/overwrites core.player.pos — a single
+      // goto can be clobbered before the real controller picks it up. Re-goto
+      // until pos *stays* at the target between ticks (checking before this
+      // tick's write — goto's own writes would always pass the check).
       const target = ISLAND_POS[islandIndex(at)].clone().add(ENTRY)
       let tries = 0
       const iv = window.setInterval(() => {
-        v5.goto?.(at)
-        if ((player.island === at && player.pos.distanceToSquared(target) < 4) || ++tries > 26) {
+        if (player.island === at && player.pos.distanceToSquared(target) < 1) {
           window.clearInterval(iv)
+          return
         }
-      }, 300)
+        v5.goto?.(at)
+        if (++tries > 80) window.clearInterval(iv) // ~40 s bound for slow mounts
+      }, 500)
     }
   }, [])
 
