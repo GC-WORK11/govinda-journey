@@ -16,6 +16,12 @@
 - `1440x900` (?qa&fresh): same layout verified; next island silhouette behind; V4 island visuals (dome, scatter, diorama) + obstacle placeholder live.
 - Bridge walk strip = 0.98 m (was 0.62 vs 0.95 m planks — players were falling at the edges).
 - `Hygiene` + `Guard.onError → useWorldUI.broken`: a crashed or null-merged island can no longer freeze the canvas or strand the path (gate + bridge open).
+- `purgeCorridors()` (inside `Hygiene`, ~1.6 s cadence): any blocker crossing the island path corridor (|x|<1.15, |z|<4.45 local) is dropped — **ISL: keep blockers out of the corridor; gate via interactables instead.**
+- `purgeIsland(i)`: on obstacle crash, sweeps its leftover walkables/blockers/interactables out of the island volume.
+- `?at=<ID>` retries `goto` every 300 ms until the position lands (PLAYER's spawn seed used to overwrite the teleport → stuck at L01).
+- Bridge strip: DoubleSide, 0.98 m, extended ~5% past both ends into the island discs.
+- Exit gate leaf swings outward over the void (was: inward across the path).
+- QaProbe `project`/`find`/`debug` attach to the shared `__journey.v5` object regardless of effect order.
 
 ## Cross-area notes
 - **PLAYER**: follow-cam was framing very close/low on mobile spawn (character fills half the frame). Distance/pitch on `pointer:coarse` may need a look.
