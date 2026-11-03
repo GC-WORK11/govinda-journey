@@ -1,6 +1,6 @@
 # V6 — ISL-B (L01 campus, L02 closed gates, L03 weekend workshop)
 
-- L01: campus courtyard kept (campus block + flag + quad benches added; laptop desk, low-wall hop, gate tutorial ~20 s); wrap-cloth dome now `?v4`-only.
-- L02: gate line opened up — stone wall wings + returned-letter heap beside the pillars, V4 stream kept (opaque clay); letters→steps→ledge ~25 s; dome `?v4`-only.
-- L03: weekend workshop kept (V4 browser easel + workbench + rack); ledge = minimal two-stone knoll; platform slab bug fixed (paver GLB -> quat rocks); dome `?v4`-only.
-- Verify: play.mjs real input — L01 PASS, L02 PASS at 1440; L03 queued on the chrome lock (solver/mechanics unchanged since earlier PASSes).
+- L01: campus courtyard (campus block + flag + quad benches added; low-wall hop -> laptop desk -> gate, ~20 s); wrap-cloth dome now `?v4`-only.
+- L02: closed gates (stone wall wings + returned-letter heap beside pillars; V4 stream kept, opaque clay); letters -> steps -> ledge gate, ~25 s; dome `?v4`-only.
+- L03: weekend workshop (V4 browser easel + workbench + page rack); ledge = minimal two-stone knoll; platform slab bug fixed (paver GLB at fit 1.58 -> quat_rock boulders); dome `?v4`-only.
+- Verify: play.mjs real input 1440x900 — L01 PASS, L02 PASS, L03 PASS (93fbe8b). 390x844 run queued on the chrome lock.
