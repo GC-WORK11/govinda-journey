@@ -11,6 +11,7 @@ import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import * as core from '../../v5/core'
 import { C, clay, Gate, Mound, PaperLetter, PathStones, PillHint, Prop, REDUCED, Rock, tpLocal, sleep, useLocalPlayer, useSolver } from '../L01/shared.v5'
+import { Bush } from '../../world/kit'
 import { Scatter } from '../../v5/art/Dressing'
 
 /** Where the five letters lie (island-local). */
@@ -177,7 +178,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
         material={clay(C.moss)} castShadow receiveShadow />
       <Rock position={[-2.5, 1.62, -4.15]} s={0.45} yaw={0.4} variant={1} />
       <Rock position={[2.55, 1.62, -4.3]} s={0.34} yaw={1.9} variant={2} />
-      <Prop name="plant_bush" position={[-2.2, 1.62, -3.4]} scale={1.6} />
+      <Bush position={[-2.2, 1.62, -3.4]} s={1.0} />
 
       {/* the closed gate on the ledge */}
       <Gate position={[0, 1.62, -3.78]} open={open} instant={done} width={1.85} height={1.5} />
@@ -202,10 +203,10 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       <PathStones pts={[[0.7, 1.95], [1.6, 1.25]]} seed={11} />
       <Prop name="fence_simple" position={[-4.15, 0, -0.4]} rotation={[0, 1.35, 0]} scale={1.35} />
       <Prop name="fence_simple" position={[-4.05, 0, -1.65]} rotation={[0, 1.85, 0]} scale={1.35} />
-      <Prop name="plant_bush_detailed" position={[-3.5, 0, 2.4]} scale={1.5} />
-      <Prop name="plant_bush" position={[3.6, 0, 1.9]} rotation={[0, 2.2, 0]} scale={1.7} />
-      {/* seeded rim dressing, kept clear of letters, steps and the ledge */}
-      <Scatter seed={12} density={0.5} kinds={['tuft', 'flower']}
+      <Bush position={[-3.5, 0, 2.4]} s={1.1} />
+      <Bush position={[3.6, 0, 1.9]} s={0.9} />
+      {/* seeded rim dressing (flowers only), kept clear of letters, steps and the ledge */}
+      <Scatter seed={12} density={0.5} kinds={['flower']}
         avoid={[[1.6, 2.7, 1.1], [-2.5, 0.9, 1.6], [2.05, 0.95, 1.4], [-2.9, -1.5, 1.1], [2.5, -1.3, 1.2], [2.1, -1.7, 1.5], [0, -3.55, 2.4], [0, 4.2, 1.4]]} />
 
       <PillHint text={hint} />
