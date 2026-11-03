@@ -1,0 +1,197 @@
+/**
+ * L02 — Rejections.
+ * The exit gate sits on a ledge too high to jump. Five letters lie scattered;
+ * walking into one sends it flying to fold into a stone step. Five steps reach
+ * the ledge, the gate swings, and completing grants `climb`.
+ * Contract: docs/V5.md + src/v5/core.ts.
+ */
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useFrame } from '@react-three/fiber'
+import { RoundedBox } from '@react-three/drei'
+import * as THREE from 'three'
+import * as core from '../../v5/core'
+import { C, clay, Gate, Hint, Mound, PaperLetter, PathStones, REDUCED, Rock, tpLocal, sleep, useLocalPlayer, useSolver } from '../L01/shared.v5'
+import { Bush, Fence } from '../../world/kit'
+
+/** Where the five letters lie (island-local). */
+const LETTERS = [
+  new THREE.Vector3(1.6, 0.03, 2.7),    // out in the open, near the entry
+  new THREE.Vector3(-2.5, 0.03, 0.7),   // tucked behind the big rock
+  new THREE.Vector3(2.05, 0.46, 0.95),  // on top of the little rise
+  new THREE.Vector3(-1.3, 0.03, -0.7),  // midfield
+  new THREE.Vector3(2.5, 0.03, -1.3),   // between the far stones
+]
+/** Step i top position — a rising run of stone teeth to the ledge (1.6 m). */
+const STEP_TOPS = [0.32, 0.64, 0.96, 1.28, 1.6]
+const STEP_POS = STEP_TOPS.map((y, i) => new THREE.Vector3(i % 2 ? 0.08 : -0.08, y, -1.0 - i * 0.34))
+const FLY_S = 0.95
+
+type Slot = {
+  pos: THREE.Vector3
+  state: 'idle' | 'flying' | 'gone'
+  t: number
+  seat: number
+  seed: number
+  baseRy: number
+}
+
+function StoneStep({ pos, yaw, instant }: { pos: THREE.Vector3; yaw: number; instant?: boolean }) {
+  const ref = useRef<THREE.Mesh>(null)
+  const t = useRef(instant ? 1 : 0)
+  core.useWalkable(ref)
+  core.useBlocker(ref)
+  useFrame((_, dt) => {
+    if (t.current >= 1) return
+    t.current = Math.min(1, t.current + dt / (REDUCED ? 0.2 : 0.6))
+    const k = t.current, e = 1 - Math.pow(1 - k, 3)
+    if (ref.current) ref.current.scale.set(0.5 + 0.5 * e, Math.max(0.001, e), 0.5 + 0.5 * e)
+  })
+  const h = pos.y + 0.08
+  return (
+    <RoundedBox ref={ref} args={[1.08, h, 0.58]} radius={0.07} position={[pos.x, h / 2 - 0.04, pos.z]}
+      rotation={[0, yaw, 0]} material={clay(C.stone)} castShadow receiveShadow />
+  )
+}
+
+function LetterRunner({ slot, player, onPickup, onLanded }: {
+  slot: Slot
+  player: THREE.Vector3
+  onPickup: () => number // returns the step seat reserved for this letter
+  onLanded: (seat: number) => void
+}) {
+  const g = useRef<THREE.Group>(null)
+  const from = useMemo(() => new THREE.Vector3(), [])
+  const ctrl = useMemo(() => new THREE.Vector3(), [])
+  const tmp = useMemo(() => new THREE.Vector3(), [])
+  useFrame((s, dt) => {
+    const m = g.current
+    if (!m || slot.state === 'gone') return
+    if (slot.state === 'idle') {
+      if (!REDUCED) m.rotation.z = Math.sin(s.clock.elapsedTime * 1.6 + slot.seed * 9) * 0.035
+      if (player.distanceTo(slot.pos) < 0.62) {
+        slot.seat = onPickup()
+        slot.state = 'flying'
+        slot.t = 0
+        from.copy(slot.pos)
+        const to = STEP_POS[slot.seat]
+        ctrl.copy(from).lerp(to, 0.5)
+        ctrl.y = Math.max(from.y, to.y) + 1.35
+      }
+      return
+    }
+    // flying — quadratic bezier, folding as it goes
+    slot.t = Math.min(1, slot.t + dt / (REDUCED ? 0.35 : FLY_S))
+    const t = slot.t, u = 1 - t
+    const to = STEP_POS[slot.seat]
+    tmp.set(
+      u * u * from.x + 2 * u * t * ctrl.x + t * t * to.x,
+      u * u * from.y + 2 * u * t * ctrl.y + t * t * to.y,
+      u * u * from.z + 2 * u * t * ctrl.z + t * t * to.z,
+    )
+    m.position.copy(tmp)
+    m.rotation.set(-0.55 * Math.sin(t * Math.PI), slot.baseRy + t * Math.PI * 1.5, 0)
+    const sc = 1 - t * 0.45
+    m.scale.setScalar(sc)
+    if (t >= 1) {
+      slot.state = 'gone'
+      m.visible = false
+      onLanded(slot.seat)
+    }
+  })
+  if (slot.state === 'gone') return null
+  return (
+    <group ref={g} position={[slot.pos.x, slot.pos.y, slot.pos.z]} rotation={[0, slot.baseRy, 0]}>
+      <PaperLetter />
+    </group>
+  )
+}
+
+export default function Obstacle({ id, active, complete, done }: core.ObstacleProps) {
+  const root = useRef<THREE.Group>(null)
+  const faceRef = useRef<THREE.Mesh>(null)
+  const capRef = useRef<THREE.Mesh>(null)
+  const local = useMemo(() => new THREE.Vector3(), [])
+  const [placed, setPlaced] = useState(done ? 5 : 0)
+  const [open, setOpen] = useState(done)
+  const completed = useRef(done)
+  const reserved = useRef(0)
+  const yawJ = useMemo(() => [0.06, -0.09, 0.04, -0.05, 0.08], [])
+  const slots = useMemo<Slot[]>(() =>
+    LETTERS.map((pos, i) => ({
+      pos, state: done ? 'gone' : 'idle', t: 0, seat: -1,
+      seed: i * 0.61 + 0.3, baseRy: [-0.5, 0.9, 0.35, -1.1, 0.55][i],
+    })), [done])
+
+  core.useBlocker(faceRef)
+  core.useWalkable(capRef)
+  useLocalPlayer(root, local)
+
+  useEffect(() => {
+    if (placed >= 5 && !open) {
+      const tm = setTimeout(() => setOpen(true), 500)
+      return () => clearTimeout(tm)
+    }
+  }, [placed, open])
+
+  useFrame(() => {
+    if (!completed.current && open && local.y > 1.35 && local.z < -2.55 && Math.abs(local.x) < 2.5) {
+      completed.current = true
+      complete()
+    }
+  })
+
+  const onPickup = useCallback(() => reserved.current++, [])
+  const onLanded = useCallback(() => setPlaced((p) => Math.min(5, p + 1)), [])
+
+  const solve = useCallback(async () => {
+    for (const p of LETTERS) {
+      tpLocal(root.current, p.clone().setY(p.y + 0.3))
+      await sleep(1350)
+    }
+    tpLocal(root.current, new THREE.Vector3(0, 1.85, -3.3))
+    await sleep(1500)
+  }, [])
+  useSolver(id, solve)
+
+  return (
+    <group ref={root}>
+      {/* the ledge the exit sits on — chunky stone shelf, grassy cap */}
+      <RoundedBox ref={faceRef} args={[5.7, 1.56, 2.3]} radius={0.16} position={[0, 0.72, -3.55]}
+        material={clay(C.stone)} castShadow receiveShadow />
+      <RoundedBox args={[5.4, 0.22, 0.1]} radius={0.04} position={[0, 0.55, -2.42]}
+        material={clay('#b1a58f')} castShadow receiveShadow />
+      <RoundedBox ref={capRef} args={[5.45, 0.18, 2.3]} radius={0.08} position={[0, 1.53, -3.55]}
+        material={clay(C.moss)} castShadow receiveShadow />
+      <Rock position={[-2.5, 1.62, -4.15]} s={0.45} yaw={0.4} />
+      <Rock position={[2.55, 1.62, -4.3]} s={0.34} yaw={1.9} color={C.stoneLight} />
+      <Bush position={[-2.2, 1.62, -3.4]} s={1.0} />
+
+      {/* the closed gate on the ledge */}
+      <Gate position={[0, 1.62, -3.78]} open={open} instant={done} width={1.85} height={1.5} />
+
+      {/* scattered letters + what hides them */}
+      {slots.map((s, i) => (
+        <LetterRunner key={i} slot={s} player={local} onPickup={onPickup} onLanded={onLanded} />
+      ))}
+      <Rock position={[-2.2, 0.05, 1.35]} s={0.58} yaw={0.9} />
+      <Rock position={[-2.9, 0.03, 1.6]} s={0.3} yaw={2.4} color={C.stoneLight} block={false} />
+      <Mound position={[2.05, 0, 0.95]} r={0.95} h={0.46} />
+      <Rock position={[2.85, 0.05, -0.65]} s={0.55} yaw={1.4} />
+      <Rock position={[2.0, 0.04, -1.95]} s={0.4} yaw={0.2} color={C.stoneLight} />
+
+      {/* steps appear as the letters land */}
+      {STEP_POS.slice(0, placed).map((p, i) => (
+        <StoneStep key={i} pos={p} yaw={yawJ[i]} instant={done} />
+      ))}
+
+      {/* dressing + stones underfoot */}
+      <PathStones pts={[[0, 4.1], [0, 1.4]]} seed={11} />
+      <Fence pts={[new THREE.Vector3(-3.9, 0, 0.2), new THREE.Vector3(-4.2, 0, -0.8), new THREE.Vector3(-3.8, 0, -1.8)]} seed={8} />
+      <Bush position={[-3.5, 0, 2.4]} s={1.1} color={C.moss} />
+      <Bush position={[3.6, 0, 1.9]} s={0.9} />
+
+      <Hint text="five letters" position={[0, 1.0, 2.2]} show={() => active && placed === 0 && local.z > 1.6} />
+      <Hint text={`${placed} of 5`} position={[0, 2.35, -1.7]} show={() => active && placed > 0 && placed < 5} />
+    </group>
+  )
+}
