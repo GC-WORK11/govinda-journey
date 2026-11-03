@@ -18,7 +18,10 @@
 - `Hygiene` + `Guard.onError → useWorldUI.broken`: a crashed or null-merged island can no longer freeze the canvas or strand the path (gate + bridge open).
 - `purgeCorridors()` (inside `Hygiene`, ~1.6 s cadence): any blocker crossing the island path corridor (|x|<1.15, |z|<4.45 local) is dropped — **ISL: keep blockers out of the corridor; gate via interactables instead.**
 - `purgeIsland(i)`: on obstacle crash, sweeps its leftover walkables/blockers/interactables out of the island volume.
-- `?at=<ID>` retries `goto` every 300 ms until the position lands (PLAYER's spawn seed used to overwrite the teleport → stuck at L01).
+- `?at=<ID>` re-gotos every 500 ms until `player.pos` *stays* at the target between ticks (≤ ~40 s). The first version checked `player.island === at` right after `goto` wrote it — trivially true, so it exited after one tick and PLAYER's spawn/frame writes clobbered pos back to L01 (01/11 + L01 caption on `?qa&fresh&at=<ID>`).
+- Bridge strip mouths flare to ~1.9 m (corridor width) at both ends — drops off high exits (L02's ledge lip) can't slip off the edge where the deck curves.
+- `purgeCorridors` spares blockers crowned by a walkable surface (L02's ledge is the intended climb-over route); only true walls are dropped.
+- `PerfGuard`: sustained low fps → dpr 0.6 + shadow pass killed (sticky) + water + post FX unmounted; incline restores only pixel ratio (no shader thrash). Software-GL walk probes were timing out at ~2 fps — the player moves in sim-time while the harness times out in real-time.
 - Bridge strip: DoubleSide, 0.98 m, extended ~5% past both ends into the island discs.
 - Exit gate leaf swings outward over the void (was: inward across the path).
 - QaProbe `project`/`find`/`debug` attach to the shared `__journey.v5` object regardless of effect order.
