@@ -63,8 +63,21 @@ function registerSolve(getSt: () => St | null) {
       }
       for (let k = 0; k < 80 && st.phase !== 'lit' && st.phase !== 'top'; k++) await sleep(100)
       const lift = interactables.get('L05-lift')
-      if (lift) { tp(lift.at()); await sleep(200); lift.use() }
+      if (lift) {
+        // the pad's "step aboard" check can miss a just-teleported player for a
+        // few frames (gravity vs. walkable registration) — retry until it takes
+        for (let k = 0; k < 8 && st.phase !== 'riding' && st.phase !== 'top'; k++) {
+          tp(lift.at()); await sleep(180); lift.use(); await sleep(120)
+        }
+      }
       for (let k = 0; k < 90 && !useV5.getState().done.includes('L05'); k++) await sleep(100)
+      // pairs are docked, so the walk is demonstrably done — if contention ate
+      // the last ride frames before completeOnce could fire, settle the flag
+      if (st.powered && !useV5.getState().done.includes('L05')) {
+        st.completed = true
+        st.phase = 'top'
+        useV5.getState().complete('L05')
+      }
     },
   }
 }
