@@ -106,6 +106,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
     core.player.frozen = false
     core.playerEmote.name = null
     if (myCine.current) { core.cinematic.on = false; myCine.current = false }
+    if (bridgeWalk.current) core.walkables.delete(bridgeWalk.current) // may have been added by the frame loop
   }, [])
 
   const closePhone = () => {
