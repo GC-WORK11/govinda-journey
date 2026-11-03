@@ -236,6 +236,26 @@ Caveats on an otherwise clean board:
   `0be8c14` dome-wall disc may already be the mitigation).
 - L04 again passed via the crash-fallback (BlinkFx DOM crash still live at `:757`).
 
+### Run 12/13 (~23:55, targeted reruns on HEAD incl. `cc45a8b`)
+
+- `1440 --only=I01,L09`: **I01 PASS** (deck-mouth-first routing `2b0b4b5` removed the
+  corner-cut rim drops), **L09 PASS** — no renderer crash this run (finale survived;
+  likely helped by WORLD's `0be8c14`/`cc45a8b` dome/far work). Desktop effectively
+  **11/11** on current HEAD.
+- `390 --only=I01,L05,L09 --lite`: all three **PASS** (fps 8/7/3).
+- Combined state: **full 11-island journey green at both sizes** (390 lite = run 10
+  clean sweep; 1440 = run 11 + go-5 rerun).
+
+Remaining open items (not launch-blocking but filed):
+- **ISL-D L04**: BlinkFx uses `react-dom` `createPortal` inside the R3F tree
+  (`Obstacle.tsx:535-547`) — crashes the module every mount; the walkthrough only
+  passes via Guard's crash-fallback. Fix: drei `<Html>` or a dedicated DOM root.
+- fps still lands ~2-3 during the L09 finale on SwiftShader — fine on real GPUs but
+  the finale is the heaviest scene; worth one perf pass if a device budget exists.
+- Visual: mobile finale (L09) — dusk sky + lantern-lit island chain, clean contact /
+  Résumé block, Fraunces title. One nit seen earlier — dark cloud blobs pre-dissolve;
+  ART's finale-dissolve commits landed after, re-verify on the next shot pass.
+
 ### Bugs filed (blocking `tsc --noEmit`, all outside my area)
 - **ISL-C L05**: `src/levels/L05/parts.v5.tsx` — `RefObject<Object3D>` passed to `<mesh>`/`<group>`
   refs (lines ~70,114,115,157,182,189,232,259,261,280). Type them `useRef<THREE.Mesh>(null)` /
