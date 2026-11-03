@@ -373,11 +373,16 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
       teleportTo(frame, -1.75, 0.5, -2.0); await sleep(400)
       interactables.get('l09-crank')?.use(); await sleep(1800)
       teleportTo(frame, -0.2, 0.5, -1.9); await sleep(400)
-      interactables.get('l09-door')?.use()
-      const cv = await waitFor(() => document.querySelector<HTMLCanvasElement>('[data-qa="sign-canvas"]'))
-      await sleep(350)
-      await tracePad(cv)
-      await sleep(3500)
+      // trace the door sign — retry a rejected stroke a few times rather than stalling
+      for (let tries = 0; tries < 4 && !useV5.getState().done.includes('L09'); tries++) {
+        try {
+          interactables.get('l09-door')?.use()
+          const cv = await waitFor(() => document.querySelector<HTMLCanvasElement>('[data-qa="sign-canvas"]'), 9000)
+          await sleep(350)
+          await tracePad(cv)
+          await sleep(3400)
+        } catch { /* pad never opened — try again */ }
+      }
     })
   }, [])
 

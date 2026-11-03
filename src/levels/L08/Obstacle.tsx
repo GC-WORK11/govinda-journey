@@ -194,12 +194,17 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
       fillInput(input, 'hello')
       input.closest('form')!.requestSubmit()
       await sleep(900)
-      // the guardian now shows its sign — ask it again to open the pad
-      ;(await waitFor(() => interactables.get('l08-guardian'))).use()
-      const cv = await waitFor(() => document.querySelector<HTMLCanvasElement>('[data-qa="sign-canvas"]'))
-      await sleep(350)
-      await tracePad(cv)
-      await sleep(2800)
+      // the guardian now shows its sign — ask it again to open the pad; retry a
+      // rejected trace a few times rather than stalling
+      for (let tries = 0; tries < 4 && !useV5.getState().done.includes('L08'); tries++) {
+        try {
+          ;(await waitFor(() => interactables.get('l08-guardian'))).use()
+          const cv = await waitFor(() => document.querySelector<HTMLCanvasElement>('[data-qa="sign-canvas"]'), 9000)
+          await sleep(350)
+          await tracePad(cv)
+          await sleep(3200)
+        } catch { /* pad never opened — try again */ }
+      }
     })
   }, [])
 
