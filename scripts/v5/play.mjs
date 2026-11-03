@@ -391,9 +391,12 @@ for (const [size, vp] of VIEWPORTS) {
       const mid = { x: (exitW.x + entryN.x) / 2, z: (exitW.z + entryN.z) / 2 }
       const trace = []
       const sampler = setInterval(async () => { try { const p = await v5pos(page); trace.push([Math.round((Date.now() - i0) / 100) / 10, +p.x.toFixed(2), +p.y.toFixed(2), +p.z.toFixed(2), p.grounded ? 1 : 0]) } catch {} }, 150)
-      let c1, c2, p3
+      let c0, c1, c2, p3
       try {
-        c1 = await walkTo(page, drv, { x: mid.x, z: mid.z }, { timeout: 16000, arrive: 1.4, burst: 150 })
+        // leg0: enter through the deck mouth — steering straight at mid can cut the
+        // corner and step off the rim beside the strip (I01 desktop fail, run 11).
+        c0 = await walkTo(page, drv, { x: exitW.x, z: exitW.z }, { timeout: 12000, arrive: 0.8, burst: 150 })
+        c1 = c0.frozen ? c0 : await walkTo(page, drv, { x: mid.x, z: mid.z }, { timeout: 16000, arrive: 1.4, burst: 150 })
         c2 = c1.ok || c1.blocked || !c1.frozen ? await walkTo(page, drv, entryN, { timeout: 20000, arrive: 1.6, burst: 150 }) : c1
         p3 = await v5pos(page)
       } finally { clearInterval(sampler) }
