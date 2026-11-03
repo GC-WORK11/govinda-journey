@@ -88,16 +88,16 @@ export function Laptop({ children, open = 0.32, s = 1, ...p }: P & { children?: 
 export function PhoneOnStand({ glow = false, ...p }: P & { glow?: boolean }) {
   return (
     <group {...p}>
-      <mesh position={[0, 0.16, -0.05]} rotation={[0.42, 0, 0]} material={clay(C.wood)} castShadow>
-        <boxGeometry args={[0.16, 0.3, 0.03]} />
+      <mesh position={[0, 0.21, -0.07]} rotation={[0.36, 0, 0]} material={clay(C.wood)} castShadow>
+        <boxGeometry args={[0.22, 0.42, 0.035]} />
       </mesh>
-      <mesh position={[0, 0.055, 0.02]} rotation={[0.42, 0, 0]} material={clay(C.wood)} castShadow>
-        <boxGeometry args={[0.2, 0.12, 0.05]} />
+      <mesh position={[0, 0.06, 0.02]} rotation={[0.42, 0, 0]} material={clay(C.wood)} castShadow>
+        <boxGeometry args={[0.26, 0.13, 0.06]} />
       </mesh>
-      <RoundedBox args={[0.17, 0.3, 0.022]} radius={0.028} position={[0, 0.185, -0.028]} rotation={[0.42, 0, 0]} material={clay(C.ink)} castShadow />
-      <mesh position={[0, 0.187, -0.016]} rotation={[0.42, 0, 0]}>
-        <planeGeometry args={[0.14, 0.26]} />
-        <meshBasicMaterial color={glow ? '#dff0d8' : '#4a4340'} />
+      <RoundedBox args={[0.25, 0.44, 0.028]} radius={0.035} position={[0, 0.26, -0.04]} rotation={[0.36, 0, 0]} material={clay(C.ink)} castShadow />
+      <mesh position={[0, 0.263, -0.024]} rotation={[0.36, 0, 0]}>
+        <planeGeometry args={[0.21, 0.38]} />
+        <meshBasicMaterial color={glow ? '#dff0d8' : '#e6ddc8'} />
       </mesh>
     </group>
   )

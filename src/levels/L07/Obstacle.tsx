@@ -15,7 +15,7 @@ import * as THREE from 'three'
 import * as core from '../../v5/core'
 import { Tree, Bush, ClayPot, Rock } from '../../world/kit'
 import VoiceUI from './VoiceUI.v5'
-import { C, clay, DoorWall, Robot, Console, SideTable, Laptop, BlockBox, letterTexture, makeCanvasTexture } from './kit.v5'
+import { C, clay, DoorWall, Robot, Console, SideTable, Laptop, BlockBox, WordChips, letterTexture, makeCanvasTexture } from './kit.v5'
 
 type Phase = 'wait' | 'calling' | 'ready' | 'listen' | 'send' | 'open'
 
@@ -404,6 +404,12 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       <Bush position={[-3.9, 0, -3.2]} s={0.9} />
       <ClayPot position={[3.9, 0, -2.1]} s={0.8} />
       <Rock position={[-4.4, 0, -1.2]} s={0.24} />
+
+      {/* V4's word chips — soft speech pebbles drifting from the phone toward the laptop */}
+      <WordChips
+        words={['hello', 'from', 'my', 'phone']}
+        pos={[[3.4, 1.35, -0.85], [2.3, 1.6, -1.4], [1.0, 1.6, -1.95], [-0.35, 1.4, -2.35]]}
+      />
 
       {/* letters flying */}
       {flight && (

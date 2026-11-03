@@ -232,8 +232,8 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       smog.current.children.forEach((p, i) => {
         p.userData.y0 ??= p.position.y
         p.userData.k = THREE.MathUtils.lerp(p.userData.k ?? 1, revealing ? 0.16 : 1, Math.min(1, dt * 2.4))
-        p.scale.set(p.userData.k, p.userData.k * 0.62, p.userData.k)
-        p.position.y = p.userData.y0 * p.userData.k + Math.sin(t * 0.7 + i * 1.7) * 0.05
+        p.scale.set(p.userData.k, p.userData.k * 0.3, p.userData.k)
+        p.position.y = p.userData.y0 * p.userData.k + Math.sin(t * 0.7 + i * 1.7) * 0.04
         p.position.x += Math.sin(t * 0.23 + i) * dt * 0.05
       })
     }
@@ -314,10 +314,10 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       <object3D ref={pulseMarker} position={[0, 0.2, (STREAM_Z0 + STREAM_Z1) / 2]} />
       {/* smog bank — low soft puffs hugging the ford */}
       <group ref={smog}>
-        {[[-2.9, 0.62, 1.52], [-1.9, 0.5, 1.05], [-1.0, 0.66, 1.68], [-0.1, 0.48, 0.9], [0.8, 0.6, 1.55], [1.8, 0.52, 1.0], [2.9, 0.6, 1.45], [0.4, 0.75, 1.8], [-2.2, 0.72, 1.75], [2.2, 0.74, 1.7]].map(([x, y, s], i) => (
-          <mesh key={i} position={[x, y, (STREAM_Z0 + STREAM_Z1) / 2 + Math.sin(i * 2.4) * 0.4]} scale={[1, 0.62, 1]}>
-            <sphereGeometry args={[s * 0.42, 14, 10]} />
-            <meshStandardMaterial color="#d9d2c4" roughness={1} />
+        {[[-2.9, 0.3, 1.52], [-1.9, 0.25, 1.05], [-1.0, 0.33, 1.68], [-0.1, 0.24, 0.9], [0.8, 0.3, 1.55], [1.8, 0.26, 1.0], [2.9, 0.3, 1.45], [0.4, 0.38, 1.8], [-2.2, 0.36, 1.75], [2.2, 0.37, 1.7]].map(([x, y, s], i) => (
+          <mesh key={i} position={[x, y, (STREAM_Z0 + STREAM_Z1) / 2 + Math.sin(i * 2.4) * 0.4]} scale={[1, 0.3, 1]}>
+            <sphereGeometry args={[s * 0.52, 14, 10]} />
+            <meshStandardMaterial color="#ccd6c0" roughness={1} />
           </mesh>
         ))}
       </group>
@@ -326,8 +326,8 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       <group position={[-3.15, 0, -0.85]} rotation={[0, Math.PI / 2, 0]}>
         <Pergola w={1.8} d={1.5} h={1.5} />
         <Desk w={1.2} position={[0, 0, -0.1]} />
-        <group position={[0, 0.49, -0.12]}>
-          <Laptop s={1} open={0.34}>
+        <group position={[0, 0.49, -0.12]} rotation={[0, -Math.PI / 2 - 0.25, 0]}>
+          <Laptop s={1.25} open={0.34}>
             <mesh ref={term.ref} position={[0, 0, 0.001]}>
               <planeGeometry args={[0.5, 0.32]} />
               <meshBasicMaterial map={term.tex} toneMapped={false} />
@@ -354,7 +354,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       {/* dock deck is a floor out over the rim; the far end is fenced until the bridge is out */}
       <BlockBox position={DOCK.clone().add(new THREE.Vector3(0, -0.04, 0)).toArray() as [number, number, number]} args={[1.7, 0.1, 1.0]} kind="walk" />
       <BlockBox position={DOCK_END.clone().add(new THREE.Vector3(-0.1, 0.45, 0)).toArray() as [number, number, number]} args={[0.18, 0.9, 1.05]} on={!hit && !done} />
-      <group position={PHONE_POS} rotation={[0, -0.5, 0]}>
+      <group position={PHONE_POS} rotation={[0, -0.5, 0]} scale={1.3}>
         <PhoneOnStand glow={phase === 'phone'} />
       </group>
       <object3D ref={phoneMarker} position={PHONE_POS.clone().add(new THREE.Vector3(0, 0.25, 0))} />

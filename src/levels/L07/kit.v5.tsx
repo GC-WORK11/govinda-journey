@@ -254,3 +254,47 @@ export function Laptop({ children, open = 0.36, s = 1, ...p }: P & { children?: 
     </group>
   )
 }
+
+/* ------------------------- V4's floating word chips ------------------------- */
+
+/** Whole chip face baked into one opaque canvas: cream tile + ink word (V4's look). */
+function chipTexture(word: string) {
+  const cv = document.createElement('canvas'); cv.width = 128; cv.height = 72
+  const ctx = cv.getContext('2d')!
+  ctx.fillStyle = '#f6ecd9'; ctx.fillRect(0, 0, 128, 72)
+  ctx.fillStyle = '#3b3330'; ctx.font = '600 32px Fraunces, Georgia, serif'
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+  ctx.fillText(word, 64, 38)
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace
+  return tex
+}
+
+/** A drifting row of soft speech pebbles — the same chips V4 floats on this island. */
+export function WordChips({ words, pos, ...p }: P & { words: string[]; pos: [number, number, number][] }) {
+  const g = useRef<THREE.Group>(null)
+  const texs = useMemo(() => words.map(chipTexture), [words])
+  useFrame((s) => {
+    if (!g.current) return
+    const t = s.clock.elapsedTime
+    g.current.children.forEach((c, i) => {
+      c.position.y = pos[i][1] + Math.sin(t * 1.6 + i * 1.9) * 0.06
+      c.rotation.y = 0.55 + Math.sin(t * 0.9 + i) * 0.06
+    })
+  })
+  return (
+    <group ref={g} {...p}>
+      {words.map((w, i) => (
+        <group key={i} position={pos[i]} rotation={[-0.24, 0.55, 0]}>
+          <RoundedBox args={[0.62, 0.36, 0.13]} radius={0.1} smoothness={3} material={clay('#f6ecd9')} castShadow />
+          <mesh position={[-0.15, -0.2, 0]} rotation={[0, 0, Math.PI]} material={clay('#f6ecd9')}>
+            <coneGeometry args={[0.07, 0.12, 4]} />
+          </mesh>
+          <mesh position={[0, 0.01, 0.066]}>
+            <planeGeometry args={[0.56, 0.31]} />
+            <meshBasicMaterial map={texs[i]} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  )
+}
