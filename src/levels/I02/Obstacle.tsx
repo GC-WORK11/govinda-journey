@@ -33,11 +33,12 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   const trackMat = useMemo(() => new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, metalness: 0.02 }), [])
 
   const solve = useCallback(async () => {
+    for (let i = 0; i < 40 && core.player.island !== id; i++) await sleep(100) // let ?qa goto land first
     tpLocal(root.current, new THREE.Vector3(0, 0.15, 0.6))
     await sleep(600)
     tpLocal(root.current, new THREE.Vector3(0, 0.15, -3.2))
     await sleep(1800)
-  }, [])
+  }, [id])
   useSolver(id, solve)
 
   useFrame((s, dt) => {

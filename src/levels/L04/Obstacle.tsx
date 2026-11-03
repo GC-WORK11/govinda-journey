@@ -18,7 +18,7 @@ import {
   smooth, tpLocal, useIslandFrame, useSolver,
 } from './shared.v5'
 import { ClayPot, Bush } from '../../world/kit'
-import { AqiPost, aqiTagTex, CableSpan, Rooftop, SensorPost, SensorTower, StreetLamp, StreetTree, useStreetGeo, type Lit } from './street.v5'
+import { AqiPost, aqiTagTex, CableSpan, Rooftop, SensorPost, SensorTower, STREET_Y, StreetLamp, StreetTree, useStreetGeo, type Lit } from './street.v5'
 
 /* ---------- layout (island-local; entry +z, exit -z) ---------- */
 const STRIP_Z0 = 0.55, STRIP_Z1 = -2.75, STRIP_W = 4.95
@@ -60,6 +60,8 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   const [blink, setBlink] = useState(0)
   const postRef = useRef<THREE.Group>(null)
   const towerRef = useRef<THREE.Group>(null)
+  const streetRef = useRef<THREE.Mesh>(null)
+  core.useWalkable(streetRef) // the asphalt pad is the ground you crumble on
   const shakeT = useRef(0)
   const hasPower = useV5((s) => s.abilities.includes('power'))
   const streetGeo = useStreetGeo()
@@ -127,6 +129,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
 
   const solve = useCallback(async () => {
     if (!core.has('power')) useV5.getState().grant('power') // QA precondition; the chain grants it at L05
+    for (let i = 0; i < 40 && core.player.island !== id; i++) await sleep(100) // let ?qa goto land first
     tpLocal(root.current, new THREE.Vector3(-0.95, 0.15, 1.7))
     await sleep(450)
     core.interactables.get(`${id}-post`)?.use()
@@ -182,7 +185,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   return (
     <group ref={root}>
       {/* the collapsed street itself: asphalt bed, kerb chunks, debris */}
-      <mesh geometry={streetGeo} material={streetMat} receiveShadow />
+      <mesh ref={streetRef} geometry={streetGeo} material={streetMat} receiveShadow />
 
       {/* safe stones + loose lookalikes */}
       {SAFE.map(([x, z], i) => (
@@ -466,7 +469,7 @@ function Crack({ local, exposure, active, clearT }: {
     mat.opacity = damp(mat.opacity, f * 0.9, 10, dt)
     mesh.visible = mat.opacity > 0.02
     if (show) {
-      mesh.position.set(local.x, 0.018, local.z)
+      mesh.position.set(local.x, STREET_Y + 0.004, local.z)
       const sc = 0.5 + f * 0.85
       mesh.scale.set(sc, sc, sc)
     }

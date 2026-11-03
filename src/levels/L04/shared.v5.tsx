@@ -26,6 +26,13 @@ export const smooth = (a: number, b: number, x: number) => {
   const t = Math.min(1, Math.max(0, (x - a) / (b - a)))
   return t * t * (3 - 2 * t)
 }
+
+/** ART IslandBase cap height (src/v5/art/IslandBase.tsx topY, replicated) — the grass
+ *  domes up to 0.06 at centre, so island dressing must sit on this, not on y=0. */
+export const domeY = (x: number, z: number, radius = 5) => {
+  const d = Math.hypot(x, z)
+  return d > radius * 0.96 ? 0 : 0.06 * Math.max(0, 1 - (d / (radius * 0.96)) ** 1.7)
+}
 export const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
 
 /* ---------- island frame: local <-> world ---------- */
@@ -157,18 +164,15 @@ export function wordTex(text: string, fs = 44, color = 'rgba(59,51,48,0.92)') {
 export function PathStones({ pts, seed = 1 }: { pts: [number, number][]; seed?: number }) {
   const items = useMemo(() => {
     const rnd = (n: number) => { const x = Math.sin(seed * 91.7 + n * 12.9898) * 43758.5453; return x - Math.floor(x) }
-    const out: { x: number; z: number; r: number; s: number }[] = []
+    const out: { x: number; z: number; y: number; r: number; s: number }[] = []
     for (let i = 0; i < pts.length - 1; i++) {
       const [x0, z0] = pts[i], [x1, z1] = pts[i + 1]
       const len = Math.hypot(x1 - x0, z1 - z0), n = Math.max(1, Math.round(len / 0.62))
       for (let j = 0; j < n; j++) {
         const t = j / n, k = out.length
-        out.push({
-          x: x0 + (x1 - x0) * t + (rnd(k * 3) - 0.5) * 0.16,
-          z: z0 + (z1 - z0) * t + (rnd(k * 3 + 1) - 0.5) * 0.16,
-          r: rnd(k * 3 + 2) * Math.PI,
-          s: 0.8 + rnd(k * 7) * 0.4,
-        })
+        const x = x0 + (x1 - x0) * t + (rnd(k * 3) - 0.5) * 0.16
+        const z = z0 + (z1 - z0) * t + (rnd(k * 3 + 1) - 0.5) * 0.16
+        out.push({ x, z, y: domeY(x, z) + 0.012, r: rnd(k * 3 + 2) * Math.PI, s: 0.8 + rnd(k * 7) * 0.4 })
       }
     }
     return out
@@ -176,7 +180,7 @@ export function PathStones({ pts, seed = 1 }: { pts: [number, number][]; seed?: 
   return (
     <group>
       {items.map((p, i) => (
-        <mesh key={i} position={[p.x, 0.015, p.z]} rotation={[0, p.r, 0]} scale={[p.s, 1, p.s * 0.8]}
+        <mesh key={i} position={[p.x, p.y, p.z]} rotation={[0, p.r, 0]} scale={[p.s, 1, p.s * 0.8]}
           material={clay(i % 2 ? '#d6cab4' : '#c9bfb0')} receiveShadow castShadow>
           <cylinderGeometry args={[0.19, 0.21, 0.05, 7]} />
         </mesh>

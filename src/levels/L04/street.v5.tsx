@@ -225,6 +225,9 @@ export function StreetTree({ s = 1, ...p }: P & { s?: number }) {
   )
 }
 
+/** Asphalt pad height — must clear the domed grass cap (max 0.06, see domeY). */
+export const STREET_Y = 0.075
+
 /** Broken kerb chunks + asphalt patch + scattered debris, all merged into ONE vertex-coloured mesh. */
 export function useStreetGeo(seed = 11, z0 = 0.55, z1 = -2.75, halfW = 4.7) {
   return useMemo(() => {
@@ -251,11 +254,11 @@ export function useStreetGeo(seed = 11, z0 = 0.55, z1 = -2.75, halfW = 4.7) {
     shape.closePath()
     const slab = new THREE.ShapeGeometry(shape, 4)
     slab.rotateX(-Math.PI / 2) // shape +y maps to -z; we built shape with y = -z so z comes out right
-    put(slab, 0, 0.012, 0, 0, '#6f675c', 0, 0, 1, 0.05)
+    put(slab, 0, STREET_Y, 0, 0, '#6f675c', 0, 0, 1, 0.05)
     // faint lane line fragments, half buried
     for (let i = 0; i < 9; i++) {
       const x = -halfW + 0.7 + i * (halfW * 2 - 1.4) / 8
-      put(new THREE.BoxGeometry(0.34, 0.008, 0.05), x, 0.018, -1.1 + (rnd(90 + i) - 0.5) * 0.5, 0.02, '#cfc4a8', 0, 0, 1, 0.05)
+      put(new THREE.BoxGeometry(0.34, 0.008, 0.05), x, STREET_Y + 0.005, -1.1 + (rnd(90 + i) - 0.5) * 0.5, 0.02, '#cfc4a8', 0, 0, 1, 0.05)
     }
     // broken kerb chunks along both edges of the strip
     for (let i = 0, k = 0; i < 60 && k < 30; i++) {
@@ -264,7 +267,7 @@ export function useStreetGeo(seed = 11, z0 = 0.55, z1 = -2.75, halfW = 4.7) {
       const x = -halfW + rnd(i * 7 + 2) * halfW * 2
       if (Math.abs(x) < 0.75 && (side || z1 + 0.5 > z)) continue // leave the path mouth open
       const L = 0.3 + rnd(i * 5) * 0.5
-      put(new THREE.BoxGeometry(L, 0.11, 0.14), x, 0.05, z + (rnd(i * 11) - 0.5) * 0.14, (rnd(i * 13) - 0.5) * 0.5, rnd(i) > 0.5 ? '#9a8f80' : '#8a7f70',
+      put(new THREE.BoxGeometry(L, 0.11, 0.14), x, STREET_Y + 0.055, z + (rnd(i * 11) - 0.5) * 0.14, (rnd(i * 13) - 0.5) * 0.5, rnd(i) > 0.5 ? '#9a8f80' : '#8a7f70',
         (rnd(i * 17) - 0.5) * 0.14, (rnd(i * 19) - 0.5) * 0.14)
       k++
     }
@@ -273,13 +276,13 @@ export function useStreetGeo(seed = 11, z0 = 0.55, z1 = -2.75, halfW = 4.7) {
       const x = -halfW + 0.4 + rnd(120 + i * 3) * (halfW * 2 - 0.8)
       const z = z1 + 0.3 + rnd(130 + i * 5) * (z0 - z1 - 0.6)
       const r = 0.04 + rnd(i * 7) * 0.1
-      put(new THREE.DodecahedronGeometry(r, 0), x, 0.02 + r * 0.35, z, rnd(i) * 3, rnd(i + 4) > 0.5 ? '#7d7264' : '#8d8272', (rnd(i * 9) - 0.5) * 0.5, (rnd(i * 11) - 0.5) * 0.5, 1, 0.12)
+      put(new THREE.DodecahedronGeometry(r, 0), x, STREET_Y + r * 0.3, z, rnd(i) * 3, rnd(i + 4) > 0.5 ? '#7d7264' : '#8d8272', (rnd(i * 9) - 0.5) * 0.5, (rnd(i * 11) - 0.5) * 0.5, 1, 0.12)
     }
     // a couple of half-buried bricks
     for (let i = 0; i < 10; i++) {
       const x = -halfW + 0.5 + rnd(200 + i * 3) * (halfW * 2 - 1)
       const z = z1 + 0.3 + rnd(210 + i * 5) * (z0 - z1 - 0.6)
-      put(new THREE.BoxGeometry(0.16, 0.08, 0.1), x, 0.035, z, rnd(i) * 3, '#a06a52', (rnd(i * 9) - 0.5) * 0.4, (rnd(i * 11) - 0.5) * 0.4, 1, 0.1)
+      put(new THREE.BoxGeometry(0.16, 0.08, 0.1), x, STREET_Y + 0.03, z, rnd(i) * 3, '#a06a52', (rnd(i * 9) - 0.5) * 0.4, (rnd(i * 11) - 0.5) * 0.4, 1, 0.1)
     }
     const g = mergeGeometries(geos, false)!
     geos.forEach((x) => x.dispose())
