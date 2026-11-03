@@ -48,3 +48,18 @@ Status: complete and integrated — all requests below were delivered by WORLD.
 - `player.frozen` zeroes input (move/jump/use) and camera writes while
   `cinematic.on`; gravity/grounding keep integrating so the player stays put
   physically. Velocity damps to a stop.
+
+## Bridge rail guide (PLAYER-side convention, since ff09912)
+- Any walkable mesh named `walk-bridge-*` gets centreline assist: while
+  grounded on it the lateral offset is clamped inside the deck halfwidth
+  (can't slide off the edge), and while airborne within ~1.5–2.6 m lateral
+  (scaled by section width, wider at the flared mouths) and ~4 m along, the
+  player is pulled toward the corridor (cap 2.4 m/s) so ledge-lip drops and
+  sideways hops land on the deck instead of slipping past.
+- Mesh requirement: position attribute = WORLD-SPACE vertex PAIRS per
+  cross-section (v[2i], v[2i+1] = section i's two edges) — exactly how
+  WORLD's Bridge5 strip is built (41 sections × 2 verts, 2 tris/section;
+  faceIndex/2 locates the standing section).
+- Physics substeps: ≤1/30 s steps, up to 180 ms/frame — sim keeps real pace
+  down to ~5.5 fps (QA headless runs at 5–9 fps).
+- Verified: L02→L03 (1440), I01→L05 + L05 island (390) all PASS.
