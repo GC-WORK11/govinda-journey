@@ -142,7 +142,9 @@ export default function Sky5() {
     driveLamps(c.night)
 
     const fin = cinematic.on
-    env.finale += ((fin ? 1 : 0) - env.finale) * (1 - Math.exp(-dt * 1.8))
+    // quick ramp: the finale must read clean from the first frames of the
+    // pull-back, not halfway through it
+    env.finale += ((fin ? 1 : 0) - env.finale) * (1 - Math.exp(-dt * 4))
 
     const camDist = camera.position.distanceTo(ISLAND_POS[idx])
     const fogT = fin ? [90, 280] : [camDist + 7, camDist + 34]
@@ -157,7 +159,10 @@ export default function Sky5() {
     if (dome.current) {
       dome.current.uniforms.top.value.copy(c.top)
       dome.current.uniforms.mid.value.copy(c.mid)
-      dome.current.uniforms.bot.value.copy(c.bot)
+      // the finale camera looks down across the dome's below-horizon cap —
+      // at night `bot` renders as one giant dark disc behind the title, so
+      // dissolve it into the mid band as the pull-back opens
+      dome.current.uniforms.bot.value.copy(c.bot).lerp(c.mid, env.finale * 0.92)
       dome.current.uniforms.glow.value.copy(c.glow)
       dome.current.uniforms.gi.value = c.gi
     }

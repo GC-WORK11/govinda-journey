@@ -128,7 +128,7 @@ function Birds() {
 
 export function Clouds() {
   const g = useRef<THREE.Group>(null)
-  const mat = useMemo(() => new THREE.MeshStandardMaterial({ roughness: 0.95, metalness: 0 }), [])
+  const mat = useMemo(() => new THREE.MeshStandardMaterial({ roughness: 0.95, metalness: 0, transparent: true }), [])
   const tint = useMemo(() => new THREE.Color(), [])
   const items = useMemo(() => [...SEA, ...PUFFS], [])
   useFrame((s, dt) => {
@@ -136,6 +136,10 @@ export function Clouds() {
     // ride the damped sky: bright paper by day, then deeper into the dusk/night sky
     tint.copy(env.mid).lerp(env.top, 0.42).lerp(PAPER, (1 - env.night) * 0.5)
     mat.color.copy(tint)
+    // the sea floor reads as near-black slabs against the dusk dome from the
+    // pull-back camera — dissolve the whole layer as the finale opens
+    mat.opacity = 1 - env.finale * 0.94
+    g0.visible = mat.opacity > 0.02
     const t = s.clock.elapsedTime
     g0.children.forEach((c, i) => {
       const it = items[i]; if (!it) return
