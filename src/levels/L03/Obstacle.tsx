@@ -513,7 +513,9 @@ function Platform({ p, i }: { p: THREE.Vector3; i: number }) {
   const yawOut = Math.atan2(toNext.x - p.x, toNext.z - p.z)
   return (
     <group position={p}>
-      <Prop name="platform_stone" position={[0, -1.5, 0]} fit={1.58} />
+      {/* a real floating boulder under each pad — platform_stone is a flat
+          paver; fit-scaling it to 1.58 blew it up into a ~17 m dark slab */}
+      <Prop name={['quat_rock', 'quat_rock_2', 'quat_rock_3'][i % 3]} position={[0, -1.46, 0]} rotation={[0, i * 1.25 + 0.4, 0]} fit={1.48} />
       <mesh ref={pad} position={[0, -0.02, 0]} material={clay('#cfc4ae')} receiveShadow castShadow>
         <cylinderGeometry args={[0.8, 0.84, 0.08, 18]} />
       </mesh>
