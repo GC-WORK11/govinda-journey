@@ -167,6 +167,27 @@ corridor-edge prop stall; I01, L04, I02 are the real navigation questions (all t
 S-curve-bend islands where the bot walked wide and either missed the deck mouth or slid
 off a rim).
 
+### Run 9 (~23:05, 1440×900 full-effects, HEAD c9dc057 — PARTIAL, stopped for stale code)
+
+| island | result | fps | detail |
+|--------|--------|-----|--------|
+| L01 | **PASS** | 5 | incl. the L01→L02 crossing that failed at 390 — desktop key-steering is more precise |
+| L02 | **PASS** | 5 | |
+| L03 | **PASS** | 9 | |
+| I01 | FAIL | 3 | `Runtime.callFunctionOn timed out` — protocol stall at fps≈3 (harness/environment, not a game logic failure) |
+| L05 | **PASS** | 5 | |
+| L04 | FAIL | 14 | `no __journey.solve.L04`, manual interact failed, `done` missing — L04 module still not serving hooks in this HEAD (BlinkFx DOM error gone from console though) |
+| I02 | **PASS** | 9 | desktop crossed I02→L06 fine — supports the mobile I02 fail being bot-pathing, not bridge registration |
+| L06 | **PASS** | 5 | |
+| L07 | **PASS** | 4 | |
+| L08 | — | | not reached before stop (stale-HEAD halt) |
+| L09 | — | | not reached |
+
+Desktop tally: **7 PASS / 2 FAIL / 2 unreached** — full-effects boot fps≈22, island
+fps 4–14. Visual (L09 finale mobile shot): dusk sky + lantern-lit island chain reads
+lovely; contact/resume footer clean; one nit — dark cloud blobs visible pre-dissolve
+during the pull-back (ART c6cc3e2/6610f6d may have addressed; verify on go-4 shots).
+
 ### Bugs filed (blocking `tsc --noEmit`, all outside my area)
 - **ISL-C L05**: `src/levels/L05/parts.v5.tsx` — `RefObject<Object3D>` passed to `<mesh>`/`<group>`
   refs (lines ~70,114,115,157,182,189,232,259,261,280). Type them `useRef<THREE.Mesh>(null)` /
