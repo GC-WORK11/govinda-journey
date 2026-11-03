@@ -30,7 +30,7 @@ export function CampusBlock({ position, yaw = 0, warm }: {
     puffs.current.forEach((m, i) => {
       if (!m) return
       const e = (t * 0.16 + i * 0.37) % 1
-      m.position.y = 3.3 + e * 0.7
+      m.position.y = 3.05 + e * 0.7
       m.scale.setScalar(0.07 + e * 0.17)
       puffMats[i].opacity = warm && !REDUCED ? (1 - e) * 0.4 : 0
     })
@@ -38,22 +38,22 @@ export function CampusBlock({ position, yaw = 0, warm }: {
   return (
     <group position={position} rotation={[0, yaw, 0]}>
       {/* plinth the building sits on */}
-      <RoundedBox args={[2.9, 0.16, 3.0]} radius={0.06} position={[0, 0.08, 0]} material={clay(C.stone)} castShadow receiveShadow />
-      {/* the campus building itself (KayKit city) */}
-      <Prop name="building_a" position={[0, 0.16, 0]} scale={1.9} />
+      <RoundedBox args={[2.5, 0.16, 2.6]} radius={0.06} position={[0, 0.08, 0]} material={clay(C.stone)} castShadow receiveShadow />
+      {/* the campus building itself (KayKit city house, front faces +z) */}
+      <Prop name="building_c" position={[0, 0.16, 0]} scale={1.45} />
       {/* collider for the building */}
-      <mesh ref={blk} position={[0, 1.55, 0]} material={invisible}>
-        <boxGeometry args={[2.5, 3.1, 2.9]} />
+      <mesh ref={blk} position={[0, 1.6, 0]} material={invisible}>
+        <boxGeometry args={[1.85, 3.2, 2.0]} />
       </mesh>
       {/* chimney smoke once warm */}
       {[0, 1, 2].map((i) => (
-        <mesh key={i} position={[0.9, 3.3, -0.7]} material={puffMats[i]}
+        <mesh key={i} position={[0.5, 3.05, -0.35]} material={puffMats[i]}
           ref={(m) => { puffs.current[i] = m }}>
           <sphereGeometry args={[1, 10, 8]} />
         </mesh>
       ))}
       {/* porch light + glow once warm */}
-      {warm && <pointLight position={[0, 1.3, 1.6]} color="#ffc27e" intensity={2.6} distance={5.5} decay={2} />}
+      {warm && <pointLight position={[0, 1.1, 1.2]} color="#ffc27e" intensity={2.6} distance={5.5} decay={2} />}
     </group>
   )
 }
@@ -64,10 +64,10 @@ export function BigTree({ position, s = 1 }: { position: [number, number, number
   core.useBlocker(blk)
   return (
     <group position={position} scale={s}>
-      <Prop name="tree_oak" scale={2.55} />
+      <Prop name="tree_oak" scale={1.9} />
       {/* trunk collider */}
-      <mesh ref={blk} position={[0, 1.1, 0]} material={invisible}>
-        <cylinderGeometry args={[0.3, 0.4, 2.2, 8]} />
+      <mesh ref={blk} position={[0, 0.9, 0]} material={invisible}>
+        <cylinderGeometry args={[0.26, 0.34, 1.8, 8]} />
       </mesh>
     </group>
   )
