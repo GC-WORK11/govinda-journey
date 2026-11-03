@@ -81,7 +81,21 @@ export const useV5 = create<V5State>()(
 )
 export const has = (a: Ability) => useV5.getState().abilities.includes(a)
 
+/* ── WORLD add-only section ─────────────────────────────────────────────────
+ * Added by WORLD. When `cinematic.on` is true, WORLD's finale camera owns the
+ * frame and the player controller should stop writing the camera (keep reading
+ * input so "Keep walking" can hand control back instantly).
+ */
+export const cinematic = { on: false }
+/* ── end WORLD add-only section ─────────────────────────────────────────── */
+
 /** Props for every island's V5 obstacle: src/levels/<ID>/Obstacle.tsx (default export).
  *  Rendered inside the island group (island-local coords, island top y=0).
  *  Call complete() once when solved. `active` = player is on/near this island. */
 export type ObstacleProps = { id: IslandId; active: boolean; complete: () => void; done: boolean }
+
+/* ------------------------- PLAYER section (add-only) ------------------------- */
+/** Optional looping emote the player controller plays instead of locomotion.
+ *  Islands/UI set playerEmote.name; clear back to null to resume walking. */
+export const playerEmote = { name: null as null | 'cheer' | 'sit' | 'interact' | 'use' }
+/* ----------------------- end PLAYER section -------------------------------- */

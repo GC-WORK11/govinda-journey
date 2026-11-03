@@ -57,18 +57,6 @@ export const LEVELS: LevelDef[] = [
     palette: { ground: '#b5c27a', accent: '#e0a458' }, Play: g('L03'), Diorama: d('L03'),
   },
   {
-    id: 'L04', kind: 'level', place: 'Delhi · Oct 2026', title: 'Alive',
-    line: 'Four days at the AWS × WeMakeDevs Environmental Hacks. Delhi’s air, street by street.',
-    task: 'Place the sensors and clear the smog.', hint: 'Drag the sensors onto the glowing spots',
-    story: 'ALive maps Delhi’s air street by street. I built it at the AWS × WeMakeDevs Environmental Hacks, demoed at DTU and launched on Oct 11.',
-    tech: 'Air readings refresh every 15 minutes and are spread across the street map, with 240k searchable places.',
-    links: [
-      { label: 'Live', href: 'https://delhi-is-alive.vercel.app' },
-      { label: 'GitHub', href: 'https://github.com/GC-WORK11/ALive' },
-    ], badge: 'Clear air',
-    palette: { ground: '#8fbf7a', accent: '#6fa58a' }, Play: g('L04'), Diorama: d('L04'),
-  },
-  {
     id: 'L05', kind: 'level', place: 'Aug – Sep 2026', title: 'Ent',
     line: 'No GPU cluster. Four laptops on home Wi-Fi.',
     task: 'Split the model’s layers so every laptop can hold its share.', hint: 'Drag each block onto a laptop',
@@ -79,6 +67,18 @@ export const LEVELS: LevelDef[] = [
       { label: 'Paper', href: 'https://active-parameter-runtime.govindach-iitp.chatgpt.site/working-set-routing-paper.pdf' },
     ], badge: 'Shared weight',
     palette: { ground: '#a7bd80', accent: '#c9875f' }, Play: g('L05'), Diorama: d('L05'),
+  },
+  {
+    id: 'L04', kind: 'level', place: 'Delhi · Oct 2026', title: 'Alive',
+    line: 'Four days at the AWS × WeMakeDevs Environmental Hacks. Delhi’s air, street by street.',
+    task: 'Place the sensors and clear the smog.', hint: 'Drag the sensors onto the glowing spots',
+    story: 'ALive maps Delhi’s air street by street. I built it at the AWS × WeMakeDevs Environmental Hacks, demoed at DTU and launched on Oct 11.',
+    tech: 'Air readings refresh every 15 minutes and are spread across the street map, with 240k searchable places.',
+    links: [
+      { label: 'Live', href: 'https://delhi-is-alive.vercel.app' },
+      { label: 'GitHub', href: 'https://github.com/GC-WORK11/ALive' },
+    ], badge: 'Clear air',
+    palette: { ground: '#8fbf7a', accent: '#6fa58a' }, Play: g('L04'), Diorama: d('L04'),
   },
   {
     id: 'I02', kind: 'interlude', place: 'Across India', title: 'On the road',
