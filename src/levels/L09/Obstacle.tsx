@@ -199,15 +199,15 @@ function Fireflies() {
         -1.6 + Math.cos(a * 0.83) * (1.2 + (i % 2) * 0.8),
       )
       const k = 0.5 + 0.5 * Math.sin(t * 2.1 + i * 3.1)
-      ;(m.material as THREE.MeshBasicMaterial).opacity = 0.25 + k * 0.55
+      m.scale.setScalar(0.55 + k * 0.9)
     })
   })
   return (
     <group>
       {Array.from({ length: 6 }, (_, i) => (
         <mesh key={i} ref={(m) => { refs.current[i] = m }}>
-          <sphereGeometry args={[0.022, 6, 6]} />
-          <meshBasicMaterial color="#ffd9a0" transparent opacity={0.6} />
+          <sphereGeometry args={[0.028, 6, 6]} />
+          <meshBasicMaterial color="#ffd9a0" />
         </mesh>
       ))}
     </group>
@@ -403,13 +403,12 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
           <mesh position={[0.12, 0.46, -0.1]} rotation={[0, 0.4, 0]} material={M(C.woodLight)} castShadow><boxGeometry args={[0.5, 0.08, 0.2]} /></mesh>
         </group>
       )}
-      {/* faint ghost of where the plank goes, once carried */}
-      {carried && (
-        <mesh position={[(GAP.x0 + GAP.x1) / 2, 0.05, -1.14]} rotation={[-0.5, 0, 0]}>
-          <boxGeometry args={[0.86, 0.02, 1.16]} />
-          <meshBasicMaterial color="#fbf6ee" transparent opacity={0.3} depthWrite={false} />
+      {/* two wood pegs mark where the plank goes, once carried */}
+      {carried && [GAP.x0 + 0.06, GAP.x1 - 0.06].map((x) => (
+        <mesh key={x} position={[x, 0.09, -1.32]} material={M(C.woodLight)} castShadow>
+          <cylinderGeometry args={[0.035, 0.045, 0.18, 8]} />
         </mesh>
-      )}
+      ))}
 
       {/* crank on the porch, wired to the bell tower */}
       <group position={[-1.75, PORCH.h, -1.95]}>

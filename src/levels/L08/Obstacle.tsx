@@ -9,10 +9,11 @@ import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
 import {
-  C, M, useIslandFrame, useLocalInteractable, useCarryAnchor, useDomOverlay,
+  M, useIslandFrame, useLocalInteractable, useCarryAnchor, useDomOverlay,
   damp, caption, isQa, installSolve, teleportTo, waitFor, sleep, fillInput, tracePad,
 } from './v5kit.v5'
 import { Prop } from '../../v5/art/Dressing'
+import DioramaV4 from './Diorama'
 import { Guardian } from './guardian.v5'
 import { SpeakPrompt } from './voiceui.v5'
 import { SignPad, SIGN_V } from './signui.v5'
@@ -20,7 +21,6 @@ import { has, interactables, useBlocker, useV5, type ObstacleProps } from '../..
 
 const HOME = new THREE.Vector3(0, 0, -3.45)
 const ASIDE = new THREE.Vector3(1.95, 0, -3.7)
-const HAND = '#d07a5a'
 
 /** A standing stone tablet that rises and shows the engraved sign once the guardian wakes. */
 function Tablet({ shown }: { shown: boolean }) {
@@ -52,53 +52,6 @@ function Tablet({ shown }: { shown: boolean }) {
         <planeGeometry args={[0.36, 0.5]} />
         <meshBasicMaterial map={tex.current} transparent opacity={Math.min(1, t.current * 2)} />
       </mesh>
-    </group>
-  )
-}
-
-/** Clay hand making the V sign on a stone plinth — the island's quiet landmark. */
-function HandSign(props: { position: [number, number, number] }) {
-  return (
-    <group {...props}>
-      <mesh position={[0, 0.26, 0]} material={M(C.stone)} castShadow receiveShadow>
-        <cylinderGeometry args={[0.4, 0.48, 0.52, 12]} />
-      </mesh>
-      <mesh position={[0, 0.82, 0]} scale={[0.42, 0.5, 0.3]} material={M(HAND)} castShadow>
-        <sphereGeometry args={[1, 18, 14]} />
-      </mesh>
-      {/* index + middle fingers in a V */}
-      <group position={[-0.08, 1.14, 0]} rotation={[0, 0, -0.3]}>
-        <mesh position={[0, 0.24, 0]} material={M(HAND)} castShadow><capsuleGeometry args={[0.075, 0.42, 6, 10]} /></mesh>
-      </group>
-      <group position={[0.09, 1.14, 0]} rotation={[0, 0, 0.3]}>
-        <mesh position={[0, 0.24, 0]} material={M(HAND)} castShadow><capsuleGeometry args={[0.075, 0.42, 6, 10]} /></mesh>
-      </group>
-      {/* curled ring + pinky */}
-      <mesh position={[0.26, 1.02, 0.02]} rotation={[0, 0, 0.7]} material={M(HAND)} castShadow><capsuleGeometry args={[0.07, 0.18, 6, 10]} /></mesh>
-      <mesh position={[-0.24, 1.02, 0.02]} rotation={[0, 0, -0.65]} material={M(HAND)} castShadow><capsuleGeometry args={[0.075, 0.2, 6, 10]} /></mesh>
-      {/* thumb resting across */}
-      <mesh position={[0, 0.92, 0.16]} rotation={[Math.PI / 2.4, 0, Math.PI / 2]} material={M(HAND)} castShadow><capsuleGeometry args={[0.07, 0.26, 6, 10]} /></mesh>
-    </group>
-  )
-}
-
-/** Phone on a wooden tripod, recording the hand sign. */
-function TripodPhone(props: { position: [number, number, number]; rotationY?: number }) {
-  return (
-    <group {...props} rotation={[0, props.rotationY ?? 0, 0]}>
-      {[0, 1, 2].map((i) => (
-        <group key={i} rotation={[0, i * 2.1, 0]}>
-          <mesh position={[0.2, 0.44, 0]} rotation={[0, 0, 0.38]} material={M(C.wood)} castShadow>
-            <cylinderGeometry args={[0.024, 0.032, 0.95, 6]} />
-          </mesh>
-        </group>
-      ))}
-      <mesh position={[0, 0.92, 0]} material={M(C.wood)} castShadow><cylinderGeometry args={[0.028, 0.028, 0.4, 6]} /></mesh>
-      <group position={[0, 1.16, 0]} rotation={[0.12, 0, 0]}>
-        <RoundedBox args={[0.32, 0.46, 0.05]} radius={0.03} material={M('#3b3330')} castShadow />
-        <mesh position={[0, 0, -0.026]}><boxGeometry args={[0.26, 0.4, 0.012]} /><meshStandardMaterial color="#241f1c" roughness={0.5} /></mesh>
-        <mesh position={[-0.1, 0.17, -0.036]}><sphereGeometry args={[0.016, 8, 8]} /><meshStandardMaterial color={HAND} emissive={HAND} emissiveIntensity={1.1} /></mesh>
-      </group>
     </group>
   )
 }
@@ -218,9 +171,11 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
       <GateStone x={1.5} />
       <Tablet shown={stage !== 'approach'} />
 
-      {/* the little sign studio: hand sculpture + phone on tripod */}
-      <HandSign position={[-2.55, 0, -0.75]} />
-      <TripodPhone position={[-1.45, 0, 0.2]} rotationY={-2.35} />
+      {/* the sign studio — V4's own diorama (unlocked → its scaffold stays folded),
+          placed west of the path so the guardian's gate keeps the exit line */}
+      <group position={[-2.9, 0, -0.1]}>
+        <DioramaV4 unlocked={true} active={active} />
+      </group>
 
       {/* quiet dressing on the rim — ART pack props */}
       <Prop name="rock_large_b" position={[3.55, -0.08, 1.35]} rotation={[0, 0.7, 0]} scale={0.38} />
@@ -228,10 +183,6 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
       <Prop name="plant_bush_detailed" position={[-3.55, -0.04, -1.95]} rotation={[0, 1.2, 0]} scale={0.85} />
       <Prop name="grass_large" position={[-2.95, -0.02, 2.55]} scale={0.85} />
       <Prop name="flower_red_a" position={[2.35, -0.02, 2.05]} scale={0.9} />
-      <mesh position={[2.6, 0.1, 2.8]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <circleGeometry args={[0.5, 20]} />
-        <meshStandardMaterial color={C.sand} roughness={1} />
-      </mesh>
 
       {/* DOM overlays live on their own react root (see useDomOverlay) */}
     </group>
