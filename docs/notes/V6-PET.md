@@ -1,6 +1,6 @@
 # V6-PET status
 
-Status: committed as [unverified] (306cc18). One desktop browser check ran at about 04:58 IST (below). Partially verified: follow logic works on the bench with a stand-in model. Sit, hop, teleport, reveal, mobile and a real dog are not verified. tsc was not run at this commit. Since 05:12 IST agents run no browsers or Chrome. The checks below are for QA or Govinda to run.
+Status (paused at Govinda's request, box load 175). Code: `src/v5/pet/Pet.tsx`, `bench.tsx`, `bench.html`. Last code change is in 306cc18; nothing changed since. Not mounted in World5, and no model yet (`PET_MODEL` is null). Verified: one desktop bench check at about 04:58 IST with a stand-in model. Follow logic works: standing 1.48 m behind, follows while walking, idles when still. Not verified: sit, hop, teleports, reveal, mobile, and a real dog. tsc: clean on the first version of Pet.tsx only. The bench files and the later Pet.tsx edits have not been type-checked. Since 05:12 IST agents run no browsers or Chrome. The checks below are for QA or Govinda to run. Nothing of mine is running.
 
 ## Files (src/v5/pet/**)
 - `Pet.tsx`: the dog. Default export `Pet`, plus `PET_MODEL` (null until ART lands the model).
