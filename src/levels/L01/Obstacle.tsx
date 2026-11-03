@@ -8,7 +8,7 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import * as core from '../../v5/core'
-import { Gate, Hint, LowWall, PathStones, Prop, Rock, tpLocal, sleep, useLocalPlayer, useSolver } from './shared.v5'
+import { Gate, LowWall, PathStones, PillHint, Prop, Rock, tpLocal, sleep, useLocalPlayer, useSolver } from './shared.v5'
 import { Scatter } from '../../v5/art/Dressing'
 import { BigTree, CampusBlock, LaptopDesk } from './campus.v5'
 
@@ -30,6 +30,8 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   const walked = useRef(0)
   const prev = useRef(new THREE.Vector3())
   const inited = useRef(false)
+  const [hint, setHint] = useState<string | null>(done ? null : 'Use WASD or the stick to walk')
+  const hintNow = useRef<string | null>(hint)
 
   useLocalPlayer(root, local)
 
@@ -58,6 +60,13 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
     if (!moved.current && walked.current > 0.7) moved.current = true
     if (!approached.current && moved.current && local.z > WALL_Z + 0.45) approached.current = true
     if (approached.current && !crossed.current && local.z < WALL_Z - 0.35) crossed.current = true
+    // the one quiet line at the bottom of the screen
+    const h = !active || done ? null
+      : !moved.current ? 'Use WASD or the stick to walk'
+      : !crossed.current ? 'Jump over the low wall'
+      : !used.current ? 'Sit at the laptop under the tree'
+      : null
+    if (h !== hintNow.current) { hintNow.current = h; setHint(h) }
     if (open && openT.current < 1) {
       openT.current = Math.min(1, openT.current + dt / 1.7)
       if (openT.current > 0.8 && !completed.current) { completed.current = true; complete() }
@@ -110,10 +119,8 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       <Scatter seed={11} density={0.55} kinds={['tuft', 'flower']}
         avoid={[[-2.3, -2.85, 2.6], [2.0, -1.1, 2.2], [0, -3.9, 2.2], [0, 4.2, 1.4]]} />
 
-      {/* quiet teaching hints */}
-      <Hint text="walk" position={[0, 1.0, 3.5]} show={() => active && !moved.current} />
-      <Hint text="hop" position={[0, 0.98, WALL_Z]} show={() => active && moved.current && !crossed.current && local.z < 3.4} />
-      <Hint text="use" position={[DESK.x, 1.25, DESK.z]} show={() => active && crossed.current && !used.current} />
+      {/* quiet teaching line */}
+      <PillHint text={hint} />
     </group>
   )
 }

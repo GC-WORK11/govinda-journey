@@ -10,7 +10,7 @@ import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import * as core from '../../v5/core'
-import { C, clay, Gate, Hint, Mound, PaperLetter, PathStones, Prop, REDUCED, Rock, tpLocal, sleep, useLocalPlayer, useSolver } from '../L01/shared.v5'
+import { C, clay, Gate, Mound, PaperLetter, PathStones, PillHint, Prop, REDUCED, Rock, tpLocal, sleep, useLocalPlayer, useSolver } from '../L01/shared.v5'
 import { Scatter } from '../../v5/art/Dressing'
 
 /** Where the five letters lie (island-local). */
@@ -116,6 +116,8 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   const local = useMemo(() => new THREE.Vector3(), [])
   const [placed, setPlaced] = useState(done ? 5 : 0)
   const [open, setOpen] = useState(done)
+  const [hint, setHint] = useState<string | null>(done ? null : 'Pick up the five letters')
+  const hintNow = useRef<string | null>(hint)
   const completed = useRef(done)
   const reserved = useRef(0)
   const yawJ = useMemo(() => [0.06, -0.09, 0.04, -0.05, 0.08], [])
@@ -141,6 +143,12 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       completed.current = true
       complete()
     }
+    // the one quiet line at the bottom of the screen
+    const h = !active || done ? null
+      : placed === 0 ? 'Pick up the five letters'
+      : placed < 5 ? `${placed} of 5 letters`
+      : 'Climb the stone steps'
+    if (h !== hintNow.current) { hintNow.current = h; setHint(h) }
   })
 
   const onPickup = useCallback(() => reserved.current++, [])
@@ -198,8 +206,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       <Scatter seed={12} density={0.5} kinds={['tuft', 'flower']}
         avoid={[[1.6, 2.7, 1.1], [-2.5, 0.9, 1.6], [2.05, 0.95, 1.4], [-1.3, -0.7, 1.0], [2.5, -1.3, 1.2], [0, -2.0, 2.6], [0, 4.2, 1.4]]} />
 
-      <Hint text="five letters" position={[0, 1.0, 2.2]} show={() => active && placed === 0 && local.z > 1.6} />
-      <Hint text={`${placed} of 5`} position={[0, 2.35, -1.7]} show={() => active && placed > 0 && placed < 5} />
+      <PillHint text={hint} />
     </group>
   )
 }

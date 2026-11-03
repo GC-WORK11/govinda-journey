@@ -4,6 +4,7 @@
  * geometry that needs exact collider sizes (walls, ledge, gate, mound, letter).
  */
 import { useEffect, useMemo, useRef, type RefObject } from 'react'
+import { createPortal } from 'react-dom'
 import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
@@ -59,55 +60,37 @@ export function useSolver(id: string, fn: () => Promise<void>) {
   }, [id, fn])
 }
 
-/* ---------- floating hint label (canvas sprite, Inter, no card) ---------- */
+/* ---------- hint pill (DOM, V4-style cream pill at the bottom) ---------- */
 
-function labelTex(text: string) {
-  const fs = 46
-  const cv = document.createElement('canvas')
-  const draw = () => {
-    let ctx = cv.getContext('2d')!
-    ctx.font = `500 ${fs}px Inter, system-ui, sans-serif`
-    const w = Math.ceil(ctx.measureText(text).width)
-    cv.width = w + 52
-    cv.height = fs + 30
-    ctx = cv.getContext('2d')!
-    ctx.font = `500 ${fs}px Inter, system-ui, sans-serif`
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillStyle = 'rgba(59,51,48,0.88)'
-    ctx.fillText(text, cv.width / 2, cv.height / 2 + 3)
-  }
-  draw()
-  const tex = new THREE.CanvasTexture(cv)
-  tex.anisotropy = 4
-  return tex
+const PILL_CSS = `
+.gjv5-isla-hint{position:fixed;left:50%;bottom:max(28px,calc(env(safe-area-inset-bottom) + 16px));
+  transform:translateX(-50%);z-index:60;pointer-events:none;white-space:nowrap}
+.gjv5-isla-hint span{display:inline-block;font:500 13px Inter,system-ui,sans-serif;color:#4a4038;
+  background:rgba(251,246,238,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border-radius:999px;padding:8px 16px;letter-spacing:.01em;
+  box-shadow:0 2px 14px rgba(59,51,48,.10);animation:islaHintIn .5s cubic-bezier(.2,.7,.2,1) both}
+@keyframes islaHintIn{from{opacity:0;transform:translateY(8px)}}
+@media (max-width:520px){.gjv5-isla-hint span{font-size:12px;padding:7px 13px}}
+@media (prefers-reduced-motion:reduce){.gjv5-isla-hint span{animation-duration:.01s}}
+`
+let pillCSSIn = false
+function ensurePillCSS() {
+  if (pillCSSIn || typeof document === 'undefined') return
+  pillCSSIn = true
+  const s = document.createElement('style')
+  s.textContent = PILL_CSS
+  document.head.appendChild(s)
 }
 
-/** A quiet floating word that fades in/out and bobs gently. `show` is read per frame. */
-export function Hint({ text, position, show, size = 0.32 }: {
-  text: string
-  position: [number, number, number]
-  show: () => boolean
-  size?: number
-}) {
-  const ref = useRef<THREE.Sprite>(null)
-  const mat = useRef<THREE.SpriteMaterial>(null)
-  const tex = useMemo(() => labelTex(text), [text])
-  const aspect = tex.image.width / tex.image.height
-  const t = useRef(0)
-  useFrame((s, dt) => {
-    t.current += ((show() ? 1 : 0) - t.current) * Math.min(1, dt * 3.5)
-    const k = t.current
-    if (mat.current) mat.current.opacity = 0.85 * k
-    if (ref.current) {
-      ref.current.visible = k > 0.01
-      ref.current.position.y = position[1] + (REDUCED ? 0 : Math.sin(s.clock.elapsedTime * 1.4 + position[0] * 2) * 0.035)
-    }
-  })
-  return (
-    <sprite ref={ref} position={position} scale={[size * aspect, size, 1]}>
-      <spriteMaterial ref={mat} map={tex} transparent opacity={0} depthWrite={false} />
-    </sprite>
+/** The one quiet line at the bottom of the screen (verb + object), like V4's hint pill. */
+export function PillHint({ text }: { text: string | null }) {
+  ensurePillCSS()
+  if (!text) return null
+  return createPortal(
+    <div className="gjv5-isla-hint" role="status">
+      <span key={text}>{text}</span>
+    </div>,
+    document.body,
   )
 }
 
