@@ -284,12 +284,18 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
   const camera = useThree((s) => s.camera)
   const gl = useThree((s) => s.gl)
 
+  // Seed the spawn synchronously: on a plain visitor load nothing else places
+  // the player, and the passive effect below can land after the first physics
+  // frames (lazy chunk inside Suspense), leaving pos at the origin — inside the
+  // island, falling forever.
+  const seed = () => start?.clone() ?? (player.pos.lengthSq() > 0.01 ? player.pos.clone()
+    : ISLAND_POS[0].clone().add(ENTRY).add(new THREE.Vector3(0, 0.4, 0)))
   const S = useRef({
-    pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0,
+    pos: seed(), vel: new THREE.Vector3(), yaw: 0,
     grounded: false, coyote: 0, groundY: 0, airT: 0, prevVy: 0, groundName: '',
     groundObj: null as THREE.Object3D | null,
     bridge: { on: false, obj: null as THREE.Object3D | null, line: null as BridgeLine | null, s: 0, lat: 0, t: 0 },
-    lastSafe: new THREE.Vector3(), hist: [] as THREE.Vector3[], histT: 0,
+    lastSafe: seed(), hist: [] as THREE.Vector3[], histT: 0,
     stepAcc: 0, camYaw: 0, camPitch: 0.42, camDist: BASE_DIST, camDistT: BASE_DIST, zoomMul: 1.0,
     targetSm: new THREE.Vector3(), first: true, respawnT: 0,
   })

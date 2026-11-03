@@ -226,8 +226,10 @@ export default function World5() {
   const slow = useCallback(() => { setDpr(0.6); setFx(false); setWater(false) }, [])
 
   // ?qa: the V5 side of the test hook. project/find are attached by QaProbe.
+  // ?at=<ID> works for everyone (deep links); the rest of the hook is ?qa only.
   useEffect(() => {
-    if (!QA) return
+    const q0 = new URLSearchParams(location.search)
+    if (!QA && !q0.has('at')) return
     const w = window as any
     const j = (w.__journey ??= {})
     const v5 = (j.v5 ??= {})
@@ -247,11 +249,11 @@ export default function World5() {
       },
     })
     // &at=<ID> teleports; &unlock marks every island before it complete; &finale completes all
-    const q = new URLSearchParams(location.search)
-    if (q.has('finale')) for (const id of V5_ORDER) useV5.getState().complete(id)
+    const q = q0
+    if (QA && q.has('finale')) for (const id of V5_ORDER) useV5.getState().complete(id)
     const at = q.get('at') as IslandId | null
     if (at && (V5_ORDER as readonly string[]).includes(at)) {
-      if (q.has('unlock')) for (const id of V5_ORDER.slice(0, islandIndex(at))) useV5.getState().complete(id)
+      if (QA && q.has('unlock')) for (const id of V5_ORDER.slice(0, islandIndex(at))) useV5.getState().complete(id)
       // ?at is a QA pin, not a one-shot teleport. Everything that owns
       // player.pos can displace it later — PLAYER's lazy mount re-seeds, its
       // respawn/reset runs after a backgrounded restore (rAF freeze makes a
