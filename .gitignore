@@ -3,3 +3,4 @@ dist
 .vercel
 proofs/*.webm
 proofs/
+.env*

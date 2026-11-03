@@ -1,0 +1,6 @@
+proofs
+node_modules
+dist
+docs
+scripts
+.env*

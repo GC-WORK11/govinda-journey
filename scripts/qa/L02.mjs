@@ -3,12 +3,14 @@
  * @param {import('puppeteer').Page} page
  */
 export default async function play(page) {
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+  
   // Wait for the game to load
   await page.waitForSelector('[data-qa="letter-0"]', { timeout: 5000 })
-  await page.waitForTimeout(500)
+  await sleep(800)
 
   // Get the SVG bounding box to calculate drop zone
-  const svgBox = await page.$eval('svg', (el) => {
+  const svgBox = await page.$eval('.l02 svg', (el) => {
     const rect = el.getBoundingClientRect()
     return {
       left: rect.left,
@@ -24,12 +26,13 @@ export default async function play(page) {
 
   // Drag each letter to the drop zone
   for (let i = 0; i < 5; i++) {
-    const selector = `[data-qa="letter-${i}"]`
+    const selector = `[data-qa="letter-${i}"] rect`
     
-    // Wait for letter to be available
-    await page.waitForSelector(selector, { timeout: 3000 })
+    // Check if letter still exists (might have been placed already)
+    const exists = await page.$(selector)
+    if (!exists) continue
     
-    // Get letter position
+    // Get letter position - find the rect inside the g element
     const letterBox = await page.$eval(selector, (el) => {
       const rect = el.getBoundingClientRect()
       return {
@@ -39,17 +42,18 @@ export default async function play(page) {
     })
 
     // Drag the letter to the drop zone
-    await page.mouse.move(letterBox.x, letterBox.y)
+    await page.mouse.move(letterBox.x, letterBox.y, { steps: 5 })
+    await sleep(100)
     await page.mouse.down()
-    await page.waitForTimeout(50)
-    await page.mouse.move(dropX, dropY, { steps: 10 })
-    await page.waitForTimeout(50)
+    await sleep(100)
+    await page.mouse.move(dropX, dropY, { steps: 15 })
+    await sleep(100)
     await page.mouse.up()
     
-    // Wait for animation
-    await page.waitForTimeout(400)
+    // Wait for fold animation
+    await sleep(600)
   }
 
   // Wait for traveler to cross and game to complete
-  await page.waitForTimeout(3000)
+  await sleep(4000)
 }
