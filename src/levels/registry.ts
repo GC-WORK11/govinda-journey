@@ -50,8 +50,8 @@ export const LEVELS: LevelDef[] = [
     links: [
       { label: 'CEO Hunt', href: 'https://ceohunt.vercel.app/' },
       { label: 'Flow Pitch', href: 'https://flow-pitch.vercel.app' },
-      { label: 'Workbench', href: 'https://delegators-workbench.vercel.app' },
-      { label: 'Doorway', href: 'https://doorway-ide.vercel.app/' },
+      { label: 'Delegators Workbench', href: 'https://delegators-workbench.vercel.app' },
+      { label: 'Doorway IDE', href: 'https://doorway-ide.vercel.app/' },
     ], badge: 'Shipper',
     palette: { ground: '#b5c27a', accent: '#e0a458' }, Play: g('L03'), Diorama: d('L03'),
   },
@@ -68,7 +68,7 @@ export const LEVELS: LevelDef[] = [
     palette: { ground: '#a7bd80', accent: '#c9875f' }, Play: g('L05'), Diorama: d('L05'),
   },
   {
-    id: 'L04', kind: 'level', place: 'Delhi · Oct 2026', title: 'Alive',
+    id: 'L04', kind: 'level', place: 'Delhi · Oct 2026', title: 'ALive',
     line: 'Built for the AWS × WeMakeDevs Environmental Hacks. Live, street-level air for Delhi-NCR.',
     task: 'Place the sensors and clear the smog.', hint: 'Drag the sensors onto the glowing spots',
     story: 'ALive shows the air at the exact spot you stand on in Delhi-NCR, and routes where you breathe less smoke. It runs on AWS.',
@@ -107,7 +107,7 @@ export const LEVELS: LevelDef[] = [
     palette: { ground: '#a3c482', accent: '#8a6fb0' }, Play: g('L07'), Diorama: d('L07'),
   },
   {
-    id: 'L08', kind: 'level', place: 'Oct 27 – 31, 2026', title: 'Sign Flow',
+    id: 'L08', kind: 'level', place: 'Oct 27 – 31, 2026', title: 'Sign-Flow',
     line: 'Teach the laptop your own hand signs.',
     task: 'Match each sign to what it does.', hint: 'Tap the hand that matches',
     story: 'Sign-Flow lets you record your own hand signs on a phone camera, then use them to type or control the laptop. Built for the #NoHandsChallenge.',
