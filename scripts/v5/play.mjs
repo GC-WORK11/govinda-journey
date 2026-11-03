@@ -384,8 +384,9 @@ for (const [size, vp] of VIEWPORTS) {
     await shot(page, `${size}-${pad(i + 1)}-${id}.png`)
     await v4shot(id, i + 1)
 
-    // -- walk across the bridge to the next island
-    if (i + 1 < ORDER.length && (!ONLY || ids.includes(ORDER[i + 1]))) {
+    // -- walk across the bridge to the next island (always test it when this island
+    //    is in scope — with --only=I01 the crossing IS the thing being retested)
+    if (i + 1 < ORDER.length) {
       const N = lay.pos[i + 1]
       const entryN = { x: N.x + lay.entry.x, z: N.z + lay.entry.z }
       const mid = { x: (exitW.x + entryN.x) / 2, z: (exitW.z + entryN.z) / 2 }
