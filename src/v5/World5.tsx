@@ -14,7 +14,7 @@ import { PerformanceMonitor } from '@react-three/drei'
 import * as THREE from 'three'
 import { V5_ORDER, useV5, player, cinematic, type IslandId } from './core'
 import { ISLAND_POS, ENTRY, PATH_MID, islandIndex, islandPos } from './world/layout'
-import { Island5 } from './world/Island5'
+import { Island5, purgeCorridors } from './world/Island5'
 import { Bridge5 } from './world/Bridge5'
 import { hasObstacle, Player, ArtWater, Guard } from './world/modules'
 import { useWorldUI } from './world/progress'
@@ -61,10 +61,12 @@ function Islands5() {
 function Hygiene() {
   const scene = useThree((s) => s.scene)
   useEffect(() => {
-    const sweep = () =>
+    const sweep = () => {
       scene.traverse((o) => {
         if ((o as THREE.Mesh).isMesh && !(o as THREE.Mesh).geometry) o.visible = false
       })
+      purgeCorridors() // nothing may wall off the path corridor
+    }
     sweep()
     const t = window.setInterval(sweep, 1600)
     return () => window.clearInterval(t)
@@ -137,20 +139,22 @@ function FinaleCam() {
   return null
 }
 
-/** ?qa: attach 3D helpers onto window.__journey.v5 (set up below). */
+/** ?qa: attach 3D helpers onto window.__journey.v5 (the parent fills the rest —
+ * effects run children-first, so write into the shared object, don't replace). */
 function QaProbe() {
   const { camera, gl, scene } = useThree()
   useEffect(() => {
-    const j = (window as any).__journey?.v5; if (!j) return
-    const px = (w: THREE.Vector3) => {
-      const r = gl.domElement.getBoundingClientRect(); const v = w.clone().project(camera)
+    const w = window as any
+    const v5 = ((w.__journey ??= {}).v5 ??= {})
+    const px = (w2: THREE.Vector3) => {
+      const r = gl.domElement.getBoundingClientRect(); const v = w2.clone().project(camera)
       return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }
     }
-    j.project = (x: number, y: number, z: number, id: IslandId) => px(islandPos(id).clone().add(new THREE.Vector3(x, y, z)))
-    j.debug = { pos: () => player.pos.toArray(), cam: () => camera.position.toArray(), cIdx: () => skyDebug.cIdx, night: () => env.night }
-    j.find = (name: string) => {
+    v5.project = (x: number, y: number, z: number, id: IslandId) => px(islandPos(id).clone().add(new THREE.Vector3(x, y, z)))
+    v5.debug = { pos: () => player.pos.toArray(), cam: () => camera.position.toArray(), cIdx: () => skyDebug.cIdx, night: () => env.night }
+    v5.find = (name: string) => {
       const o = scene.getObjectByName(name); if (!o) return null
-      const w = new THREE.Vector3(); o.getWorldPosition(w); return px(w)
+      const w2 = new THREE.Vector3(); o.getWorldPosition(w2); return px(w2)
     }
   }, [camera, gl, scene])
   return null
@@ -165,7 +169,8 @@ export default function World5() {
     if (!QA) return
     const w = window as any
     const j = (w.__journey ??= {})
-    j.v5 = {
+    const v5 = (j.v5 ??= {})
+    Object.assign(v5, {
       state: () => useV5.getState(),
       complete: (id: IslandId) => useV5.getState().complete(id),
       goto: (id: IslandId) => {
@@ -174,16 +179,23 @@ export default function World5() {
         player.pos.copy(p); player.vel.set(0, 0, 0); player.island = id
         w.__journey?.player?.teleport?.(p.x, p.y, p.z)
       },
-      project: null, find: null,
-    }
+    })
     // &at=<ID> teleports; &unlock marks every island before it complete; &finale completes all
     const q = new URLSearchParams(location.search)
     if (q.has('finale')) for (const id of V5_ORDER) useV5.getState().complete(id)
     const at = q.get('at') as IslandId | null
     if (at && (V5_ORDER as readonly string[]).includes(at)) {
       if (q.has('unlock')) for (const id of V5_ORDER.slice(0, islandIndex(at))) useV5.getState().complete(id)
-      // let the canvas mount first so the teleport lands after PLAYER seeds its spawn
-      window.setTimeout(() => j.v5.goto(at), 400)
+      // PLAYER may still be seeding its spawn when we teleport — keep retrying
+      // until the position actually lands, then stop (bounded ~8 s).
+      const target = ISLAND_POS[islandIndex(at)].clone().add(ENTRY)
+      let tries = 0
+      const iv = window.setInterval(() => {
+        v5.goto?.(at)
+        if ((player.island === at && player.pos.distanceToSquared(target) < 4) || ++tries > 26) {
+          window.clearInterval(iv)
+        }
+      }, 300)
     }
   }, [])
 
