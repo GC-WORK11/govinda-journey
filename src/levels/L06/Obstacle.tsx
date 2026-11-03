@@ -15,7 +15,7 @@ import * as THREE from 'three'
 import * as core from '../../v5/core'
 import { input, isDown, now } from '../../v5/player/input'
 import { Prop } from '../../v5/art/Dressing'
-import { C, clay, VoxelTower, AcBox, Antenna, Heli, RouteRing, HeliPad, PadRock, BlockBox } from './kit.v5'
+import { C, clay, VoxelTower, AcBox, Antenna, Heli, RouteRing, HeliPad, PadRock, BlockBox, Laptop, PhoneOnStand, Desk } from './kit.v5'
 
 const V3 = THREE.Vector3
 type V3T = [number, number, number]
@@ -30,21 +30,20 @@ const BRIDGE_A = new V3(-5.35, 0.08, -2.35)              // rim mouth
 const BRIDGE_B = new V3(-7.75, 0.08, -2.85)              // rock edge
 const EXIT_L = new V3(0, 0, -4.0)
 
-/** Route rings — a wide tour around the skyline, ~60 m of legs. Last leg descends to the far pad. */
+/** Route rings — ONE clear flight line: lift off, arc out over the west rim,
+ *  set down on the far rock. */
 const RINGS: V3T[] = [
-  [3.4, 1.6, 1.0], [4.3, 2.2, -1.3], [1.9, 2.9, -3.7], [-1.8, 3.1, -4.0],
-  [-4.4, 2.4, -2.0], [-5.0, 1.9, 1.1], [-3.1, 1.7, 3.3], [0.4, 1.5, 4.6],
-  [3.6, 1.9, 4.1], [5.6, 2.3, -0.2], [4.9, 2.7, -3.3], [0.4, 3.0, -5.6],
-  [-4.0, 2.2, -4.9], [-6.8, 1.4, -3.9],
+  [-0.6, 2.2, 3.4], [-3.4, 2.4, 2.6], [-5.6, 2.1, 0.3], [-7.3, 1.6, -1.7], [-8.4, 1.1, -2.7],
 ]
 
-/** Towers: pos, w, d, h, tone, seed. All |x|>1.5 — clear of the walk corridor. */
+/** Towers: pos, w, d, h, tone, seed. All |x|>1.5 — clear of the walk corridor.
+ *  Kept low in the middle/north so the caption band stays on open sky. */
 const TOWERS: [number, number, number, number, number, string, number][] = [
-  [2.95, 1.35, 1.35, 1.1, 2.7, C.facade1, 3],
-  [3.75, -0.7, 1.25, 1.25, 3.4, C.facade2, 7],
-  [2.55, -2.75, 1.15, 1.0, 2.2, C.facade3, 11],
-  [-2.15, -2.85, 1.45, 1.2, 3.6, C.facade1, 5],
-  [-3.75, -0.9, 1.25, 1.15, 2.6, C.facade2, 13],
+  [2.95, 1.35, 1.35, 1.1, 2.8, C.facade1, 3],
+  [3.75, -0.7, 1.25, 1.25, 2.6, C.facade2, 7],
+  [2.55, -2.75, 1.15, 1.0, 1.8, C.facade3, 11],
+  [-2.15, -2.85, 1.45, 1.2, 2.0, C.facade1, 5],
+  [-3.75, -0.9, 1.25, 1.15, 2.8, C.facade2, 13],
   [-3.5, 1.75, 1.15, 1.05, 2.0, C.facade4, 17],
   [-1.8, 3.45, 1.0, 0.9, 1.4, C.facade3, 19],
   [4.35, 1.6, 0.9, 0.9, 1.6, C.facade4, 23],
@@ -360,12 +359,12 @@ export default function Obstacle({ id, complete, done }: core.ObstacleProps) {
         </group>
       ))}
       {/* rooftops */}
-      <Prop name="water_tower" position={[-2.15, 3.62, -2.85]} fit={0.9} />
-      <AcBox position={[2.95, 2.78, 1.1]} />
-      <AcBox position={[3.75, 3.48, -0.9]} s={1.2} />
-      <Antenna position={[2.55, 2.24, -2.75]} h={0.9} />
-      <AcBox position={[-3.5, 2.08, 1.75]} s={0.9} />
-      <Antenna position={[-3.75, 2.64, -0.9]} h={0.7} />
+      <Prop name="water_tower" position={[-3.75, 2.86, -0.9]} fit={0.9} />
+      <AcBox position={[2.95, 2.88, 1.1]} />
+      <AcBox position={[3.75, 2.68, -0.9]} s={1.2} />
+      <Antenna position={[2.55, 1.84, -2.75]} h={0.9} />
+      <AcBox position={[-3.5, 2.06, 1.75]} s={0.9} />
+      <Antenna position={[-2.15, 2.06, -2.85]} h={0.7} />
       {/* street life */}
       <Prop name="streetlight" position={[-1.05, 0.03, 1.9]} fit={0.95} />
       <Prop name="streetlight" position={[-2.35, 0.03, -0.6]} fit={0.95} rotation={[0, Math.PI, 0]} />
@@ -375,6 +374,27 @@ export default function Obstacle({ id, complete, done }: core.ObstacleProps) {
       <Prop name="city_bush" position={[2.3, 0.02, 0.4]} fit={0.36} />
       <Prop name="box_a" position={[-0.6, 0.02, -3.7]} fit={0.4} />
       <Prop name="box_a" position={[1.3, 0.02, -3.85]} fit={0.32} rotation={[0, 0.7, 0]} />
+
+      {/* ------- the Remote vignette: desk + laptop + phone, beside the path ------- */}
+      <group position={[3.0, 0, 3.0]} rotation={[0, -0.55, 0]}>
+        <Desk w={1.05} />
+        <group position={[0, 0.49, -0.06]} rotation={[0, -0.15, 0]}>
+          <Laptop s={1.7} open={0.34}>
+            <mesh position={[0, 0, 0.001]}>
+              <planeGeometry args={[0.5, 0.32]} />
+              <meshBasicMaterial color="#2f2a26" />
+            </mesh>
+            <mesh position={[-0.1, 0.05, 0.002]}>
+              <planeGeometry args={[0.22, 0.14]} />
+              <meshBasicMaterial color="#8fb36b" />
+            </mesh>
+          </Laptop>
+        </group>
+      </group>
+      <BlockBox position={[3.0, 0.3, 3.0]} args={[1.2, 0.62, 0.7]} kind="block" />
+      <group position={[1.15, 0, 3.75]} rotation={[0, -0.4, 0]} scale={1.6}>
+        <PhoneOnStand />
+      </group>
 
       {/* ------- home helipad + parked helicopter ------- */}
       <HeliPad position={PAD_HOME.toArray()} r={0.95} />

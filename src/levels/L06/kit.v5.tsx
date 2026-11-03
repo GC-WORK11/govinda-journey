@@ -68,6 +68,55 @@ function facadeTexture(base: string, win: string, floors: number, cols: number, 
 
 /* ---------------------------------- props ---------------------------------- */
 
+/** Laptop: base + angled screen. `screen` slot for a custom material/texture mesh. */
+export function Laptop({ children, open = 0.32, s = 1, ...p }: P & { children?: React.ReactNode; open?: number; s?: number }) {
+  return (
+    <group {...p} scale={[s, s, s]}>
+      <RoundedBox args={[0.62, 0.035, 0.44]} radius={0.012} position={[0, 0.018, 0]} material={clay(C.stoneLight)} castShadow />
+      <RoundedBox args={[0.5, 0.012, 0.3]} radius={0.01} position={[0, 0.041, 0.02]} material={clay(C.stone)} />
+      <group position={[0, 0.04, -0.2]} rotation={[-open, 0, 0]}>
+        <RoundedBox args={[0.62, 0.42, 0.024]} radius={0.012} position={[0, 0.21, 0]} material={clay(C.stoneLight)} castShadow />
+        <group position={[0, 0.21, 0.016]}>{children}</group>
+      </group>
+    </group>
+  )
+}
+
+/** Smartphone standing on a wooden easel stand. */
+export function PhoneOnStand({ glow = false, ...p }: P & { glow?: boolean }) {
+  return (
+    <group {...p}>
+      <mesh position={[0, 0.21, -0.07]} rotation={[0.36, 0, 0]} material={clay(C.wood)} castShadow>
+        <boxGeometry args={[0.22, 0.42, 0.035]} />
+      </mesh>
+      <mesh position={[0, 0.06, 0.02]} rotation={[0.42, 0, 0]} material={clay(C.wood)} castShadow>
+        <boxGeometry args={[0.26, 0.13, 0.06]} />
+      </mesh>
+      <RoundedBox args={[0.25, 0.44, 0.028]} radius={0.035} position={[0, 0.26, -0.04]} rotation={[0.36, 0, 0]} material={clay(C.ink)} castShadow />
+      <mesh position={[0, 0.263, -0.024]} rotation={[0.36, 0, 0]}>
+        <planeGeometry args={[0.21, 0.38]} />
+        <meshBasicMaterial color={glow ? '#dff0d8' : '#e6ddc8'} />
+      </mesh>
+    </group>
+  )
+}
+
+/** Work desk: plank top + legs. */
+export function Desk({ w = 1.15, ...p }: P & { w?: number }) {
+  return (
+    <group {...p}>
+      <RoundedBox args={[w, 0.055, 0.5]} radius={0.015} position={[0, 0.46, 0]} material={clay(C.woodLight)} castShadow receiveShadow />
+      {[-1, 1].map((s) => (
+        <group key={s}>
+          <mesh position={[s * (w / 2 - 0.07), 0.22, 0.17]} material={clay(C.wood)} castShadow><boxGeometry args={[0.05, 0.44, 0.05]} /></mesh>
+          <mesh position={[s * (w / 2 - 0.07), 0.22, -0.17]} material={clay(C.wood)} castShadow><boxGeometry args={[0.05, 0.44, 0.05]} /></mesh>
+        </group>
+      ))}
+      <RoundedBox args={[w - 0.24, 0.03, 0.36]} radius={0.01} position={[0, 0.14, 0]} material={clay(C.wood)} castShadow />
+    </group>
+  )
+}
+
 /** Voxel tower: chamfered box + baked facade; roof slab + parapet. */
 export function VoxelTower({ w = 1, d = 1, h = 2.4, tone = C.facade1, win = C.glass, seed = 1, ...p }: P & { w?: number; d?: number; h?: number; tone?: string; win?: string; seed?: number }) {
   const tex = useMemo(() => facadeTexture(tone, win, Math.max(2, Math.round(h / 0.55)), Math.max(2, Math.round(w / 0.34)), seed), [w, h, tone, win, seed])
