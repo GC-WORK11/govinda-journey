@@ -328,7 +328,11 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       <Hint text="climb" position={[WALL_AT.x, 1.15, WALL_AT.z]} show={() => active && !doneRef.current && near(WALL_AT.x, WALL_AT.z, 2.4) && core.has('climb')} />
       <Hint text="pages for the gaps" position={[RACK.x, LEDGE_TOP + 0.9, RACK.z]} show={() => active && !doneRef.current && near(RACK.x, RACK.z, 2.6) && blocks.some((b) => b.state === 'rack')} />
       <Hint text="a page gap" position={[GAPS[0].c.x, 0.7, GAPS[0].c.z]} show={() => active && !doneRef.current && near(GAPS[0].c.x, GAPS[0].c.z, 2.2) && !core.player.carrying && !blocks.some((b) => (b as any).slot === 0 && b.state === 'placed')} />
-      <Hint text="lay the page" position={[GAPS[2].c.x, 0.7, GAPS[2].c.z]} show={() => active && !doneRef.current && !!core.player.carrying} />
+      {GAPS.map((g, j) => (
+        <Hint key={j} text="lay the page" position={[g.c.x, 0.7, g.c.z]}
+          show={() => active && !doneRef.current && !!core.player.carrying && near(g.c.x, g.c.z, 2.6)
+            && !blocks.some((b) => (b as any).slot === j && b.state === 'placed')} />
+      ))}
       <Hint text="the weekend bench" position={[-2.55, 1.7, 2.3]} show={() => active && near(-2.55, 2.3, 2.6)} size={0.26} />
 
       <PayoffGlow lit={lit} />
