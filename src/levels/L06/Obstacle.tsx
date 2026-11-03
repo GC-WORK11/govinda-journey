@@ -232,10 +232,13 @@ export default function Obstacle({ id, complete, done }: core.ObstacleProps) {
         if (atHome) {
           setPhase('walk')
           release()
-          J()?.player?.teleport?.(PAD_HOME.x - 1.0, 0.05, PAD_HOME.z + 0.6)
+          _v.copy(PAD_HOME).add(_v2.set(-1.0, 0.05, 0.6))
+          const w1 = root.current ? root.current.localToWorld(_v) : _v
+          J()?.player?.teleport?.(w1.x, w1.y, w1.z)
         } else {
           setPhase('done'); solved.current = true
-          J()?.player?.teleport?.(STEP_OUT.x, STEP_OUT.y, STEP_OUT.z)
+          const w2 = root.current ? root.current.localToWorld(_v.copy(STEP_OUT)) : _v.copy(STEP_OUT)
+          J()?.player?.teleport?.(w2.x, w2.y, w2.z)
           window.setTimeout(() => { release(); complete() }, 900)
         }
       }
@@ -245,12 +248,14 @@ export default function Obstacle({ id, complete, done }: core.ObstacleProps) {
     if (ph === 'fly' || ph === 'land') {
       // seat the traveller: teleport is the only external writer of player pos
       _seat.copy(s.pos); _seat.y += 0.32
-      J()?.player?.teleport?.(_seat.x, _seat.y, _seat.z)
-      // chase cam
+      const sw = root.current ? root.current.localToWorld(_seat) : _seat
+      J()?.player?.teleport?.(sw.x, sw.y, sw.z)
+      // chase cam (world space)
       _f.set(-Math.sin(s.yaw), 0, -Math.cos(s.yaw))
-      _camP.copy(s.pos).addScaledVector(_f, -5.4); _camP.y = s.pos.y + 2.15
+      const hw = root.current ? root.current.localToWorld(_v.copy(s.pos)) : s.pos
+      _camP.copy(hw).addScaledVector(_f, -5.4); _camP.y = hw.y + 2.15
       cam.position.lerp(_camP, 1 - Math.exp(-4.2 * dt))
-      _look.copy(s.pos).addScaledVector(_f, 2.2); _look.y += 0.3
+      _look.copy(hw).addScaledVector(_f, 2.2); _look.y += 0.3
       cam.lookAt(_look)
     }
   })
