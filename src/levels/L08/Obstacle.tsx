@@ -123,7 +123,7 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
     at: () => new THREE.Vector3(-1.35, 0.9, 1.55),
     radius: 1.8,
     label: 'Read the plaza board',
-    enabled: () => active && overlay === 'none',
+    enabled: () => overlay === 'none',
     use: () => setOverlay('board'),
   })
 
