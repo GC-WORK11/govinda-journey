@@ -123,12 +123,23 @@ const WATER_ISLANDS = ISLAND_POS.map((p) => [p.x, p.z, 6.2] as [number, number, 
  * lies in frame, then holds a very slow drift. Releases when it flips off.
  */
 function FinaleCam() {
-  const { camera } = useThree()
-  const st = useRef({ seeded: false, pos: new THREE.Vector3(), look: new THREE.Vector3() })
+  const { camera, scene } = useThree()
+  const st = useRef({ seeded: false, pos: new THREE.Vector3(), look: new THREE.Vector3(), sea: null as THREE.Mesh | null })
   useFrame((s, dt) => {
     if (!cinematic.on) { st.current.seeded = false; return }
     const k = st.current
     if (!k.seeded) { k.seeded = true; k.pos.copy(camera.position); k.look.copy(PATH_MID) }
+    // Veil the sea plane during the pull-back: the camera's far plane clips it
+    // at ~340 m, and past the finale fog band it renders as one huge pale disc
+    // with a hard arc edge against the night dome (V4 had no sea at all). It
+    // pops back if the cinematic releases ("Keep walking").
+    if (!k.sea) {
+      scene.traverse((o) => {
+        const m = o as THREE.Mesh
+        if (!k.sea && m.isMesh && m.geometry?.type === 'PlaneGeometry' && m.position.y < -10) k.sea = m
+      })
+    }
+    if (k.sea) k.sea.visible = env.finale < 0.55
     const az = 2.86 + (RM ? 0 : Math.sin(s.clock.elapsedTime * 0.04) * 0.09)
     _fw.set(PATH_MID.x + Math.sin(az) * 76, PATH_MID.y + 27, PATH_MID.z + Math.cos(az) * 76)
     k.pos.lerp(_fw, 1 - Math.exp(-dt * 1.1))
