@@ -145,7 +145,7 @@ export function Bridge5({ i, shown }: { i: number; shown: boolean }) {
         <group ref={railsWrap}>
           <group rotation={[0, -yaw, 0]}>
             <group position={exitWorld(i).negate()}>
-              <mesh geometry={rails} material={clayVC()} castShadow />
+              <mesh geometry={rails} material={clayVC()} />
             </group>
           </group>
         </group>
@@ -157,10 +157,10 @@ export function Bridge5({ i, shown }: { i: number; shown: boolean }) {
           </group>
         </group>
       </group>
-      <mesh ref={deckRef} geometry={deck} material={clayVC()} castShadow receiveShadow visible={false} />
+      <mesh ref={deckRef} geometry={deck} material={clayVC()} receiveShadow visible={false} />
       {planks.map((pl, j) => (
         <group key={j} ref={(el) => { plRef.current[j] = el }} position={pl.p} rotation={[0, pl.r, (j % 3 - 1) * 0.03]} visible={st.current.p > 0}>
-          <RoundedBox args={[0.95, 0.07, 0.26]} radius={0.03} material={clay(j % 2 ? C.wood : C.woodLight)} castShadow receiveShadow />
+          <RoundedBox args={[0.95, 0.07, 0.26]} radius={0.03} material={clay(j % 2 ? C.wood : C.woodLight)} receiveShadow />
         </group>
       ))}
     </group>

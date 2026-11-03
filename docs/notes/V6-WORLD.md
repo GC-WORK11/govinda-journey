@@ -16,3 +16,7 @@ Bridge decks merge to one mesh after the reveal (~18→~4 calls/bridge); lazy ob
 **For QA to verify:** load `http://localhost:5190/?qa&fresh&at=L01&unlock` and `...&at=L06&unlock` at 1440×900, wait ~25 s for the perf decline to settle, then read `window.__journey.v5.stats()` in console. Expect ~290 calls at L01, similar or lower at L06.
 
 **Honest gap vs the <150 target:** remaining draws live in the 3 mounted islands' lazy diorama/obstacle chunks (ISL owners — merging those is their merge/instance task), the shadow pass (~doubles caster counts; could try `castShadow={false}` on baked dressing), clouds/water/sky, and player chrome. WORLD-side floor is now ~island bases (2/island × 11) + gates (2 × 11) + bridges near. The `ms` field is swiftshader frame time — not a TTI proxy.
+
+## Shadow-caster diet (this pass)
+
+`castShadow` removed from every small prop WORLD draws: island scatter, baked dressing, dressing scatter geos, exit-gate post+leaf, placeholder props, bridge rails/deck/planks. Casters left: player + the island bases themselves (the "big rocks"). Expected effect: each removed caster also disappears from the 512² shadow-map pass, so `gl.info.render.calls` should drop by roughly one call per ex-caster — ~50 calls at L01 (294 → mid-240s estimate), and the shadow pass gets cheaper for whatever remains. Visual cost: small props lose their cast shadow — acceptable, the sun is high and prop shadows were subtle.

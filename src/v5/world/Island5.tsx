@@ -52,7 +52,7 @@ function IslandBase5({ id, seed }: { id: IslandId; seed: number }) {
         <meshBasicMaterial visible={false} />
       </mesh>
       <Island radius={ISLAND_R} ground={ground} seed={seed} />
-      {scatter && <mesh geometry={scatter} material={clayVC()} castShadow receiveShadow />}
+      {scatter && <mesh geometry={scatter} material={clayVC()} receiveShadow />}
     </group>
   )
 }
@@ -99,11 +99,11 @@ function ExitGate({ id, open }: { id: IslandId; open: boolean }) {
         <boxGeometry args={[2.6, 1.7, 0.5]} />
         <meshBasicMaterial visible={false} />
       </mesh>
-      <mesh position={[-0.95, 0.42, 0]} material={clay(C.wood)} castShadow>
+      <mesh position={[-0.95, 0.42, 0]} material={clay(C.wood)}>
         <cylinderGeometry args={[0.045, 0.06, 0.84, 7]} />
       </mesh>
       <group ref={hinge} position={[-0.95, 0, 0]}>
-        <mesh geometry={leaf} material={clayVC()} castShadow />
+        <mesh geometry={leaf} material={clayVC()} />
       </group>
     </group>
   )
@@ -140,13 +140,13 @@ function ObstaclePlaceholder({ seed }: { seed: number }) {
   return (
     <group position={[p.x, 0, p.z]} rotation={[0, p.r, 0]}>
       {/* a small draped shape under a dust sheet — something is being built here */}
-      <mesh position={[0, 0.42, 0]} material={clay(C.paper)} castShadow receiveShadow>
+      <mesh position={[0, 0.42, 0]} material={clay(C.paper)} receiveShadow>
         <sphereGeometry args={[0.62, 24, 14, 0, Math.PI * 2, 0, Math.PI / 2]} />
       </mesh>
       <mesh position={[0, 0.86, 0]} material={clay(C.terracotta)}>
         <sphereGeometry args={[0.06, 10, 8]} />
       </mesh>
-      <mesh position={[0.5, 0.05, 0.42]} rotation={[0.2, 0.4, 0]} material={clay(C.woodLight)} castShadow>
+      <mesh position={[0.5, 0.05, 0.42]} rotation={[0.2, 0.4, 0]} material={clay(C.woodLight)}>
         <boxGeometry args={[0.34, 0.05, 0.22]} />
       </mesh>
     </group>

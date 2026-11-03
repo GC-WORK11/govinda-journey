@@ -432,9 +432,9 @@ export function IslandDressing5({
   return (
     <group position={islandPos(id)}>
       {geos.map((g, i) => (
-        <mesh key={i} geometry={g} material={clayVC()} castShadow receiveShadow />
+        <mesh key={i} geometry={g} material={clayVC()} receiveShadow />
       ))}
-      <mesh geometry={baked} material={clayVC()} castShadow receiveShadow />
+      <mesh geometry={baked} material={clayVC()} receiveShadow />
     </group>
   )
 }
