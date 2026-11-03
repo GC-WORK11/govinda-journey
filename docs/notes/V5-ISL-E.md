@@ -5,6 +5,10 @@ Status: **both islands verified end-to-end live** in the real world (`/?qa&at=<I
 both via real interactions (teleport + `interactables.get(<id>).use()` + the same DOM paths players
 hit). Post-solve screenshots inspected at 1440x900 (door swung open + lantern lit on L07, bridge out
 + dock scene on L06). tsc clean (`npx tsc -p . --noEmit`, filtered).
+Pending when Chrome frees: `play.mjs --only=L06,L07` (queued twice, lock never released — the run
+exercises the same solver path already proven, plus the L06→L07 cross-walk the exit-path fix targets)
+and a 390x844 shot of the phone/voice overlays (both are `min(300px,86vw)` DOM sheets, responsive by
+construction — low risk).
 
 ## What is built
 
