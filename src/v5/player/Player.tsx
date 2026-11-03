@@ -170,6 +170,7 @@ const PITCH_MIN = 0.08, PITCH_MAX = 1.22, DIST_MIN = 3.0, DIST_MAX = 24.0
 // Follow distance that keeps the ~0.95 m student at ~1/8 of the screen height (fov ~38deg).
 const BASE_DIST = 9.5
 
+const DBG = typeof location !== 'undefined' && /[?&](qa|sandbox)/.test(location.search)
 const _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3(), _v3 = new THREE.Vector3()
 const _n1 = new THREE.Vector3(), _n2 = new THREE.Vector3() // scratch for near()/nearSeg() — never share with _v*
 const _ray = new THREE.Raycaster()
@@ -453,11 +454,13 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
       camera.position.copy(s.targetSm).addScaledVector(dir, s.camDist)
       camera.lookAt(s.targetSm)
     }
-    ;(window as any).__pldbg = {
-      pos: [+s.pos.x.toFixed(2), +s.pos.y.toFixed(2), +s.pos.z.toFixed(2)],
-      cam: [+camera.position.x.toFixed(2), +camera.position.y.toFixed(2), +camera.position.z.toFixed(2)],
-      pitch: +s.camPitch.toFixed(2), dist: +s.camDist.toFixed(2), grounded: s.grounded,
-      anim, scale: body.current ? +body.current.scale.x.toFixed(3) : -1,
+    if (DBG) {
+      ;(window as any).__pldbg = {
+        pos: [+s.pos.x.toFixed(2), +s.pos.y.toFixed(2), +s.pos.z.toFixed(2)],
+        cam: [+camera.position.x.toFixed(2), +camera.position.y.toFixed(2), +camera.position.z.toFixed(2)],
+        pitch: +s.camPitch.toFixed(2), dist: +s.camDist.toFixed(2), grounded: s.grounded,
+        anim, scale: body.current ? +body.current.scale.x.toFixed(3) : -1,
+      }
     }
   })
 
