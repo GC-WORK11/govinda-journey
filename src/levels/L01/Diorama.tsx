@@ -19,6 +19,9 @@ const winOff = new THREE.MeshStandardMaterial({ color: '#9db6b3', roughness: 0.9
 const winGeo = new THREE.CapsuleGeometry(0.11, 0.2, 4, 10)
 const puffGeo = new THREE.SphereGeometry(1, 10, 8)
 
+/* V6: the wrap-cloth dome only belongs to the V4 route — V5 shows the campus. */
+const IS_V4 = typeof location !== 'undefined' && new URLSearchParams(location.search).has('v4')
+
 export default function Diorama({ unlocked, active }: DioramaProps) {
   const puffs = useRef<(THREE.Mesh | null)[]>([])
   const haloTex = useMemo(haloTexture, [])
@@ -73,7 +76,23 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
             ref={(m) => { puffs.current[i] = m }} />
         ))}
       </group>
-      <Scaffold open={unlocked} position={[0.35, 0, -0.7]} size={[2.4, 2.05, 1.62]} />
+      {IS_V4 && <Scaffold open={unlocked} position={[0.35, 0, -0.7]} size={[2.4, 2.05, 1.62]} />}
+      {/* institute flag on the roof */}
+      <group position={[0.95, 0, -1.1]}>
+        <mesh position={[0, 1.3, 0]} material={clay(C.wood)} castShadow><cylinderGeometry args={[0.014, 0.02, 1.1, 6]} /></mesh>
+        <mesh position={[0.14, 1.68, 0]} material={clay(C.terracotta)} castShadow>
+          <boxGeometry args={[0.26, 0.13, 0.015]} />
+        </mesh>
+      </group>
+      {/* two benches on the quad */}
+      {[[-0.35, 1.15, 0.35], [0.95, 1.0, 0.5]].map(([x, z, r], i) => (
+        <group key={i} position={[x, 0, z]} rotation={[0, r, 0]}>
+          <RoundedBox args={[0.44, 0.045, 0.16]} radius={0.02} position={[0, 0.21, 0]} material={clay(C.woodLight)} castShadow />
+          {[-0.16, 0.16].map((bx, j) => (
+            <mesh key={j} position={[bx, 0.1, 0]} material={clay(C.wood)} castShadow><boxGeometry args={[0.045, 0.2, 0.14]} /></mesh>
+          ))}
+        </group>
+      ))}
 
       {/* tiny gate where the path begins */}
       <group position={[1.02, 0, 0.92]} rotation={[0, -0.45, 0]}>

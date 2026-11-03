@@ -5,6 +5,9 @@ import type { DioramaProps } from '../types'
 import { Scaffold, clay, C, Letter, Rock } from '../../world/kit'
 import * as THREE from 'three'
 
+/* V6: the wrap-cloth dome only belongs to the V4 route — V5 shows the gates. */
+const IS_V4 = typeof location !== 'undefined' && new URLSearchParams(location.search).has('v4')
+
 export default function Diorama({ unlocked }: DioramaProps) {
   const leftGateRef = useRef<THREE.Group>(null)
   const rightGateRef = useRef<THREE.Group>(null)
@@ -151,8 +154,22 @@ export default function Diorama({ unlocked }: DioramaProps) {
         </group>
       )}
 
-      {/* Scaffold */}
-      <Scaffold open={unlocked} position={[0, 0, -0.8]} size={[2, 2.2, 1.2]} />
+      {/* short wall wings closing the gate line left + right */}
+      {[-1.55, 1.55].map((x, i) => (
+        <group key={i} position={[x, 0, -0.8]}>
+          <RoundedBox args={[1.0, 1.15, 0.26]} radius={0.07} position={[0, 0.58, 0]} material={clay(C.stone)} castShadow receiveShadow />
+          <RoundedBox args={[1.06, 0.12, 0.32]} radius={0.05} position={[0, 1.2, 0]} material={clay(C.sand)} castShadow />
+        </group>
+      ))}
+      {/* a small heap of letters that never got through */}
+      <group position={[1.05, 0, -0.55]}>
+        <Letter position={[0, 0.008, 0]} rotation={[0, 0.4, 0]} />
+        <Letter position={[0.04, 0.026, -0.03]} rotation={[0, -0.3, 0.04]} seal={C.brick} />
+        <Letter position={[-0.05, 0.044, 0.04]} rotation={[0, 0.9, -0.03]} />
+      </group>
+
+      {/* Scaffold (V4 route only — the V6 island keeps its gates bare) */}
+      {IS_V4 && <Scaffold open={unlocked} position={[0, 0, -0.8]} size={[2, 2.2, 1.2]} />}
     </group>
   )
 }

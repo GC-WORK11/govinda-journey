@@ -5,6 +5,9 @@ import * as THREE from 'three'
 import { C, clay, Scaffold } from '../../world/kit'
 import type { DioramaProps } from '../types'
 
+/* V6: the wrap-cloth dome only belongs to the V4 route — V5 shows the workshop. */
+const IS_V4 = typeof location !== 'undefined' && new URLSearchParams(location.search).has('v4')
+
 const STALLS = [
   { p: [-1.5, 0, -0.55] as [number, number, number], r: 0.42, accent: '#d9825b', body: C.cream },
   { p: [-0.52, 0, -0.95] as [number, number, number], r: 0.14, accent: '#8fb36b', body: C.paper },
@@ -123,7 +126,7 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
       <PaperPlane live={unlocked} />
       {/* the workbench steps aside while the game borrows the front of the island */}
       {!active && <Workbench />}
-      <Scaffold open={unlocked} position={[0, 0, -0.68]} size={[4.5, 1.95, 1.75]} />
+      {IS_V4 && <Scaffold open={unlocked} position={[0, 0, -0.68]} size={[4.5, 1.95, 1.75]} />}
     </group>
   )
 }

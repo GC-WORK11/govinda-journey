@@ -14,9 +14,12 @@ type UI = {
   respawnKey: number
   /** True while the player is in the falling-off-the-world fade. */
   fading: boolean
+  /** True while aboard the heli — Controls swaps jump/use to ascend/descend. */
+  flying: boolean
   setPrompt: (p: UI['prompt']) => void
   setTouchUI: (b: boolean) => void
   setFading: (b: boolean) => void
+  setFlying: (b: boolean) => void
   bumpRespawn: () => void
 }
 
@@ -25,9 +28,11 @@ export const usePlayerUI = create<UI>()((set) => ({
   touchUI: typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches,
   respawnKey: 0,
   fading: false,
+  flying: false,
   setPrompt: (prompt) => set((s) => (s.prompt?.id === prompt?.id && s.prompt?.label === prompt?.label ? s : { prompt })),
   setTouchUI: (touchUI) => set((s) => (s.touchUI === touchUI ? s : { touchUI })),
   setFading: (fading) => set((s) => (s.fading === fading ? s : { fading })),
+  setFlying: (flying) => set((s) => (s.flying === flying ? s : { flying })),
   bumpRespawn: () => set((s) => ({ respawnKey: s.respawnKey + 1, fading: false })),
 }))
 

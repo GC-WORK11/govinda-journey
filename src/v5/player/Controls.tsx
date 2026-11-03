@@ -43,7 +43,7 @@ const CSS = `
 `
 
 export default function Controls() {
-  const { prompt, touchUI, respawnKey, fading, setTouchUI } = usePlayerUI()
+  const { prompt, touchUI, respawnKey, fading, flying, setTouchUI } = usePlayerUI()
   const [stick, setStick] = useState<{ x: number; y: number; dx: number; dy: number } | null>(null)
   const ptrs = useRef(new Map<number, Ptr>())
   const pinchD = useRef(0)
@@ -143,16 +143,26 @@ export default function Controls() {
         </div>
       )}
 
-      {touchUI && prompt && (
+      {touchUI && (flying || prompt) && (
         <button
-          className="gjv5-btn gjv5-use" data-qa="v5-use"
-          onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); input.useAt = now() + MIN_HOLD }}
-        >{prompt.label}</button>
+          className="gjv5-btn gjv5-use" data-qa="v5-use" aria-label={flying ? 'Descend' : undefined}
+          onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); if (flying) input.flyDown = true; else input.useAt = now() + MIN_HOLD }}
+          onPointerUp={() => { input.flyDown = false }}
+          onPointerLeave={() => { input.flyDown = false }}
+          onPointerCancel={() => { input.flyDown = false }}
+        >{flying ? (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 9l7 7 7-7" />
+          </svg>
+        ) : prompt!.label}</button>
       )}
       {touchUI && (
         <button
-          className="gjv5-btn gjv5-jump" data-qa="v5-jump" aria-label="Jump"
-          onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); input.jumpAt = now() + MIN_HOLD }}
+          className="gjv5-btn gjv5-jump" data-qa="v5-jump" aria-label={flying ? 'Ascend' : 'Jump'}
+          onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); if (flying) input.flyUp = true; else input.jumpAt = now() + MIN_HOLD }}
+          onPointerUp={() => { input.flyUp = false }}
+          onPointerLeave={() => { input.flyUp = false }}
+          onPointerCancel={() => { input.flyUp = false }}
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M5 15l7-7 7 7" />

@@ -7,6 +7,7 @@ import * as core from '../core'
 import { blockers, cinematic, interactables, player, playerEmote, walkables, V5_ORDER } from '../core'
 import { ISLAND_POS, ENTRY, EXIT, nearestIsland } from '../world/layout'
 import { input, installInput, isDown, now, pressKey } from './input'
+import { heli } from './Heli'
 import { usePlayerUI, currentUse } from './uiState'
 import { carryAnchor, carryQuat } from './anchor'
 
@@ -341,6 +342,7 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
     const t = now()
     const cine = cinematic.on
     const frozen = player.frozen || cine
+    const riding = heli.flying
 
     /* ---- input → wish dir (camera-relative) ---- */
     let ix = 0, iz = 0
@@ -358,6 +360,20 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
     if (wishLen > 1e-4) wish.normalize()
     const run = isDown('ShiftLeft', 'ShiftRight') || (input.joy.active && wishLen > 0.92)
     const speed = (run ? RUN : WALK) * wishLen
+
+    let hSpeed = Math.hypot(s.vel.x, s.vel.z)
+    if (riding) {
+      /* aboard the heli: the craft (Heli.tsx) drives pos/vel — the rider sits
+         at the world seat point; camera + interactable scan below run as usual */
+      s.pos.copy(heli.seat)
+      s.vel.copy(heli.vel)
+      s.grounded = heli.landed; s.groundObj = null; s.groundName = ''
+      s.groundY = heli.pos.y - 0.45; s.airT = 0; s.coyote = 0
+      s.bridge.on = false
+      hSpeed = Math.hypot(s.vel.x, s.vel.z)
+      if (hSpeed > 0.6) s.yaw = dampAngle(s.yaw, Math.atan2(s.vel.x, s.vel.z), 8, dt)
+    }
+    if (!riding) {
 
     /* path magnetism at the bridge mouth: while grounded on the island's own
        flat top (walk-<id>) and heading roughly toward its exit, bend the wish
@@ -413,7 +429,7 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
     // stepped onto land (only possible at the ends) → hand back to free physics
     if (bd.on && s.grounded && s.groundObj && !s.groundObj.name.startsWith('walk-bridge')) bd.on = false
 
-    let hSpeed = Math.hypot(s.vel.x, s.vel.z)
+    hSpeed = Math.hypot(s.vel.x, s.vel.z)
     if (bd.on && bd.line) {
       const L = bd.line
       const dtR = Math.min(0.5, Math.max(0, (t - bd.t) / 1000)); bd.t = t
@@ -627,6 +643,16 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
       } else s.stepAcc = 0
     }
     }
+    } // !riding
+
+    /* heli disembark: Heli writes exitAt once when the rider lands on the pad */
+    if (heli.exitAt) {
+      s.pos.copy(heli.exitAt); s.vel.set(0, 0, 0); s.grounded = false
+      s.lastSafe.copy(s.pos); s.hist.fill(s.pos.clone()); s.histT = 0
+      s.targetSm.copy(s.pos).add(_v2.set(0, 1.05, 0)); s.first = true
+      s.bridge.on = false; s.groundName = ''; s.groundObj = null
+      heli.exitAt = null
+    }
 
     /* ---- write core.player ---- */
     player.pos.copy(s.pos); player.vel.copy(s.vel)
@@ -641,8 +667,8 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
       if (d <= it.radius && d < bestD) { bestD = d; bestIt = it }
     })
     currentUse.it = bestIt
-    usePlayerUI.getState().setPrompt(bestIt ? { id: bestIt.id, label: bestIt.label } : null)
-    if (bestIt && t - input.useAt < 160 && !frozen) { bestIt.use(); input.useAt = -1e9 }
+    usePlayerUI.getState().setPrompt(!riding && bestIt ? { id: bestIt.id, label: bestIt.label } : null)
+    if (bestIt && t - input.useAt < 160 && !frozen && !riding) { bestIt.use(); input.useAt = -1e9 }
 
     /* ---- animation pick ---- */
     const em = playerEmote.name
@@ -671,7 +697,7 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
     s.zoomMul = THREE.MathUtils.clamp(s.zoomMul * Math.exp(input.zoom * 0.001), 0.25, 2.5)
     // Portrait screens pull back further so the island still reads (aspect = w/h).
     const aspect = (camera as THREE.PerspectiveCamera).aspect || 1.6
-    const baseDist = BASE_DIST * (aspect < 1 ? 1 + (1 - aspect) * 0.45 : 1)
+    const baseDist = BASE_DIST * (aspect < 1 ? 1 + (1 - aspect) * 0.45 : 1) * (riding ? 1.5 : 1)
     s.camDistT = THREE.MathUtils.clamp(baseDist * s.zoomMul, DIST_MIN, DIST_MAX)
     input.camDX = input.camDY = input.zoom = 0
     if (!cine) {

@@ -19,6 +19,9 @@ export const input = {
   jumpAt: -1e9,
   /** performance.now() of the last use press (E / Enter / use button). */
   useAt: -1e9,
+  /** Held flags while flying the heli (touch buttons): ascend / descend. */
+  flyUp: false,
+  flyDown: false,
   /** True after the first touch-pointer is seen → Controls shows the mobile UI. */
   touch: false,
   /** The WebGL canvas (set by Player). Pointer hits elsewhere are ignored for orbit. */
