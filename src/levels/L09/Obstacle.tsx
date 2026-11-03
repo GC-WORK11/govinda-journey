@@ -16,6 +16,7 @@ import {
 import { Schoolhouse } from './school.v5'
 import { SignPad, SIGN_C } from '../L08/signui.v5'
 import { has, interactables, player, useBlocker, useV5, useWalkable, type ObstacleProps } from '../../v5/core'
+import { Prop } from '../../v5/art/Dressing'
 
 const SCHOOL = new THREE.Vector3(-0.9, 0, -2.6)
 const WALL_Z = 2.0
@@ -164,7 +165,7 @@ function DoorStone() {
     tex.current.colorSpace = THREE.SRGBColorSpace
   }
   return (
-    <group position={[0.02, 0, -1.78]} rotation={[0, 0.32, 0]}>
+    <group position={[0.02, PORCH.h, -1.78]} rotation={[0, 0.32, 0]}>
       <RoundedBox args={[0.42, 0.72, 0.14]} radius={0.06} position={[0, 0.36, 0]} material={M('#c9bfb0')} castShadow />
       <mesh position={[0, 0.38, 0.075]}><planeGeometry args={[0.3, 0.4]} /><meshBasicMaterial map={tex.current} transparent /></mesh>
     </group>
@@ -339,7 +340,7 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
 
   useLocalInteractable(frame, {
     id: 'l09-door',
-    at: () => new THREE.Vector3(0.02, 0.8, -1.78),
+    at: () => new THREE.Vector3(0.02, PORCH.h + 0.4, -1.78),
     radius: 1.7,
     label: 'Trace the sign on the stone',
     enabled: () => active && placed && !signed && !signPad && localPos().y > 0.2,
@@ -418,11 +419,12 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
       <ExitGate />
       <Fireflies />
 
-      {/* quiet dressing on the rim */}
-      <mesh position={[3.4, 0.4, -1.6]} material={M(C.moss)} castShadow><sphereGeometry args={[0.55, 12, 9]} /></mesh>
-      <mesh position={[-3.6, 0.45, -0.6]} material={M(C.leafDark)} castShadow><sphereGeometry args={[0.6, 12, 9]} /></mesh>
-      <mesh position={[3.0, 0.12, 1.8]} scale={[1, 0.7, 1]} material={M(C.stone)} castShadow><dodecahedronGeometry args={[0.2, 0]} /></mesh>
-      <mesh position={[-3.2, 0.16, 1.9]} scale={[1, 0.7, 1]} material={M(C.stone)} castShadow><dodecahedronGeometry args={[0.24, 0]} /></mesh>
+      {/* quiet dressing on the rim — ART pack props */}
+      <Prop name="plant_bush_detailed" position={[3.45, -0.04, -1.65]} rotation={[0, 0.9, 0]} scale={0.9} />
+      <Prop name="plant_bush" position={[-3.6, -0.04, -0.7]} rotation={[0, 2.6, 0]} scale={0.95} />
+      <Prop name="quat_rock_2" position={[3.05, -0.02, 1.85]} rotation={[0, 1.7, 0]} scale={0.5} />
+      <Prop name="rock_small_flat_a" position={[-3.25, -0.02, 1.95]} rotation={[0, 0.4, 0]} scale={0.55} />
+      <Prop name="flower_yellow_b" position={[-2.5, -0.02, 1.15]} scale={0.85} />
       {/* a pair of path lanterns by the entry */}
       {[[-0.9, 3.6], [0.9, 2.75]].map(([x, z], i) => (
         <group key={i} position={[x, 0, z]}>

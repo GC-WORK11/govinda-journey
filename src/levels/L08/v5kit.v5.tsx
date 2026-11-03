@@ -6,13 +6,15 @@ import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import { createRoot, type Root } from 'react-dom/client'
-import { C, clay } from '../../world/kit'
+import { C } from '../../world/kit'
+import { toon } from '../../v5/art/material'
+import { carryAnchor, carryQuat } from '../../v5/player/anchor'
 import { player, useInteractable, useV5, type Interactable } from '../../v5/core'
 
-export { C }
+export { C, carryAnchor, carryQuat }
 
-/** Material seam — STUB: swap for ART's toon material (src/v5/art) once it lands. */
-export const M = clay
+/** Material seam — ART's shared toon material, cached per colour. */
+export const M = (color: string) => toon({ color })
 
 /** Collision-only mesh material: participates in raycasts, draws nothing. */
 let _ghost: THREE.MeshBasicMaterial | null = null
@@ -48,13 +50,15 @@ export function useLocalInteractable(frame: Frame, cfg: (Omit<Interactable, 'at'
   useInteractable(inter)
 }
 
-/** STUB for src/v5/player/anchor.ts — a world-space point the carried item drifts toward. */
-export const carryAnchor = new THREE.Vector3()
-/** Call once inside an obstacle (in the Canvas) to keep the stub anchor tracking the player. */
+/**
+ * Call once inside an obstacle (in the Canvas). PLAYER drives carryAnchor from a chest
+ * socket every frame; this only stub-drives it when nobody does (solo preview harness).
+ */
 export function useCarryAnchor() {
   useFrame(() => {
-    carryAnchor.copy(player.pos)
-    carryAnchor.y += 0.9
+    if (carryAnchor.y > -500) return
+    carryAnchor.copy(player.pos).setY(player.pos.y + 0.9)
+    carryQuat.identity()
   })
 }
 
@@ -92,11 +96,12 @@ export function installSolve(id: string, fn: () => Promise<void>) {
   j.solve = { ...(j.solve || {}), [id]: fn }
 }
 
-/** Teleport the traveller to an island-local point. */
+/** Teleport the traveller to an island-local point (uses PLAYER's api when mounted). */
 export function teleportTo(frame: Frame, x: number, y: number, z: number) {
   const w = frame.toWorld(new THREE.Vector3(x, y, z))
-  player.pos.copy(w)
-  player.vel.set(0, 0, 0)
+  const tp = (window as any).__journey?.player?.teleport
+  if (tp) tp(w.x, w.y, w.z)
+  else { player.pos.copy(w); player.vel.set(0, 0, 0) }
 }
 
 export async function waitFor<T>(fn: () => T | null | undefined | false, ms = 6000): Promise<T> {

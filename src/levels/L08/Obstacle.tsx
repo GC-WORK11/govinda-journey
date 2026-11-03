@@ -12,6 +12,7 @@ import {
   C, M, useIslandFrame, useLocalInteractable, useCarryAnchor, useDomOverlay,
   damp, caption, isQa, installSolve, teleportTo, waitFor, sleep, fillInput, tracePad,
 } from './v5kit.v5'
+import { Prop } from '../../v5/art/Dressing'
 import { Guardian } from './guardian.v5'
 import { SpeakPrompt } from './voiceui.v5'
 import { SignPad, SIGN_V } from './signui.v5'
@@ -135,6 +136,9 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
       gRef.current.position.set(pos.current.x, walkBob.current, pos.current.z)
       const yawT = stage === 'aside' ? 0.85 : 0
       gRef.current.rotation.y = damp(gRef.current.rotation.y, yawT, 2.2, dt)
+      // once settled aside it gives a small bow — you may pass
+      const bowT = stage === 'aside' && d < 0.3 ? 0.14 : 0
+      gRef.current.rotation.x = damp(gRef.current.rotation.x, bowT, 1.8, dt)
     }
     if (stage === 'aside' && d < 0.12 && !completed.current) {
       completed.current = true
@@ -213,11 +217,12 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
       <HandSign position={[-2.55, 0, -0.75]} />
       <TripodPhone position={[-1.45, 0, 0.2]} rotationY={-2.35} />
 
-      {/* quiet dressing on the rim */}
-      <mesh position={[3.5, 0.14, 1.4]} scale={[1, 0.75, 1]} material={M(C.stone)} castShadow><dodecahedronGeometry args={[0.2, 0]} /></mesh>
-      <mesh position={[3.1, 0.3, -0.6]} material={M(C.moss)} castShadow><sphereGeometry args={[0.42, 12, 9]} /></mesh>
-      <mesh position={[-3.5, 0.35, -1.9]} material={M(C.leafDark)} castShadow><sphereGeometry args={[0.5, 12, 9]} /></mesh>
-      <mesh position={[-2.9, 0.22, 2.6]} material={M(C.moss)} castShadow><sphereGeometry args={[0.3, 10, 8]} /></mesh>
+      {/* quiet dressing on the rim — ART pack props */}
+      <Prop name="rock_large_b" position={[3.55, -0.08, 1.35]} rotation={[0, 0.7, 0]} scale={0.38} />
+      <Prop name="plant_bush" position={[3.15, -0.04, -0.7]} rotation={[0, 2.1, 0]} scale={0.8} />
+      <Prop name="plant_bush_detailed" position={[-3.55, -0.04, -1.95]} rotation={[0, 1.2, 0]} scale={0.85} />
+      <Prop name="grass_large" position={[-2.95, -0.02, 2.55]} scale={0.85} />
+      <Prop name="flower_red_a" position={[2.35, -0.02, 2.05]} scale={0.9} />
       <mesh position={[2.6, 0.1, 2.8]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <circleGeometry args={[0.5, 20]} />
         <meshStandardMaterial color={C.sand} roughness={1} />
