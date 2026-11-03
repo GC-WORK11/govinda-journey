@@ -5,23 +5,17 @@ import * as THREE from 'three'
 import type { PlayProps } from '../types'
 import { Tappable, Pop, blip, chime, burst, glowMat, pulse, REDUCED, useLocalToWorld } from '../../world/play'
 import { C, clay } from '../../world/kit'
+import { WORDS, CHIP_IDLE, SCREEN } from './layout'
 
 /* 'Wispr Wrap': four soft speech-bubble pebbles float in the open front of the island.
    Tap one and it arcs to the laptop, landing as a typed line on the document.
    Any order — the words stack in sentence order. All four in, the cursor blinks, done. */
 
-const WORDS = ['hello', 'from', 'my', 'phone']
+// word chips hover by the studio mic (layout.ts, shared with the Diorama and the Obstacle)
+const SPAWNS: [number, number, number][] = CHIP_IDLE.map((p) => [p.x, p.y, p.z] as [number, number, number])
 
-// floating row along the front rim, clear of the traveller (-0.9, 1.4) and the scaffold (x 0.45..1.25, z -0.1..0.7)
-const SPAWNS: [number, number, number][] = [
-  [-0.30, 0.62, 1.70],
-  [0.22, 0.80, 1.88],
-  [0.72, 0.64, 1.98],
-  [1.25, 0.78, 1.86],
-]
-
-// laptop screen transform, matching Diorama (desk at x -0.7; screen local (0,0.1,0.16), tilted -0.2)
-const SCR_M = new THREE.Matrix4().makeRotationX(-0.2).setPosition(-0.7, 0.1, 0.16)
+// laptop screen transform, matching Diorama (screen at SCREEN, facing the path)
+const SCR_M = new THREE.Matrix4().makeRotationY(Math.PI / 2).setPosition(SCREEN)
 const lineY = (i: number) => 0.063 - i * 0.042
 const LINE_TARGET = WORDS.map((_, i) => new THREE.Vector3(0, lineY(i), 0.021).applyMatrix4(SCR_M))
 const barW = (w: string) => 0.1 + w.length * 0.03
@@ -114,7 +108,7 @@ export default function Play({ onWin, won }: PlayProps) {
       )}
 
       {/* typed lines on the laptop document, in sentence order */}
-      <group position={[-0.7, 0.1, 0.16]} rotation={[-0.2, 0, 0]}>
+      <group position={SCREEN} rotation={[0, Math.PI / 2, 0]}>
         {landed.map((i) => (
           <Pop key={i} position={[0, lineY(i), 0.021]}>
             <RoundedBox args={[barW(WORDS[i]), 0.034, 0.012]} radius={0.012} material={clay('#e6d5b8')} />
