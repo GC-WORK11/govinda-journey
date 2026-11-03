@@ -13,7 +13,7 @@ import { useFrame } from '@react-three/fiber'
 import { RoundedBox, Html } from '@react-three/drei'
 import * as THREE from 'three'
 import * as core from '../../v5/core'
-import { Scatter } from '../../v5/art/Dressing'
+import { Tree, Bush, ClayPot, Rock } from '../../world/kit'
 import PhoneUI, { type Stick } from './PhoneUI.v5'
 import { C, clay, Desk, Stool, Pergola, Dock, Laptop, PhoneOnStand, SwitchRock, SwitchPost, Drone, Pad, BlockBox, useTerminalScreen } from './kit.v5'
 
@@ -46,9 +46,8 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   const bridgeG = useRef<THREE.Group>(null)
   const bridgeT = useRef(done ? 1 : 0)
   const smog = useRef<THREE.Group>(null)
-  const ringMats = useRef<THREE.MeshBasicMaterial[]>([])
+  const ringMeshes = useRef<THREE.Mesh[]>([])
   const stoneMats = useRef<THREE.MeshStandardMaterial[]>([])
-  const waterMat = useRef<THREE.MeshStandardMaterial>(null)
   const bridgeWalk = useRef<THREE.Mesh>(null)
   const camHold = useRef(0) // >0: this component still steers the camera
   const phoneAt = useRef(new THREE.Vector3())
@@ -228,23 +227,23 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       }
     }
 
-    /* smog drift + reveal glow */
+    /* smog drift; a sense pulse shrinks the opaque puffs into the ground */
     if (smog.current) {
       smog.current.children.forEach((p, i) => {
         p.userData.y0 ??= p.position.y
-        p.position.y = p.userData.y0 + Math.sin(t * 0.7 + i * 1.7) * 0.06
+        p.userData.k = THREE.MathUtils.lerp(p.userData.k ?? 1, revealing ? 0.16 : 1, Math.min(1, dt * 2.4))
+        p.scale.set(p.userData.k, p.userData.k * 0.62, p.userData.k)
+        p.position.y = p.userData.y0 * p.userData.k + Math.sin(t * 0.7 + i * 1.7) * 0.05
         p.position.x += Math.sin(t * 0.23 + i) * dt * 0.05
-        const m = (p as THREE.Mesh).material as THREE.MeshStandardMaterial
-        m.opacity += (((revealing ? 0.16 : 0.42)) - m.opacity) * Math.min(1, dt * 2)
       })
     }
-    ringMats.current.forEach((m, i) => {
-      m.opacity += ((revealing ? 0.75 - i * 0.04 : 0) - m.opacity) * Math.min(1, dt * 4)
+    ringMeshes.current.forEach((m) => {
+      const k = THREE.MathUtils.lerp(m.scale.x, revealing ? 1 : 0.001, Math.min(1, dt * 4))
+      m.scale.setScalar(k)
     })
     stoneMats.current.forEach((m) => {
       m.emissiveIntensity += ((revealing ? 0.5 : 0) - m.emissiveIntensity) * Math.min(1, dt * 3.5)
     })
-    if (waterMat.current) waterMat.current.opacity = 0.66 + Math.sin(t * 1.3) * 0.05
 
     /* camera follows the drone while the phone is out (PLAYER yields on cinematic.on) */
     if (phase === 'phone' && drone.current && root.current && myCine.current) {
@@ -276,14 +275,14 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       <mesh position={[2.6, 0.016, 1.18]} scale={[2.2, 1, 0.8]} material={clay(C.sand)} receiveShadow>
         <cylinderGeometry args={[1, 1, 0.028, 32]} />
       </mesh>
-      {/* shallow water on top */}
+      {/* shallow water on top — opaque clay, same as V4's ponds */}
       <mesh position={[-0.5, 0.036, 1.3]} scale={[3.9, 1, 0.86]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[1, 44]} />
-        <meshStandardMaterial ref={waterMat} color={C.water} transparent opacity={0.6} roughness={0.35} />
+        <meshStandardMaterial color={C.water} roughness={0.5} />
       </mesh>
       <mesh position={[2.7, 0.038, 1.16]} scale={[1.9, 1, 0.62]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[1, 32]} />
-        <meshStandardMaterial color={C.water} transparent opacity={0.55} roughness={0.35} />
+        <meshStandardMaterial color={C.water} roughness={0.5} />
       </mesh>
       {/* pebbles + reeds along the banks */}
       {[[-3.6, 0.6], [-2.9, 2.0], [-1.2, 2.14], [0.6, 2.1], [1.8, 0.5], [3.6, 1.9], [4.1, 0.8], [-4.0, 1.5]].map(([x, z], i) => (
@@ -304,9 +303,9 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
             <cylinderGeometry args={[0.27 - i * 0.012, 0.3 - i * 0.012, 0.11, 9]} />
             <meshStandardMaterial ref={(m) => { if (m) stoneMats.current[i] = m }} color={C.stone} roughness={0.9} emissive={C.warm} emissiveIntensity={0} />
           </mesh>
-          <mesh position={[0, 0.13, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <mesh ref={(m) => { if (m) ringMeshes.current[i] = m }} position={[0, 0.13, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={0.001}>
             <ringGeometry args={[0.3, 0.36, 24]} />
-            <meshBasicMaterial ref={(m) => { if (m) ringMats.current[i] = m }} color={C.paper} transparent opacity={0} depthWrite={false} />
+            <meshBasicMaterial color={C.paper} />
           </mesh>
           {/* the stones are real footing across the ford */}
           <BlockBox position={[0, 0.06, 0]} args={[0.52, 0.14, 0.52]} kind="walk" />
@@ -318,7 +317,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
         {[[-2.9, 0.62, 1.52], [-1.9, 0.5, 1.05], [-1.0, 0.66, 1.68], [-0.1, 0.48, 0.9], [0.8, 0.6, 1.55], [1.8, 0.52, 1.0], [2.9, 0.6, 1.45], [0.4, 0.75, 1.8], [-2.2, 0.72, 1.75], [2.2, 0.74, 1.7]].map(([x, y, s], i) => (
           <mesh key={i} position={[x, y, (STREAM_Z0 + STREAM_Z1) / 2 + Math.sin(i * 2.4) * 0.4]} scale={[1, 0.62, 1]}>
             <sphereGeometry args={[s * 0.42, 14, 10]} />
-            <meshStandardMaterial color="#d8d0c0" transparent opacity={0.42} depthWrite={false} roughness={1} />
+            <meshStandardMaterial color="#d9d2c4" roughness={1} />
           </mesh>
         ))}
       </group>
@@ -409,9 +408,14 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       {[[2.2, 3.4], [-3.6, 3.2], [3.9, 0.6]].map(([x, z], i) => (
         <mesh key={i} position={[x, 0.05, z]} material={clay(i ? C.stone : C.moss)} castShadow><dodecahedronGeometry args={[0.14, 0]} /></mesh>
       ))}
-      {/* ART's seeded rim dressing, kept clear of the ford, workspace and dock */}
-      <Scatter seed={106} density={0.8} kinds={['tuft', 'flower', 'bush', 'rock']}
-        avoid={[[0, 1.3, 2.8], [-3.15, -0.85, 1.9], [-4.5, -1.6, 1.5]]} />
+      {/* V4's own rim dressing — the same opaque kit pieces the V4 world scatters */}
+      <Tree position={[3.9, 0, -3.1]} h={1.5} />
+      <Tree position={[-3.9, 0, 3.0]} h={1.2} />
+      <Bush position={[4.3, 0, 1.35]} s={1.1} />
+      <Bush position={[-4.05, 0, -3.4]} s={0.9} />
+      <ClayPot position={[2.9, 0, -3.75]} s={0.85} />
+      <Rock position={[-1.7, 0, -4.15]} s={0.28} />
+      <Rock position={[4.35, 0, -0.5]} s={0.2} />
 
     </group>
   )

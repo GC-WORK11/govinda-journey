@@ -46,6 +46,10 @@ export function makeCanvasTexture(w: number, h: number, draw: (ctx: CanvasRender
 
 /** A low garden wall with an arched wooden double door in the middle.
  *  doorT ref drives the swing (0 closed → 1 open). `frame` is the arch. */
+const GLOW_DARK = new THREE.Color('#4a3d2f')
+const GLOW_WARM = new THREE.Color('#f0c98a')
+const _lampC = new THREE.Color()
+
 export function DoorWall({ w = 6.4, doorT, ...p }: P & { w?: number; doorT: React.MutableRefObject<number> }) {
   const left = useRef<THREE.Group>(null)
   const right = useRef<THREE.Group>(null)
@@ -56,7 +60,7 @@ export function DoorWall({ w = 6.4, doorT, ...p }: P & { w?: number; doorT: Reac
     if (right.current) right.current.rotation.y = k * 1.9
     if (glow.current) {
       const m = glow.current.material as THREE.MeshBasicMaterial
-      m.opacity = k * 0.85
+      m.color.lerpColors(GLOW_DARK, GLOW_WARM, k)
     }
   })
   const seg = (w - 1.5) / 2
@@ -93,10 +97,10 @@ export function DoorWall({ w = 6.4, doorT, ...p }: P & { w?: number; doorT: Reac
           </mesh>
         )
       })}
-      {/* warm light inside the doorway */}
+      {/* warm light inside the doorway — an opaque panel that warms as it opens */}
       <mesh ref={glow} position={[0, 0.95, -0.1]}>
         <planeGeometry args={[1.44, 1.9]} />
-        <meshBasicMaterial color={C.warm} transparent opacity={0} side={THREE.DoubleSide} />
+        <meshBasicMaterial color={GLOW_DARK} side={THREE.DoubleSide} />
       </mesh>
       {/* the double doors on hinges */}
       <group ref={left} position={[-0.72, 0, 0.02]}>
@@ -184,10 +188,8 @@ export function Console({ on, ...p }: P & { on?: boolean }) {
   useFrame((state) => {
     if (!lamp.current) return
     const m = lamp.current.material as THREE.MeshBasicMaterial
-    const target = on ? 0.9 : 0.35
-    m.opacity += (target - m.opacity) * 0.08
-    m.color.set(on ? C.warm : '#a89a80')
-    if (on) m.opacity = 0.7 + Math.sin(state.clock.elapsedTime * 3) * 0.2
+    m.color.lerp(_lampC.set(on ? C.warm : '#a89a80'), 0.08)
+    lamp.current.scale.setScalar(on ? 1.15 + Math.sin(state.clock.elapsedTime * 3) * 0.12 : 1)
   })
   return (
     <group {...p}>
@@ -196,7 +198,7 @@ export function Console({ on, ...p }: P & { on?: boolean }) {
       <mesh position={[0, 0.69, 0]} material={clay(C.terracotta)} castShadow><cylinderGeometry args={[0.07, 0.09, 0.05, 10]} /></mesh>
       <mesh ref={lamp} position={[0, 0.72, 0]}>
         <sphereGeometry args={[0.045, 10, 8]} />
-        <meshBasicMaterial color="#a89a80" transparent opacity={0.4} />
+        <meshBasicMaterial color="#a89a80" />
       </mesh>
       {/* signal dashes etched on the front */}
       {[0.1, 0.16, 0.22].map((r, i) => (

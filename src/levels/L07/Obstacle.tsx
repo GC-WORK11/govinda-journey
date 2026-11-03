@@ -13,7 +13,7 @@ import { useFrame } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import * as THREE from 'three'
 import * as core from '../../v5/core'
-import { Scatter } from '../../v5/art/Dressing'
+import { Tree, Bush, ClayPot, Rock } from '../../world/kit'
 import VoiceUI from './VoiceUI.v5'
 import { C, clay, DoorWall, Robot, Console, SideTable, Laptop, BlockBox, letterTexture, makeCanvasTexture } from './kit.v5'
 
@@ -291,7 +291,6 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
     if (lantern.current) {
       const m = lantern.current.material as THREE.MeshBasicMaterial
       m.color.lerp(col.set(phaseRef.current === 'open' ? C.warm : '#8a7f6d'), Math.min(1, dt * 2.4))
-      m.opacity = 0.35 + doorT.current * 0.6
     }
 
     /* robot gently leans toward the player when ready */
@@ -328,7 +327,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
         <mesh position={[0, 1.12, 0]} material={clay(C.wood)} castShadow><boxGeometry args={[0.16, 0.05, 0.16]} /></mesh>
         <mesh ref={lantern} position={[0, 1.02, 0]}>
           <sphereGeometry args={[0.075, 10, 8]} />
-          <meshBasicMaterial color="#8a7f6d" transparent opacity={0.35} />
+          <meshBasicMaterial color="#8a7f6d" />
         </mesh>
         <mesh position={[0, 1.02, 0]} material={clay(C.ink2)}><boxGeometry args={[0.11, 0.13, 0.11]} /></mesh>
       </group>
@@ -398,9 +397,13 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
           <mesh position={[0, 0.14, 0]} material={clay(C.violet)}><sphereGeometry args={[0.045, 8, 6]} /></mesh>
         </group>
       ))}
-      {/* ART's seeded rim dressing, kept clear of the wall, console, shelf and table */}
-      <Scatter seed={107} density={0.75} kinds={['tuft', 'flower', 'bush', 'rock']}
-        avoid={[[0, -3.3, 2.4], [3.15, -0.7, 1.3], [4.85, -0.7, 1.4], [-1.75, -2.68, 1.2]]} />
+      {/* V4's own rim dressing — the same opaque kit pieces the V4 world scatters */}
+      <Tree position={[4.35, 0, 2.2]} h={1.4} />
+      <Tree position={[-4.2, 0, 1.6]} h={1.15} />
+      <Bush position={[4.1, 0, -2.9]} s={1.0} />
+      <Bush position={[-3.9, 0, -3.2]} s={0.9} />
+      <ClayPot position={[3.9, 0, -2.1]} s={0.8} />
+      <Rock position={[-4.4, 0, -1.2]} s={0.24} />
 
       {/* letters flying */}
       {flight && (
