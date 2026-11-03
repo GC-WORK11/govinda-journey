@@ -21,7 +21,7 @@ import {
 /* --------------------------------- layout --------------------------------- */
 
 const LEDGE = new THREE.Vector3(3.35, 0, 3.3)      // rock outcrop holding the rack
-const LEDGE_TOP = 1.32
+const LEDGE_TOP = 0.95
 const WALL_AT = new THREE.Vector3(2.62, 0, 2.48)   // base of the handhold wall (SW face)
 const CLIMB_TO = new THREE.Vector3(3.28, LEDGE_TOP + 0.02, 3.22)
 const RACK = new THREE.Vector3(3.45, LEDGE_TOP, 3.45)
@@ -411,41 +411,41 @@ function LedgeWall() {
   return (
     <group position={[LEDGE.x, 0, LEDGE.z]}>
       {/* invisible collider: the climb face the player pushes against */}
-      <mesh ref={side} position={[0, 0.6, 0]} visible={false}>
-        <cylinderGeometry args={[1.02, 1.45, LEDGE_TOP - 0.04, 18]} />
+      <mesh ref={side} position={[0, 0.4, 0]} visible={false}>
+        <cylinderGeometry args={[0.95, 1.3, LEDGE_TOP - 0.07, 18]} />
       </mesh>
       {/* invisible flat cap the player actually stands on */}
       <mesh ref={top} position={[0, LEDGE_TOP - 0.02, 0]} visible={false}>
         <cylinderGeometry args={[0.68, 0.68, 0.08, 20]} />
       </mesh>
-      {/* three warm boulders piled into a little tor */}
-      <mesh position={[-0.05, 0.3, 0.05]} scale={[1.55, 0.62, 1.45]} material={clay('#d3bf97')} castShadow receiveShadow>
-        <sphereGeometry args={[1, 22, 14]} />
-      </mesh>
-      <mesh position={[-0.18, 0.68, 0.14]} scale={[1.28, 0.62, 1.2]} material={clay('#dcc9a2')} castShadow receiveShadow>
+      {/* a tidy stepped knoll of warm clay — small, so the island stays clean */}
+      <mesh position={[-0.04, 0.18, 0.04]} scale={[1.22, 0.42, 1.14]} material={clay('#d8c6a0')} castShadow receiveShadow>
         <sphereGeometry args={[1, 20, 13]} />
       </mesh>
-      <mesh position={[0.16, 0.98, -0.05]} scale={[1.0, 0.44, 0.96]} material={clay('#e4d2ac')} castShadow receiveShadow>
+      <mesh position={[-0.14, 0.46, 0.1]} scale={[0.98, 0.38, 0.9]} material={clay('#e0cfa8')} castShadow receiveShadow>
         <sphereGeometry args={[1, 18, 12]} />
+      </mesh>
+      <mesh position={[0.12, 0.7, -0.04]} scale={[0.76, 0.28, 0.72]} material={clay('#e7d6b0')} castShadow receiveShadow>
+        <sphereGeometry args={[1, 16, 11]} />
       </mesh>
       {/* grassy crown echoing the island top */}
       <mesh position={[0, LEDGE_TOP - 0.1, 0]} material={clay('#a7bd80')} castShadow receiveShadow>
-        <cylinderGeometry args={[0.72, 0.88, 0.22, 18]} />
+        <cylinderGeometry args={[0.62, 0.76, 0.22, 18]} />
       </mesh>
       {/* handholds + a vine rope down the SW face */}
       <group position={[WALL_AT.x - LEDGE.x, 0, WALL_AT.z - LEDGE.z]} rotation={[0, Math.atan2(WALL_AT.x - LEDGE.x, WALL_AT.z - LEDGE.z) + Math.PI, 0]}>
-        {[[-0.18, 0.42], [0.12, 0.66], [-0.1, 0.9], [0.16, 1.12], [-0.05, 1.28]].map(([x, y], i) => (
-          <mesh key={i} position={[x, y, -0.3]} rotation={[Math.PI / 2.4, 0, 0]} material={clay(C.woodLight)} castShadow>
+        {[[-0.18, 0.3], [0.12, 0.48], [-0.1, 0.64], [0.16, 0.78], [-0.05, 0.9]].map(([x, y], i) => (
+          <mesh key={i} position={[x, y, -0.02]} rotation={[Math.PI / 2.4, 0, 0]} material={clay(C.woodLight)} castShadow>
             <cylinderGeometry args={[0.022, 0.028, 0.16, 6]} />
           </mesh>
         ))}
         {[[-0.3, 0.28], [0.3, 0.18]].map(([x, r], i) => (
-          <mesh key={i} position={[x, LEDGE_TOP / 2, -0.32]} rotation={[0, 0, r]} material={clay(C.leafDark)} castShadow>
+          <mesh key={i} position={[x, LEDGE_TOP / 2, -0.04]} rotation={[0, 0, r]} material={clay(C.leafDark)} castShadow>
             <cylinderGeometry args={[0.016, 0.026, LEDGE_TOP, 5]} />
           </mesh>
         ))}
-        {[[-0.3, LEDGE_TOP - 0.1], [0.28, LEDGE_TOP - 0.22]].map(([x, y], i) => (
-          <mesh key={i} position={[x, y, -0.3]} material={clay(C.leaf)} castShadow>
+        {[[-0.3, LEDGE_TOP - 0.08], [0.28, LEDGE_TOP - 0.2]].map(([x, y], i) => (
+          <mesh key={i} position={[x, y, -0.02]} material={clay(C.leaf)} castShadow>
             <sphereGeometry args={[0.07, 8, 6]} />
           </mesh>
         ))}
