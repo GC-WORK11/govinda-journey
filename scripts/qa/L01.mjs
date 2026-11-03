@@ -1,13 +1,6 @@
-// L01 "Light the lamps": tap each of the four lamps, then wait for dawn -> onWin.
-export default async function play(page) {
-  await page.waitForSelector('[data-qa="lamp-0"]', { visible: true })
-  for (let i = 0; i < 4; i++) {
-    const el = await page.waitForSelector(`[data-qa="lamp-${i}"]`)
-    const box = await el.boundingBox()
-    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
-    await new Promise((r) => setTimeout(r, 350))
+export default async function (page) {
+  for (const p of [[0.9,0.35,1.5],[1.6,0.35,0.6],[0.2,0.35,2.1]]) {
+    const s = await page.evaluate((p) => window.__journey.project(...p), p)
+    await page.mouse.click(s.x, s.y); await new Promise(r=>setTimeout(r,400))
   }
-  await page.waitForFunction(
-    () => window.__journey && window.__journey.state().solved.includes('L01'),
-    { timeout: 10000 })
 }

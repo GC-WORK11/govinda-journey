@@ -15,7 +15,7 @@ export default function App() {
     if (new URLSearchParams(location.search).has('qa')) {
       ;(window as any).__journey = {
         state: () => useJourney.getState(),
-        win: () => { const s = useJourney.getState(); s.solve(LEVELS[s.current].id); s.setPhase('arrived'); setTimeout(() => useJourney.getState().setPhase('panel'), 1500) },
+        win: () => useJourney.getState().win(),
         levels: LEVELS.map((l) => l.id),
       }
       // ?qa&at=L05 jumps to that island; add &play to open its game directly

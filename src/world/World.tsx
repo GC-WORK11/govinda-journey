@@ -6,7 +6,8 @@ import { LEVELS } from '../levels/registry'
 import { useJourney } from '../state/store'
 import { CENTERS, standPoint, walkCurve, edge, pathLocal } from './layout'
 import { Island, Bridge, Scatter, C, clay, cloudGeo } from './kit'
-import { Traveller } from './Traveller'
+import { Traveller, type Anim } from './Traveller'
+import { Bursts, burst, springStep } from './play'
 
 const Effects = lazy(() => import('./Effects').catch(() => ({ default: () => null as unknown as JSX.Element })))
 
@@ -69,12 +70,72 @@ function Clouds() {
   )
 }
 
+/** Squash-stretch pop of the building the moment its level is solved, plus leaves and a warm flare. */
+function Unlock({ on, children }: { on: boolean; children: React.ReactNode }) {
+  const g = useRef<THREE.Group>(null)
+  const st = useRef({ was: on, x: 1, v: 0 })
+  const flare = useRef<THREE.PointLight>(null)
+  useFrame((_, dt) => {
+    const o = g.current; if (!o) return
+    const k = st.current
+    if (on && !k.was) {
+      k.was = true; k.x = 0.72; k.v = 0
+      if (!RM) burst(o.localToWorld(new THREE.Vector3(0, 1.4, 0)), undefined, 60, 1.25)
+      if (flare.current) flare.current.intensity = 9
+    }
+    if (!on) k.was = false
+    k.v = springStep(k.x, k.v, 1, dt, 190, 7); k.x += k.v * Math.min(dt, 1 / 30)
+    const x = RM ? 1 : k.x
+    o.scale.set(1 + (1 - x) * 0.45, x, 1 + (1 - x) * 0.45)
+    if (flare.current) flare.current.intensity *= Math.exp(-dt * 2.2)
+  })
+  return (
+    <>
+      <group ref={g}>{children}</group>
+      <pointLight ref={flare} position={[0, 2.2, 0.6]} color="#ffc27a" intensity={0} distance={9} decay={1.6} />
+    </>
+  )
+}
+
+/** A bridge that builds itself out from `from` toward `to` the first time it is shown. */
+function BridgeReveal({ from, to, shown }: { from: THREE.Vector3; to: THREE.Vector3; shown: boolean }) {
+  const inner = useRef<THREE.Group>(null)
+  const st = useRef({ p: shown ? 1 : 0, v: 0, landed: shown })
+  const yaw = Math.atan2(-(to.z - from.z), to.x - from.x) // aligns local +X with the bridge direction
+  const tip = useRef<THREE.Group>(null)
+  useFrame((_, dt) => {
+    const o = inner.current; if (!o) return
+    const k = st.current
+    const want = shown ? 1 : 0
+    if (RM) k.p = want
+    else if (shown) k.p = Math.min(1, k.p + dt / 1.5)
+    else k.p = 0
+    const e = 1 - Math.pow(1 - k.p, 3)
+    o.scale.set(Math.max(0.0001, e), 1, 1)
+    o.visible = k.p > 0.001
+    if (shown && k.p >= 1 && !k.landed) { k.landed = true; burst(to.clone().add(new THREE.Vector3(0, 0.3, 0)), '#e6c38f', 18, 0.6) }
+    if (!shown) k.landed = false
+  })
+  return (
+    <group position={from} rotation={[0, yaw, 0]}>
+      <group ref={inner}>
+        <group rotation={[0, -yaw, 0]}>
+          <group position={from.clone().negate()}><Bridge from={from} to={to} /></group>
+        </group>
+      </group>
+      <group ref={tip} />
+    </group>
+  )
+}
+
 function Islands() {
   const current = useJourney((s) => s.current)
   const target = useJourney((s) => s.target)
   const solved = useJourney((s) => s.solved)
   const phase = useJourney((s) => s.phase)
+  const win = useJourney((s) => s.win)
   const near = (i: number) => i >= Math.min(current, target) - 1 && i <= Math.max(current, target) + 2
+  const playing = phase === 'playing' || phase === 'won'
   return (
     <group>
       {LEVELS.map((L, i) => (
@@ -83,12 +144,22 @@ function Islands() {
           <Scatter ground={L.palette.ground} accent={L.palette.accent} seed={i * 7 + 2} path={PATHS[i]} />
           {near(i) && (
             <Suspense fallback={null}>
-              <L.Diorama unlocked={solved.includes(L.id)} active={i === current && (phase === 'playing' || phase === 'panel')} />
+              <Unlock on={solved.includes(L.id)}>
+                <L.Diorama unlocked={solved.includes(L.id)} active={i === current && playing} />
+              </Unlock>
+            </Suspense>
+          )}
+          {i === current && target === current && playing && (
+            <Suspense fallback={null}>
+              <L.Play onWin={win} won={phase === 'won'} />
             </Suspense>
           )}
         </group>
       ))}
-      {BRIDGES.map((b, i) => <Bridge key={i} from={b.from} to={b.to} />)}
+      {BRIDGES.map((b, i) => (
+        <BridgeReveal key={i} from={b.from} to={b.to} shown={solved.includes(LEVELS[i].id) || i < current} />
+      ))}
+      <Bursts />
     </group>
   )
 }
@@ -119,9 +190,6 @@ function TravellerRig() {
     const g = ref.current; if (!g) return
     const t = state.clock.elapsedTime
     const w = walk.current
-    const body = g.getObjectByName('body')
-    const L = g.getObjectByName('legL'), R = g.getObjectByName('legR')
-    const AL = g.getObjectByName('armL'), AR = g.getObjectByName('armR')
     if (w) {
       const len = w.curve.getLength()
       w.t = Math.min(1, w.t + (dt * 2.1) / len)
@@ -129,27 +197,16 @@ function TravellerRig() {
       const p = w.curve.getPointAt(w.e); const ahead = w.curve.getPointAt(Math.min(1, w.e + 0.02))
       g.position.copy(p)
       g.rotation.y = Math.atan2(ahead.x - p.x, ahead.z - p.z)
-      const step = Math.sin(t * 12) * (RM ? 0.5 : 1)
-      if (body) { body.position.y = Math.abs(step) * 0.05; body.rotation.x = 0.05 }
-      if (L && R) { L.rotation.x = step * 0.55; R.rotation.x = -step * 0.55 }
-      if (AL && AR) { AL.rotation.x = -step * 0.4; AR.rotation.x = step * 0.4 }
       if (w.t >= 1) {
         walk.current = null
         const st = useJourney.getState(); st.goto(w.to); st.setPhase('arrived')
       }
     } else {
       g.rotation.y += (0.35 - g.rotation.y) * Math.min(1, dt * 3)
-      if (body) {
-        body.position.y = RM ? 0 : 0.01 + Math.sin(t * 2.1) * 0.012
-        body.rotation.x *= Math.max(0, 1 - dt * 5)
-        const b = RM ? 1 : 1 + Math.sin(t * 2.1) * 0.012
-        body.scale.set(1, b, 1)
-      }
-      for (const l of [L, R, AL, AR]) if (l) l.rotation.x += (0 - l.rotation.x) * Math.min(1, dt * 8)
     }
     // cinematic camera: follows the traveller, keeps the island framed
     const portrait = size.width < size.height
-    const close = phase === 'playing' || phase === 'panel'
+    const close = phase === 'playing' || phase === 'won'
     const ci = w ? w.to : current
     const ctr = CENTERS[ci]
     const aim = g.position.clone().lerp(new THREE.Vector3(ctr.x, ctr.y + 0.55, ctr.z), w ? 0.4 : portrait ? 0.65 : 0.55)
@@ -162,7 +219,9 @@ function TravellerRig() {
     look.current.lerp(aim, Math.min(1, dt * 2.3))
     camera.lookAt(look.current)
   })
-  return <Traveller ref={ref} />
+  const id = LEVELS[current]?.id
+  const anim: Anim = target !== current ? 'walk' : phase === 'won' ? 'cheer' : phase === 'playing' && id === 'I01' ? 'sit' : 'idle'
+  return <Traveller ref={ref} anim={anim} />
 }
 
 function Sun() {
@@ -181,6 +240,22 @@ function Sun() {
       <directionalLight position={[-7, 5, -6]} intensity={0.4} color="#dfe9e4" />
     </>
   )
+}
+
+/** ?qa only: lets the headless playthrough find 3D objects. __journey.project(x,y,z) → CSS px of an
+ *  island-local point on the current island; __journey.find(name) → CSS px of a named object. */
+function QaProbe() {
+  const { camera, gl, scene } = useThree()
+  useEffect(() => {
+    const j = (window as any).__journey; if (!j) return
+    const px = (w: THREE.Vector3) => {
+      const r = gl.domElement.getBoundingClientRect(); const v = w.clone().project(camera)
+      return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }
+    }
+    j.project = (x: number, y: number, z: number) => px(CENTERS[useJourney.getState().current].clone().add(new THREE.Vector3(x, y, z)))
+    j.find = (name: string) => { const o = scene.getObjectByName(name); if (!o) return null; const w = new THREE.Vector3(); o.getWorldPosition(w); return px(w) }
+  }, [camera, gl, scene])
+  return null
 }
 
 export default function World() {
@@ -203,6 +278,7 @@ export default function World() {
       <Clouds />
       <Islands />
       <TravellerRig />
+      <QaProbe />
       {!LITE && fx && (
         <Suspense fallback={null}>
           <Effects />
