@@ -9,6 +9,8 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { env } from '../../world/sky'
+import { V5_ORDER } from '../core'
+import { IslandDressing5 } from './Dressing'
 
 const RM =
   typeof matchMedia !== 'undefined' &&
@@ -131,14 +133,21 @@ export function Water({
     ;(u.uFoam.value as THREE.Color).copy(base.foam).lerp(env.mid, f)
   })
   return (
-    <mesh geometry={geo} position={[0, y, 0]} frustumCulled={false}>
-      <shaderMaterial
-        ref={mat}
-        vertexShader={VERT}
-        fragmentShader={FRAG}
-        uniforms={uniforms}
-        fog
-      />
-    </mesh>
+    <>
+      <mesh geometry={geo} position={[0, y, 0]} frustumCulled={false}>
+        <shaderMaterial
+          ref={mat}
+          vertexShader={VERT}
+          fragmentShader={FRAG}
+          uniforms={uniforms}
+          fog
+        />
+      </mesh>
+      {/* WORLD only mounts ArtWater from this module — the per-island V4-density
+          dressing rides along here (world-space groups, one per island). */}
+      {V5_ORDER.map((id) => (
+        <IslandDressing5 key={id} id={id} />
+      ))}
+    </>
   )
 }

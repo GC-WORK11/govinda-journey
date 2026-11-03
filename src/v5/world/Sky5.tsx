@@ -38,8 +38,11 @@ type Stop = {
 }
 
 const STOPS5: Stop[] = [
-  { at: 0.00, top: '#bcd6da', mid: '#efe2cb', bot: '#dcc2a0', hs: '#fff3e0', hg: '#b7a086', hi: 1.08, sun: '#ffe2b6', si: 1.9, so: [6, 12, 5], fill: '#dfe9e4', fi: 0.4, glow: '#f9e3b4', gi: 0.12, night: 0 },
-  { at: 0.28, top: '#bcd6da', mid: '#efe2cb', bot: '#dcc2a0', hs: '#fff3e0', hg: '#b7a086', hi: 1.08, sun: '#ffe2b6', si: 1.9, so: [6, 12, 5], fill: '#dfe9e4', fi: 0.4, glow: '#f9e3b4', gi: 0.12, night: 0 },
+  // V5's camera rides lower than V4's and frames much more of the above-horizon
+  // dome, so the early-game `top` stays a warm cream-peach (close to V4's mid)
+  // instead of V4's cool blue-grey — the L01 frame reads warm top to bottom.
+  { at: 0.00, top: '#ecdcc4', mid: '#efe2cb', bot: '#dcc2a0', hs: '#fff3e0', hg: '#b7a086', hi: 1.08, sun: '#ffe2b6', si: 1.9, so: [6, 12, 5], fill: '#dfe9e4', fi: 0.4, glow: '#f9e3b4', gi: 0.12, night: 0 },
+  { at: 0.28, top: '#ecdcc4', mid: '#efe2cb', bot: '#dcc2a0', hs: '#fff3e0', hg: '#b7a086', hi: 1.08, sun: '#ffe2b6', si: 1.9, so: [6, 12, 5], fill: '#dfe9e4', fi: 0.4, glow: '#f9e3b4', gi: 0.12, night: 0 },
   { at: 0.42, top: '#a9a3c6', mid: '#f5cd9d', bot: '#dda06f', hs: '#ffe6ba', hg: '#a8896d', hi: 0.95, sun: '#ffc27a', si: 1.6, so: [9, 7, 4], fill: '#d8b6a4', fi: 0.32, glow: '#ffba80', gi: 0.34, night: 0.14 },
   { at: 0.56, top: '#a9a3c6', mid: '#f5cd9d', bot: '#dda06f', hs: '#ffe6ba', hg: '#a8896d', hi: 0.95, sun: '#ffc27a', si: 1.6, so: [9, 7, 4], fill: '#d8b6a4', fi: 0.32, glow: '#ffba80', gi: 0.34, night: 0.16 },
   { at: 0.72, top: '#6f669a', mid: '#e29f8d', bot: '#a97e78', hs: '#d4bfc2', hg: '#6f6872', hi: 0.88, sun: '#ffc6a4', si: 0.92, so: [10.5, 3.4, 2], fill: '#8b86ac', fi: 0.34, glow: '#ff9e76', gi: 0.30, night: 0.5 },
