@@ -7,14 +7,10 @@
 //   ability was granted, walks across the bridge to the next island, and screenshots
 //   proofs/v5/<size>-<n>-<ID>.png. FAIL lines are printed and the run keeps going.
 // Shares the single box Chrome: profile /tmp/gj-chrome-profile + /tmp/gj-chrome.lock dir lock.
-import { createRequire } from 'module'
-import { existsSync, mkdirSync, rmSync, statSync, utimesSync, writeFileSync } from 'fs'
+import { writeFileSync, mkdirSync } from 'fs'
 import { fileURLToPath } from 'url'
 import path from 'path'
-
-const require = createRequire(import.meta.url)
-let puppeteer
-try { puppeteer = require('puppeteer-core') } catch { puppeteer = require('/tmp/pp/node_modules/puppeteer-core') }
+import { withChrome } from '../chrome.mjs'
 
 // ---- args ------------------------------------------------------------------
 const argv = process.argv.slice(2)
@@ -30,20 +26,6 @@ const root = path.resolve(here, '..', '..')
 const outdir = path.join(root, 'proofs', 'v5')
 mkdirSync(outdir, { recursive: true })
 
-// ---- shared-Chrome lock (same as /tmp/gj-liveshot.mjs, plus heartbeat so a long
-// run does not look stale) ----------------------------------------------------
-const LOCK = '/tmp/gj-chrome.lock'
-for (let i = 0; ; i++) {
-  try { mkdirSync(LOCK); break } catch {
-    try { if (Date.now() - statSync(LOCK).mtimeMs > 360000) rmSync(LOCK, { recursive: true, force: true }) } catch {}
-    if (i % 12 === 0) console.log('waiting for the shared browser slot…')
-    await new Promise((r) => setTimeout(r, 5000))
-  }
-}
-const unlock = () => { try { rmSync(LOCK, { recursive: true, force: true }) } catch {} }
-process.on('exit', unlock); process.on('SIGINT', () => process.exit(130)); process.on('SIGTERM', () => process.exit(143))
-const beat = setInterval(() => { try { const now = new Date(); utimesSync(LOCK, now, now) } catch {} }, 60000)
-beat.unref()
 setTimeout(() => { console.log('v5 play hard timeout'); process.exit(3) }, 1500000).unref()
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -170,6 +152,7 @@ const d2 = (p, t) => Math.hypot(p.x - t.x, p.z - t.z)
 async function walkTo(page, drv, target, { timeout = 14000, arrive = 0.9, hop = true } = {}) {
   const t0 = Date.now()
   let lastD = Infinity, lastImprove = Date.now(), probes = 0, held = null, stuckHops = 0
+  const trail = []
   while (Date.now() - t0 < timeout) {
     const p = await v5pos(page)
     const d = d2(p, target)
@@ -195,7 +178,7 @@ async function walkTo(page, drv, target, { timeout = 14000, arrive = 0.9, hop = 
         // nothing moved us closer: probably blocked. Try a hop over a low lip, then give up.
         if (hop && stuckHops < 2) { stuckHops++; await drv.hold(best ? best.dir : drv.dirs[0]); await drv.jump(); await sleep(450); continue }
         await drv.release()
-        return { ok: false, blocked: true, pos: best ? best.p : p }
+        return { ok: false, blocked: true, pos: best ? best.p : p, trail }
       }
       held = best.dir
       await drv.hold(held)
@@ -203,10 +186,12 @@ async function walkTo(page, drv, target, { timeout = 14000, arrive = 0.9, hop = 
     } else {
       if (drv.nudge) await drv.nudge()
       await sleep(120)
+      trail.push(await v5pos(page))
+      if (trail.length > 60) trail.shift()
     }
   }
   await drv.release()
-  return { ok: false, timeout: true, pos: await v5pos(page) }
+  return { ok: false, timeout: true, pos: await v5pos(page), trail }
 }
 
 // ---- misc ------------------------------------------------------------------
@@ -220,58 +205,64 @@ const results = []
 const rec = (r) => { results.push(r); console.log(`  ${r.ok ? 'PASS' : 'FAIL'} ${r.size} ${r.id}${r.detail ? ' — ' + r.detail : ''}`) }
 
 // ---------------------------------------------------------------------------
-const browser = await puppeteer.launch({
-  userDataDir: '/tmp/gj-chrome-profile', executablePath: '/usr/bin/google-chrome', headless: 'new',
-  args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
-  protocolTimeout: 300000,
-})
-
 const VIEWPORTS = [
   ['1440', { width: 1440, height: 900 }],
   ['390', { width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true }],
 ].filter(([n]) => SIZE === 'both' || n === SIZE)
 
 let ORDER = null, GRANTS = null
+await withChrome(async (browser) => {
 for (const [size, vp] of VIEWPORTS) {
-  const page = await browser.newPage()
-  await page.setViewport(vp)
-  page.setDefaultTimeout(120000)
   const errors = []
   let tag = 'boot'
-  page.on('console', (m) => { if (m.type() === 'error' && !NOISE.test(m.text())) errors.push({ tag, text: m.text().slice(0, 300) }) })
-  page.on('pageerror', (e) => errors.push({ tag, text: 'pageerror: ' + e.message.slice(0, 300) }))
+  const wire = (page) => {
+    page.on('console', (m) => { if (m.type() === 'error' && !NOISE.test(m.text())) errors.push({ tag, text: m.text().slice(0, 300) }) })
+    page.on('pageerror', (e) => errors.push({ tag, text: 'pageerror: ' + e.message.slice(0, 300) }))
+    page.on('error', (e) => errors.push({ tag, text: 'page crash: ' + e.message.slice(0, 300) }))
+  }
   const errorsFor = (t) => errors.filter((e) => e.tag === t).map((e) => e.text)
+  const isReady = (page) => page.evaluate(async (src) => {
+    try { const c = await import(src); if (c.walkables.size > 0) return true } catch {}
+    return !!(window.__journey && window.__journey.v5)
+  }, CORE).catch(() => false)
+  const waitReady = async (page) => {
+    for (let t = 0; t < 40; t++) { if (await isReady(page)) return true; await sleep(750) }
+    return false
+  }
+
+  let page = await browser.newPage()
+  await page.setViewport(vp)
+  page.setDefaultTimeout(120000)
+  wire(page)
+  // V4 side-by-side comparison page (same island ids drive both worlds)
+  const v4 = await browser.newPage()
+  await v4.setViewport(vp)
+  v4.setDefaultTimeout(120000)
+  const v4shot = async (id, n) => {
+    try {
+      await v4.goto(`${base}?v4&qa&at=${id}`, { waitUntil: 'domcontentloaded', timeout: 60000 })
+      await sleep(3200)
+      await v4.screenshot({ path: path.join(outdir, `v4-${size}-${pad(n)}-${id}.png`) })
+    } catch (e) { console.log(`  v4 shot ${id} failed: ${e.message.slice(0, 120)}`) }
+  }
 
   console.log(`\n=== v5 ${size} ${vp.width}x${vp.height} ===`)
   // fresh state: clear the persisted v5 store, reload so zustand rehydrates empty
   await page.goto(base, { waitUntil: 'domcontentloaded' }).catch(() => {})
-  await page.evaluate(() => localStorage.removeItem('govinda-journey-v5'))
+  await page.evaluate(() => localStorage.removeItem('govinda-journey-v5')).catch(() => {})
   await page.goto(`${base}?qa${LITE}`, { waitUntil: 'networkidle2' })
 
   // wait until the V5 world is live: walkables registered or WORLD's ?qa hook up
-  let ready = false
-  for (let t = 0; t < 40 && !ready; t++) {
-    ready = await page.evaluate(async (src) => {
-      try { const c = await import(src); if (c.walkables.size > 0) return true } catch {}
-      return !!(window.__journey && window.__journey.v5)
-    }, CORE).catch(() => false)
-    if (!ready) await sleep(750)
-  }
+  let ready = await waitReady(page)
   if (!ready) {
     // maybe routing is still behind ?v5
-    await page.goto(`${base}?v5&qa${LITE}`, { waitUntil: 'networkidle2' })
-    for (let t = 0; t < 40 && !ready; t++) {
-      ready = await page.evaluate(async (src) => {
-        try { const c = await import(src); if (c.walkables.size > 0) return true } catch {}
-        return !!(window.__journey && window.__journey.v5)
-      }, CORE).catch(() => false)
-      if (!ready) await sleep(750)
-    }
+    await page.goto(`${base}?v5&qa${LITE}`, { waitUntil: 'networkidle2' }).catch(() => {})
+    ready = await waitReady(page)
   }
   if (!ready) {
     rec({ size, id: 'BOOT', ok: false, detail: 'V5 world not mounted (no core.walkables, no __journey.v5) — is ?qa routed to V5?' })
     await shot(page, `${size}-00-nov5.png`)
-    await page.close()
+    await page.close().catch(() => {})
     continue
   }
 
@@ -287,10 +278,12 @@ for (const [size, vp] of VIEWPORTS) {
   await sleep(1200)
 
   const hk = await hooks(page)
-  console.log(`  hooks: v5=${hk.v5} solve=[${hk.solve.join(' ')}] player=[${hk.player.join(' ')}] world=${JSON.stringify(await v5world(page))}`)
+  const hasCanvas = await page.evaluate(() => !!document.querySelector('canvas')).catch(() => false)
+  console.log(`  hooks: v5=${hk.v5} solve=[${hk.solve.join(' ')}] player=[${hk.player.join(' ')}] world=${JSON.stringify(await v5world(page))} canvas=${hasCanvas}`)
+  if (!hasCanvas) rec({ size, id: 'BOOT', ok: false, detail: 'no <canvas> on page — 3D never mounted (integrator-reported mobile blank-3D)' })
   const fpsEst = await fps(page)
   console.log(`  fps≈${fpsEst}`)
-  const drv = vp.isMobile ? touchDriver(page, vp) : keyDriver(page)
+  let drv = vp.isMobile ? touchDriver(page, vp) : keyDriver(page)
 
   const ids = ONLY || ORDER
   let walkedFromPrev = true // did we arrive at this island by walking?
@@ -303,7 +296,9 @@ for (const [size, vp] of VIEWPORTS) {
     const C = lay.pos[i]
     const entryW = { x: C.x + lay.entry.x, y: C.y + lay.entry.y, z: C.z + lay.entry.z }
     const exitW = { x: C.x + lay.exit.x, y: C.y + lay.exit.y, z: C.z + lay.exit.z }
+    let cross = null, solvedHow = null
 
+    try {
     // -- ensure we're on this island (recover by teleporting to its ENTRY if a
     //    previous island's crossing failed; the walk itself is still measured)
     let pos = await v5pos(page)
@@ -328,7 +323,6 @@ for (const [size, vp] of VIEWPORTS) {
 
     // -- solve: prefer the island's real-interaction solver
     const hkNow = await hooks(page)
-    let solvedHow = null
     if (hkNow.solve.includes(id)) {
       await page.evaluate((lid) => { try { return window.__journey.solve[lid]() } catch (e) { return 'threw: ' + e.message } }, id).catch((e) => fails.push('solve threw ' + e.message))
       solvedHow = 'solve()'
@@ -371,33 +365,56 @@ for (const [size, vp] of VIEWPORTS) {
     if (grant && !st.abilities.includes(grant)) fails.push(`ability '${grant}' not granted by complete()`)
 
     await shot(page, `${size}-${pad(i + 1)}-${id}.png`)
+    await v4shot(id, i + 1)
 
     // -- walk across the bridge to the next island
-    let cross = null
     if (i + 1 < ORDER.length && (!ONLY || ids.includes(ORDER[i + 1]))) {
       const N = lay.pos[i + 1]
       const entryN = { x: N.x + lay.entry.x, z: N.z + lay.entry.z }
       const mid = { x: (exitW.x + entryN.x) / 2, z: (exitW.z + entryN.z) / 2 }
-      const c1 = await walkTo(page, drv, { x: mid.x, z: mid.z }, { timeout: 16000, arrive: 1.4 })
-      const c2 = c1.ok || c1.blocked || !c1.frozen ? await walkTo(page, drv, entryN, { timeout: 20000, arrive: 1.6 }) : c1
-      const p3 = await v5pos(page)
+      const trace = []
+      const sampler = setInterval(async () => { try { const p = await v5pos(page); trace.push([Math.round((Date.now() - i0) / 100) / 10, +p.x.toFixed(2), +p.y.toFixed(2), +p.z.toFixed(2), p.grounded ? 1 : 0]) } catch {} }, 150)
+      let c1, c2, p3
+      try {
+        c1 = await walkTo(page, drv, { x: mid.x, z: mid.z }, { timeout: 16000, arrive: 1.4 })
+        c2 = c1.ok || c1.blocked || !c1.frozen ? await walkTo(page, drv, entryN, { timeout: 20000, arrive: 1.6 }) : c1
+        p3 = await v5pos(page)
+      } finally { clearInterval(sampler) }
       const arrived = p3.island === ORDER[i + 1] || d2(p3, N) < lay.R
       cross = { ok: arrived, frozen: !!(c1.frozen || c2.frozen), to: ORDER[i + 1] }
-      if (!arrived) fails.push(`bridge walk to ${ORDER[i + 1]} failed (${c1.ok ? '' : 'leg1:' + (c1.blocked ? 'blocked' : c1.timeout ? 'timeout' : c1.frozen ? 'frozen' : '?')}; ${c2.ok ? '' : 'leg2:' + (c2.blocked ? 'blocked' : c2.timeout ? 'timeout' : c2.frozen ? 'frozen' : '?')})`)
+      if (!arrived) {
+        const leg = (c) => (c.ok ? 'ok' : c.blocked ? 'blocked' : c.timeout ? 'timeout' : c.frozen ? 'frozen' : '?')
+        fails.push(`bridge walk to ${ORDER[i + 1]} failed (leg1:${leg(c1)}; leg2:${leg(c2)}; end y=${p3.y.toFixed(1)} vs isle ${N.y.toFixed(1)})`)
+        console.log(`      cross-trace ${id}->${ORDER[i + 1]} (t,x,y,z,g): ` + trace.filter((_, k) => k % 4 === 0).map((p) => p.join(',')).join('  '))
+        await shot(page, `${size}-${pad(i + 1)}-${id}-stuck.png`)
+      }
     }
     if (i + 1 === ORDER.length) { await sleep(2500); await shot(page, `${size}-${pad(i + 1)}-${id}-finale.png`) }
+    } catch (e) {
+      fails.push('harness: ' + e.message)
+    }
+
+    // if the page's execution context died mid-island (renderer crash / reload),
+    // rebuild it — persisted progress survives, so the run can keep going.
+    if (!(await page.evaluate(() => 1).then(() => true, () => false))) {
+      fails.push('page context died during island (renderer crash or navigation)')
+      try { await page.close() } catch {}
+      page = await browser.newPage()
+      await page.setViewport(vp); page.setDefaultTimeout(120000); wire(page)
+      await page.goto(`${base}?qa${LITE}`, { waitUntil: 'networkidle2' }).catch(() => {})
+      if (await waitReady(page)) await sleep(1200); else fails.push('rebuilt page never became ready')
+      drv = vp.isMobile ? touchDriver(page, vp) : keyDriver(page)
+    }
 
     const cerr = errorsFor(tag)
     const ok = fails.length === 0
     rec({ size, i, id, ok, ms: Date.now() - i0, detail: fails.join(' | ') || undefined, solvedHow, walkedFromPrev, console: cerr })
     if (cerr.length) console.log(`      console: ${cerr.slice(0, 3).join(' ;; ')}`)
   }
-  await page.close()
+  await v4.close().catch(() => {})
+  await page.close().catch(() => {})
 }
-
-await browser.close()
-clearInterval(beat)
-unlock()
+}) // withChrome
 
 // ---- report -----------------------------------------------------------------
 const outFile = path.join(outdir, 'last-run.json')
