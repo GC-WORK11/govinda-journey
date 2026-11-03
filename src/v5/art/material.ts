@@ -82,6 +82,7 @@ const DEFAULTS: Required<ToonOpts> = {
   rimColor: '#fff2dd',
   rim: 0.22,
   rimPow: 3.0,
+  lift: 1,
 }
 
 /**
