@@ -5,11 +5,12 @@ import * as THREE from 'three'
 import { LEVELS } from '../levels/registry'
 import { useJourney } from '../state/store'
 import { CENTERS, standPoint, walkCurve, edge, pathLocal } from './layout'
-import { Island, Scatter, C, clay, clayVC, cloudGeo, bridgeParts } from './kit'
+import { Island, Scatter, C, clay, clayVC, bridgeParts } from './kit'
 import { Traveller, type Anim } from './Traveller'
 import { Bursts, burst, springStep } from './play'
 import { Lanterns, IslandLanterns, bridgeLampSpots } from './Lanterns'
 import Atmosphere from './Atmosphere'
+import { Clouds } from './Clouds'
 
 const Effects = lazy(() => import('./Effects').catch(() => ({ default: () => null as unknown as JSX.Element })))
 
@@ -20,46 +21,6 @@ const HORIZON = '#efe2cb'
 // stable references so merged geometry is built once, not per render
 const PATHS = LEVELS.map((_, i) => pathLocal(i))
 const BRIDGES = LEVELS.slice(0, -1).map((_, i) => ({ from: edge(i, i + 1), to: edge(i + 1, i) }))
-
-/**
- * Clay puff clouds: a low sea of them under the islands (the intro camera starts
- * above it) plus a few side puffs drifting on lanes left/right of the path so the
- * world has depth without ever covering an island.
- */
-function Clouds() {
-  const g = useRef<THREE.Group>(null)
-  const items = useMemo(() => {
-    const below = Array.from({ length: 16 }, (_, i) => ({
-      p: [((i % 2 ? 1 : -1) * (8 + (i * 37 % 8))), -3.6 - (i * 13 % 5) * 0.9, 12 - i * 7.2] as [number, number, number],
-      s: 1 + (i * 17 % 10) / 7, geo: cloudGeo(i + 3), v: 0.1 + (i % 4) * 0.05, lane: [-18, 18] as [number, number],
-    }))
-    const side = Array.from({ length: 6 }, (_, i) => {
-      const left = i % 2 === 0
-      return {
-        p: [(left ? -1 : 1) * (13 + (i * 29 % 6)), 1.2 + (i * 11 % 5) * 1.5, -6 - i * 16] as [number, number, number],
-        s: 0.9 + (i * 13 % 8) / 8, geo: cloudGeo(i + 30), v: 0.07 + (i % 3) * 0.04, lane: (left ? [-24, -11] : [11, 24]) as [number, number],
-      }
-    })
-    return [...below, ...side]
-  }, [])
-  useFrame((s, dt) => {
-    const g0 = g.current; if (!g0 || RM) return
-    const t = s.clock.elapsedTime
-    g0.children.forEach((c, i) => {
-      const it = items[i]
-      c.position.x += dt * it.v
-      if (c.position.x > it.lane[1]) c.position.x = it.lane[0]
-      c.position.y = it.p[1] + Math.sin(t * 0.22 + i * 2.1) * 0.3
-    })
-  })
-  return (
-    <group ref={g}>
-      {items.map((c, i) => (
-        <mesh key={i} geometry={c.geo} position={c.p} scale={c.s} material={clay(C.paper)} />
-      ))}
-    </group>
-  )
-}
 
 /** Squash-stretch pop of the building the moment its level is solved, plus leaves and a warm flare. */
 function Unlock({ on, children }: { on: boolean; children: React.ReactNode }) {

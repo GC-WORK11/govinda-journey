@@ -62,18 +62,21 @@ export default function Atmosphere() {
     const c = cur.current
     dampSky(c, sampleSky(p, tmp), dt)
     env.night = c.night
+    env.top.copy(c.top); env.mid.copy(c.mid); env.bot.copy(c.bot)
     driveLamps(c.night)
 
     const finale = st.phase === 'arrived' && st.current === LAST && st.solved.includes(LEVELS[LAST].id)
+    env.finale += ((finale ? 1 : 0) - env.finale) * (1 - Math.exp(-dt * 1.8))
     // fog rides just past the camera: this island clear, the next a soft silhouette,
-    // the one after lost in haze — in the finale pull-back it opens up for the vista
+    // the one after lost in haze — in the finale pull-back it opens up for the vista.
+    // Tinted a step toward the zenith colour, so distance reads hazier and bluer.
     const camDist = camera.position.distanceTo(CENTERS[st.target])
     const fogT = finale ? [58, 170] : [camDist + 3, camDist + 21]
     if (!fogNow.current) fogNow.current = { near: fogT[0], far: fogT[1] }
     const f = fogNow.current, ff = 1 - Math.exp(-dt * 3)
     f.near += (fogT[0] - f.near) * ff; f.far += (fogT[1] - f.far) * ff
     const fog = scene.fog as THREE.Fog | null
-    if (fog) { fog.color.copy(c.mid); fog.near = f.near; fog.far = f.far }
+    if (fog) { fog.color.copy(c.mid).lerp(c.top, 0.35); fog.near = f.near; fog.far = f.far }
     const bg = scene.background as THREE.Color | null
     if (bg && bg.isColor) bg.copy(c.mid)
 
@@ -81,6 +84,8 @@ export default function Atmosphere() {
       dome.current.uniforms.top.value.copy(c.top)
       dome.current.uniforms.mid.value.copy(c.mid)
       dome.current.uniforms.bot.value.copy(c.bot)
+      dome.current.uniforms.glow.value.copy(c.glow)
+      dome.current.uniforms.gi.value = c.gi
     }
     if (hemi.current) { hemi.current.color.copy(c.hs); hemi.current.groundColor.copy(c.hg); hemi.current.intensity = c.hi }
     if (fill.current) { fill.current.color.copy(c.fill); fill.current.intensity = c.fi }
@@ -106,13 +111,16 @@ export default function Atmosphere() {
             top: { value: new THREE.Color('#bcd6da') },
             mid: { value: new THREE.Color('#efe2cb') },
             bot: { value: new THREE.Color('#dcc2a0') },
+            glow: { value: new THREE.Color('#f9e3b4') },
+            gi: { value: 0.12 },
           }}
           vertexShader={'varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }'}
           fragmentShader={
-            'varying vec3 vP; uniform vec3 top; uniform vec3 mid; uniform vec3 bot;' +
+            'varying vec3 vP; uniform vec3 top; uniform vec3 mid; uniform vec3 bot; uniform vec3 glow; uniform float gi;' +
             'void main(){ float h = normalize(vP).y;' +
             ' vec3 c = mix(bot, mid, smoothstep(-0.75, -0.4, h));' +
             ' c = mix(c, top, smoothstep(-0.52, -0.22, h));' +
+            ' c += glow * (gi * exp(-pow((h + 0.30) * 6.0, 2.0)));' +
             ' gl_FragColor = vec4(c, 1.0);' +
             '\n#include <colorspace_fragment>\n}'
           } />

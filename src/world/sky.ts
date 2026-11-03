@@ -7,8 +7,14 @@
  */
 import * as THREE from 'three'
 
-/** Per-frame world mood, written by Atmosphere, read by lanterns/stars. */
-export const env = { night: 0 }
+/** Per-frame world mood, written by Atmosphere, read by lanterns/stars/clouds. */
+export const env = {
+  night: 0,
+  finale: 0,
+  top: new THREE.Color('#bcd6da'),
+  mid: new THREE.Color('#efe2cb'),
+  bot: new THREE.Color('#dcc2a0'),
+}
 
 type Stop = {
   at: number
@@ -16,24 +22,26 @@ type Stop = {
   hs: string; hg: string; hi: number             // hemisphere sky / ground / intensity
   sun: string; si: number; so: [number, number, number] // key light colour, intensity, offset from island
   fill: string; fi: number                       // cool fill light
+  glow: string; gi: number                       // soft band of warmth hugging the horizon
   night: number                                  // 0 day → 1 night (lantern/star driver)
 }
 
 const STOPS: Stop[] = [
-  { at: 0.00, top: '#bcd6da', mid: '#efe2cb', bot: '#dcc2a0', hs: '#fff3e0', hg: '#b7a086', hi: 1.08, sun: '#ffe2b6', si: 1.9, so: [6, 12, 5], fill: '#dfe9e4', fi: 0.4, night: 0 },
-  { at: 0.30, top: '#bcd6da', mid: '#efe2cb', bot: '#dcc2a0', hs: '#fff3e0', hg: '#b7a086', hi: 1.08, sun: '#ffe2b6', si: 1.9, so: [6, 12, 5], fill: '#dfe9e4', fi: 0.4, night: 0 },
-  { at: 0.45, top: '#d9a075', mid: '#f5cd9d', bot: '#dd9f74', hs: '#ffe4b6', hg: '#a8896d', hi: 0.95, sun: '#ffc27a', si: 1.7, so: [9, 7, 4], fill: '#dcb298', fi: 0.3, night: 0.14 },
-  { at: 0.60, top: '#d9a075', mid: '#f5cd9d', bot: '#dd9f74', hs: '#ffe4b6', hg: '#a8896d', hi: 0.95, sun: '#ffc27a', si: 1.7, so: [9, 7, 4], fill: '#dcb298', fi: 0.3, night: 0.16 },
-  { at: 0.75, top: '#7b7096', mid: '#e0a184', bot: '#b98a77', hs: '#ecc5aa', hg: '#7d6e66', hi: 0.86, sun: '#ffb486', si: 1.15, so: [10.5, 3.4, 2], fill: '#8b82a2', fi: 0.26, night: 0.5 },
-  { at: 0.90, top: '#7b7096', mid: '#e0a184', bot: '#b98a77', hs: '#ecc5aa', hg: '#7d6e66', hi: 0.86, sun: '#ffb486', si: 1.15, so: [10.5, 3.4, 2], fill: '#8b82a2', fi: 0.26, night: 0.55 },
-  { at: 1.00, top: '#373356', mid: '#554864', bot: '#433b52', hs: '#6c6596', hg: '#3a3546', hi: 0.62, sun: '#c3c8ea', si: 0.5, so: [-5, 13, -7], fill: '#5a5880', fi: 0.28, night: 1 },
+  { at: 0.00, top: '#bcd6da', mid: '#efe2cb', bot: '#dcc2a0', hs: '#fff3e0', hg: '#b7a086', hi: 1.08, sun: '#ffe2b6', si: 1.9, so: [6, 12, 5], fill: '#dfe9e4', fi: 0.4, glow: '#f9e3b4', gi: 0.12, night: 0 },
+  { at: 0.30, top: '#bcd6da', mid: '#efe2cb', bot: '#dcc2a0', hs: '#fff3e0', hg: '#b7a086', hi: 1.08, sun: '#ffe2b6', si: 1.9, so: [6, 12, 5], fill: '#dfe9e4', fi: 0.4, glow: '#f9e3b4', gi: 0.12, night: 0 },
+  { at: 0.45, top: '#a9a3c6', mid: '#f5cd9d', bot: '#dda06f', hs: '#ffe6ba', hg: '#a8896d', hi: 0.95, sun: '#ffc27a', si: 1.6, so: [9, 7, 4], fill: '#d8b6a4', fi: 0.32, glow: '#ffba80', gi: 0.34, night: 0.14 },
+  { at: 0.60, top: '#a9a3c6', mid: '#f5cd9d', bot: '#dda06f', hs: '#ffe6ba', hg: '#a8896d', hi: 0.95, sun: '#ffc27a', si: 1.6, so: [9, 7, 4], fill: '#d8b6a4', fi: 0.32, glow: '#ffba80', gi: 0.34, night: 0.16 },
+  { at: 0.75, top: '#6f669a', mid: '#e29f8d', bot: '#a97e78', hs: '#d4bfc2', hg: '#6f6872', hi: 0.88, sun: '#ffc6a4', si: 0.92, so: [10.5, 3.4, 2], fill: '#8b86ac', fi: 0.34, glow: '#ff9e76', gi: 0.30, night: 0.5 },
+  { at: 0.90, top: '#6f669a', mid: '#e29f8d', bot: '#a97e78', hs: '#d4bfc2', hg: '#6f6872', hi: 0.88, sun: '#ffc6a4', si: 0.92, so: [10.5, 3.4, 2], fill: '#8b86ac', fi: 0.34, glow: '#ff9e76', gi: 0.30, night: 0.55 },
+  { at: 1.00, top: '#322e50', mid: '#514360', bot: '#3c3550', hs: '#76709e', hg: '#37324a', hi: 0.66, sun: '#c9cdee', si: 0.55, so: [-5, 13, -7], fill: '#5c5a86', fi: 0.3, glow: '#8a78b0', gi: 0.14, night: 1 },
 ]
 
 export type Sky = {
   top: THREE.Color; mid: THREE.Color; bot: THREE.Color
   hs: THREE.Color; hg: THREE.Color; hi: number
   sun: THREE.Color; si: number; so: THREE.Vector3
-  fill: THREE.Color; fi: number; night: number
+  fill: THREE.Color; fi: number
+  glow: THREE.Color; gi: number; night: number
 }
 
 export function makeSky(): Sky {
@@ -41,7 +49,8 @@ export function makeSky(): Sky {
     top: new THREE.Color(), mid: new THREE.Color(), bot: new THREE.Color(),
     hs: new THREE.Color(), hg: new THREE.Color(), hi: 1,
     sun: new THREE.Color(), si: 1, so: new THREE.Vector3(),
-    fill: new THREE.Color(), fi: 0, night: 0,
+    fill: new THREE.Color(), fi: 0,
+    glow: new THREE.Color(), gi: 0, night: 0,
   }
 }
 
@@ -51,7 +60,8 @@ const SC = STOPS.map((s) => ({
   top: new THREE.Color(s.top), mid: new THREE.Color(s.mid), bot: new THREE.Color(s.bot),
   hs: new THREE.Color(s.hs), hg: new THREE.Color(s.hg), hi: s.hi,
   sun: new THREE.Color(s.sun), si: s.si, so: new THREE.Vector3(...s.so),
-  fill: new THREE.Color(s.fill), fi: s.fi, night: s.night,
+  fill: new THREE.Color(s.fill), fi: s.fi,
+  glow: new THREE.Color(s.glow), gi: s.gi, night: s.night,
 }))
 
 /** Sample the stop table at progress p into `out` (no allocation). */
@@ -73,6 +83,8 @@ export function sampleSky(p: number, out: Sky): Sky {
   out.so.copy(a.so).lerp(b.so, e)
   out.fill.copy(a.fill).lerp(b.fill, e)
   out.fi = a.fi + (b.fi - a.fi) * e
+  out.glow.copy(a.glow).lerp(b.glow, e)
+  out.gi = a.gi + (b.gi - a.gi) * e
   out.night = a.night + (b.night - a.night) * e
   return out
 }
@@ -85,5 +97,6 @@ export function dampSky(cur: Sky, tgt: Sky, dt: number, k = 2.6) {
   cur.sun.lerp(tgt.sun, f); cur.si += (tgt.si - cur.si) * f
   cur.so.lerp(tgt.so, f)
   cur.fill.lerp(tgt.fill, f); cur.fi += (tgt.fi - cur.fi) * f
+  cur.glow.lerp(tgt.glow, f); cur.gi += (tgt.gi - cur.gi) * f
   cur.night += (tgt.night - cur.night) * f
 }
