@@ -73,6 +73,32 @@ Usage: `node scripts/v5/play.mjs [baseUrl] [--lite] [--only=L01,L02] [--size=144
 - Churn caveat: runs during agent edits hit transient module breaks (L01 `Hint`→`PillHint`
   rename mid-run; PillHint `<span>` crash in L02). Real signal resumes once edits settle.
 
+### Run 4 (~20:00, aborted by integrator) — two harness root causes found and fixed
+- **Backgrounded tab froze the whole sim**: creating the V4 comparison page up-front
+  backgrounded the V5 tab → rAF≈0 → `walkables:0`, no `__journey.player`/`solve` keys,
+  player never integrated, every island failed identically. Fixed: V4 page created lazily
+  inside the island loop and `page.bringToFront()` after every v4 shot + at each island start.
+- **fps≈2 under full effects on SwiftShader**: after the focus fix the world populated
+  (23 walkables/31 blockers, solve keys [L01 L02 L03]) but fps≈2 → key-burst steering and
+  physics-time solvers go flaky (L02's letter-teleport solver uses fixed 1.35 s sleeps;
+  at ~500 ms/frame the landings don't register → `done` never set → gate stays shut and the
+  player climbs on top of the closed gate box, y≈3.2 vs isle 1.5). L01/L03 solves completed
+  but the bridge walk still failed pre-fix. Integrator: rerun with `?lite` when fps<5.
+- Harness now logs **per-island fps** (`fps≈N` per line + `fps` field in last-run.json) and
+  retries `solve.<ID>` once before declaring done-missing.
+- Waiting on **WORLD bridge fix** commit before the full 1440+390 playthrough.
+
+### Run 5 (~20:42, stopped on integrator Chrome-priority hold)
+- WORLD's `3fb8c7f` landed (DoubleSide 0.98 m strip extended ±5% past both shores,
+  path-corridor blocker purge, gate leaf swings outward) + ISL-E `b95e290` (solvers end
+  on the exit path). Started the full 11-island pass with `?lite`.
+- Boot under `?lite`: world populated — 23 walkables / 25 blockers / 8 interactables,
+  solve keys [L01 L02 L03], player hooks [pos teleport press], canvas present, **fps≈4**
+  (up from ≈2 without lite). Run stopped at L01-in-progress (0 island results) when the
+  integrator reserved Chrome; queued behind their V4 check otherwise.
+- **PASS/FAIL so far: 0 islands recorded this run.** Standing by for 'QA go' to rerun
+  the full 1440→390 playthrough.
+
 ### Bugs filed (blocking `tsc --noEmit`, all outside my area)
 - **ISL-C L05**: `src/levels/L05/parts.v5.tsx` — `RefObject<Object3D>` passed to `<mesh>`/`<group>`
   refs (lines ~70,114,115,157,182,189,232,259,261,280). Type them `useRef<THREE.Mesh>(null)` /
