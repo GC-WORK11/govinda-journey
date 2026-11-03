@@ -225,9 +225,11 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
     const w = window as any
     const J = (w.__journey ??= {})
     const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
-    const tp = (l: THREE.Vector3, dx = 0, dz = 0) => {
+    const tp = async (l: THREE.Vector3, dx = 0, dz = 0) => {
       const v = l.clone().add(new THREE.Vector3(dx, 0, dz))
       root.current?.localToWorld(v)
+      // PLAYER's api attaches lazily — wait for it (pos.copy alone is overwritten each frame)
+      for (let i = 0; i < 80 && !J.player?.teleport; i++) await sleep(100)
       const api = J.player?.teleport
       if (api) api(v.x, v.y, v.z)
       else { core.player.pos.copy(v); core.player.vel.set(0, 0, 0) }
@@ -237,16 +239,16 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       [id]: async () => {
         if (core.useV5.getState().done.includes(id)) return
         if (!core.has('remote')) core.useV5.getState().grant('remote') // QA shortcut: pretend L06 was played
-        tp(CONSOLE_POS, -0.8, 0.3)
+        await tp(CONSOLE_POS, -0.8, 0.3)
         await sleep(500)
         core.interactables.get('L07-console')?.use()
         for (let i = 0; i < 100 && phaseRef.current !== 'ready'; i++) await sleep(100)
-        tp(SHELF_NEAR, -1.1, 0.2)
+        await tp(SHELF_NEAR, -1.1, 0.2)
         await sleep(400)
         core.interactables.get('L07-speak')?.use()
         await sleep(600)
         submitRef.current(WORD) // the same call the sheet's Send runs
-        for (let i = 0; i < 120 && phaseRef.current !== 'open'; i++) await sleep(100)
+        for (let i = 0; i < 160 && !core.useV5.getState().done.includes(id); i++) await sleep(100)
       },
     }
     return () => { if (J.solve) delete J.solve[id] }

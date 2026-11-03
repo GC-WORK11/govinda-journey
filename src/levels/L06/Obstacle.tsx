@@ -119,9 +119,11 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
     const w = window as any
     const J = (w.__journey ??= {})
     const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
-    const tp = (l: THREE.Vector3, dx = 0, dz = 0) => {
+    const tp = async (l: THREE.Vector3, dx = 0, dz = 0) => {
       const v = l.clone().add(new THREE.Vector3(dx, 0, dz))
       root.current?.localToWorld(v)
+      // PLAYER's api attaches lazily — wait for it (pos.copy alone is overwritten each frame)
+      for (let i = 0; i < 80 && !J.player?.teleport; i++) await sleep(100)
       const api = J.player?.teleport
       if (api) api(v.x, v.y, v.z)
       else { core.player.pos.copy(v); core.player.vel.set(0, 0, 0) }
@@ -131,7 +133,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       [id]: async () => {
         if (core.useV5.getState().done.includes(id)) return
         if (!core.has('sense')) core.useV5.getState().grant('sense')
-        tp(DOCK, -0.35, 0.35)
+        await tp(DOCK, -0.35, 0.35)
         await sleep(500)
         core.interactables.get('L06-phone')?.use()
         await sleep(900)
