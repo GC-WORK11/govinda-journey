@@ -80,8 +80,8 @@ export default function Game({ onWin }: GameProps) {
         height: '100%',
         maxHeight: '500px',
         display: 'flex',
-        gap: '3rem',
-        padding: '2rem',
+        gap: 'clamp(0.75rem, 5vw, 3rem)',
+        padding: 'clamp(0.5rem, 3vw, 2rem)',
         alignItems: 'center',
         justifyContent: 'center',
         position: 'relative',
@@ -174,16 +174,17 @@ export default function Game({ onWin }: GameProps) {
             animation: 'travel 1.2s ease-in-out',
           }}>
             <div style={{
-              width: '60px',
-              height: '30px',
-              background: 'var(--terracotta)',
-              borderRadius: '8px',
+              width: '70px',
+              height: '36px',
+              background: '#d9825b',
+              borderRadius: '10px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: 'var(--cream)',
-              fontSize: '10px',
-              boxShadow: '0 4px 8px rgba(59, 51, 48, 0.2)',
+              color: '#f3e9da',
+              fontSize: '11px',
+              fontWeight: '600',
+              boxShadow: '0 4px 12px rgba(59, 51, 48, 0.3)',
             }}>
               Task
             </div>
@@ -199,12 +200,12 @@ export default function Game({ onWin }: GameProps) {
             left: '50%',
             top: '50%',
             transform: 'translate(-50%, -50%)',
-            opacity: 0.3,
+            opacity: 0.35,
           }}
         >
           <path
             d="M 0 10 Q 90 0, 180 10"
-            stroke="var(--earth)"
+            stroke="#b48a63"
             strokeWidth="2"
             strokeDasharray="4 6"
             fill="none"
@@ -220,21 +221,21 @@ export default function Game({ onWin }: GameProps) {
           <div style={{
             width: '200px',
             height: '130px',
-            background: 'var(--stone)',
+            background: '#c9bfb0',
             borderRadius: '6px 6px 0 0',
             padding: '8px',
-            boxShadow: '0 -2px 8px rgba(59, 51, 48, 0.1)',
+            boxShadow: '0 -2px 10px rgba(59, 51, 48, 0.15)',
             display: 'flex',
             flexDirection: 'column',
           }}>
             <div style={{
               flex: 1,
-              background: coding || approving ? 'var(--ink)' : 'var(--earth)',
+              background: coding || approving ? '#2a2520' : '#8a6748',
               borderRadius: '4px',
               padding: '8px',
               fontFamily: '"Courier New", monospace',
               fontSize: '9px',
-              color: coding || approving ? 'var(--moss)' : 'var(--cream)',
+              color: coding || approving ? '#a7bd80' : '#f3e9da',
               overflow: 'hidden',
               position: 'relative',
               display: 'flex',
@@ -243,8 +244,8 @@ export default function Game({ onWin }: GameProps) {
             }}>
               {coding && progress.map((line, i) => (
                 <div key={i} style={{
-                  color: line.startsWith('+') ? '#90c070' : line.startsWith('-') ? '#e88080' : 'var(--moss)',
-                  opacity: 0.9,
+                  color: line.startsWith('+') ? '#90c070' : line.startsWith('-') ? '#e88080' : '#a7bd80',
+                  opacity: 0.95,
                 }}>
                   {line}
                 </div>
@@ -260,8 +261,9 @@ export default function Game({ onWin }: GameProps) {
                   gap: '12px',
                 }}>
                   <div style={{
-                    fontSize: '32px',
+                    fontSize: '34px',
                     animation: 'checkGrow 0.4s ease-out',
+                    color: '#8fb36b',
                   }}>
                     ✓
                   </div>
@@ -269,15 +271,15 @@ export default function Game({ onWin }: GameProps) {
                     data-qa="approve-btn"
                     onClick={() => approve(approving)}
                     style={{
-                      padding: '8px 20px',
-                      background: 'var(--leaf)',
+                      padding: '10px 24px',
+                      background: '#8fb36b',
                       border: 'none',
                       borderRadius: '20px',
-                      color: 'var(--cream)',
-                      fontSize: '11px',
+                      color: '#f3e9da',
+                      fontSize: '12px',
                       fontWeight: '600',
                       cursor: 'pointer',
-                      boxShadow: '0 2px 6px rgba(59, 51, 48, 0.3)',
+                      boxShadow: '0 3px 8px rgba(59, 51, 48, 0.35)',
                       fontFamily: 'Inter, sans-serif',
                     }}
                   >
@@ -290,9 +292,9 @@ export default function Game({ onWin }: GameProps) {
           <div style={{
             width: '220px',
             height: '8px',
-            background: 'var(--stoneLight)',
+            background: '#ddd5c6',
             borderRadius: '0 0 12px 12px',
-            boxShadow: '0 4px 8px rgba(59, 51, 48, 0.15)',
+            boxShadow: '0 4px 12px rgba(59, 51, 48, 0.2)',
           }} />
         </div>
 

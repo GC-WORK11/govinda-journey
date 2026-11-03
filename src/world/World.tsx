@@ -8,7 +8,7 @@ import { CENTERS, standPoint, walkCurve, edge, pathLocal } from './layout'
 import { Island, Bridge, Scatter, C, clay, cloudGeo } from './kit'
 import { Traveller } from './Traveller'
 
-const Effects = lazy(() => import('./Effects'))
+const Effects = lazy(() => import('./Effects').catch(() => ({ default: () => null as unknown as JSX.Element })))
 
 const LITE = typeof location !== 'undefined' && new URLSearchParams(location.search).has('lite')
 const RM = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -33,7 +33,8 @@ function SkyDome() {
       'void main(){ float h = normalize(vP).y;' + // camera looks down: frame spans roughly h in [-0.75, -0.25]
       ' vec3 c = mix(bot, mid, smoothstep(-0.75, -0.4, h));' +
       ' c = mix(c, top, smoothstep(-0.52, -0.22, h));' +
-      ' gl_FragColor = vec4(c, 1.0); }',
+      ' gl_FragColor = vec4(c, 1.0);' +
+      '\n#include <colorspace_fragment>\n}',
   }), [])
   return (
     <mesh material={mat} renderOrder={-1} frustumCulled={false}>

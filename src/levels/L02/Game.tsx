@@ -22,6 +22,7 @@ const DROP_ZONE_Y = 125
 const DROP_ZONE_MARGIN = 35
 
 export default function Game({ onWin }: GameProps) {
+  const svgRef = useRef<SVGSVGElement>(null)
   const [letters, setLetters] = useState<Letter[]>(() =>
     LETTERS_TEXT.map((text, i) => ({
       id: i,
@@ -39,6 +40,16 @@ export default function Game({ onWin }: GameProps) {
   const onWinRef = useRef(onWin)
   onWinRef.current = onWin
   const animFrame = useRef(0)
+
+  // Convert screen coordinates to SVG viewBox coordinates
+  const screenToSVG = (screenX: number, screenY: number) => {
+    if (!svgRef.current) return { x: 0, y: 0 }
+    const svg = svgRef.current
+    const rect = svg.getBoundingClientRect()
+    const x = ((screenX - rect.left) / rect.width) * 380
+    const y = ((screenY - rect.top) / rect.height) * 250
+    return { x, y }
+  }
 
   // Animate folding and traveler
   useEffect(() => {
@@ -101,21 +112,19 @@ export default function Game({ onWin }: GameProps) {
   const handlePointerDown = (e: React.PointerEvent, letterId: number) => {
     const letter = letters.find((l) => l.id === letterId)
     if (!letter || letter.placed) return
-    const rect = e.currentTarget.getBoundingClientRect()
-    const parentRect = e.currentTarget.parentElement!.getBoundingClientRect()
+    const svgCoords = screenToSVG(e.clientX, e.clientY)
     setDragState({
       id: letterId,
-      offsetX: e.clientX - rect.left,
-      offsetY: e.clientY - rect.top,
+      offsetX: svgCoords.x - letter.x,
+      offsetY: svgCoords.y - letter.y,
     })
-    e.currentTarget.setPointerCapture?.(e.pointerId)
   }
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!dragState) return
-    const parentRect = e.currentTarget.getBoundingClientRect()
-    const x = e.clientX - parentRect.left - dragState.offsetX
-    const y = e.clientY - parentRect.top - dragState.offsetY
+    const svgCoords = screenToSVG(e.clientX, e.clientY)
+    const x = svgCoords.x - dragState.offsetX
+    const y = svgCoords.y - dragState.offsetY
     setLetters((prev) =>
       prev.map((l) => (l.id === dragState.id ? { ...l, x, y } : l))
     )
@@ -160,6 +169,7 @@ export default function Game({ onWin }: GameProps) {
   return (
     <div className="l02">
       <svg
+        ref={svgRef}
         viewBox="0 0 380 250"
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -248,7 +258,7 @@ export default function Game({ onWin }: GameProps) {
               <rect
                 x="-22" y="-16" width="44" height="32" rx="3" fill={P.paper}
                 stroke={P.ink} strokeWidth="0.8"
-                transform={`scaleY(${1 - letter.foldProgress * 0.8})`}
+                transform={`scale(1, ${1 - letter.foldProgress * 0.8})`}
               />
             </g>
           ) : null

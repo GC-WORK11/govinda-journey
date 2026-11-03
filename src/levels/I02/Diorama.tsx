@@ -74,11 +74,12 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
       <RoundedBox args={[1.9, 0.06, 0.08]} radius={0.025} smoothness={3} position={[0.2, 0.125, -0.54]} material={clay(C.terracotta)} castShadow />
 
       {/* signboard, no words */}
-      <mesh position={[1.24, 0.42, -0.82]} material={clay(C.wood)} castShadow>
+      <mesh position={[1.02, 0.42, -0.72]} material={clay(C.wood)} castShadow>
         <cylinderGeometry args={[0.022, 0.026, 0.6, 8]} />
       </mesh>
-      <RoundedBox args={[0.36, 0.24, 0.035]} radius={0.035} smoothness={3} position={[1.24, 0.72, -0.82]} material={clay(C.sand)} castShadow />
-      <RoundedBox args={[0.3, 0.18, 0.04]} radius={0.03} smoothness={3} position={[1.24, 0.72, -0.805]} material={clay(C.paper)} />
+      <RoundedBox args={[0.4, 0.26, 0.035]} radius={0.035} smoothness={3} position={[1.02, 0.73, -0.72]} material={clay(C.sand)} castShadow />
+      <RoundedBox args={[0.34, 0.2, 0.04]} radius={0.03} smoothness={3} position={[1.02, 0.73, -0.705]} material={clay(C.paper)} />
+      <RoundedBox args={[0.34, 0.04, 0.042]} radius={0.012} smoothness={3} position={[1.02, 0.645, -0.705]} material={clay(C.terracotta)} />
 
       {/* bench on the platform */}
       <RoundedBox args={[0.4, 0.05, 0.15]} radius={0.02} smoothness={3} position={[-0.55, 0.29, -0.76]} material={clay(C.woodLight)} castShadow />
@@ -134,7 +135,8 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
         {[-0.42, -0.14, 0.14, 0.42].map((x) => (
           <RoundedBox key={x} args={[0.16, 0.17, 0.03]} radius={0.025} smoothness={3} position={[x, 0.44, 0.21]} material={clay(C.water)} />
         ))}
-        <RoundedBox args={[1.18, 0.06, 0.44]} radius={0.02} smoothness={3} position={[0, 0.2, 0]} material={clay(C.brick)} />
+        <RoundedBox args={[1.18, 0.05, 0.44]} radius={0.02} smoothness={3} position={[0, 0.6, 0]} material={clay(C.brick)} />
+        <RoundedBox args={[1.0, 0.06, 0.34]} radius={0.02} smoothness={3} position={[0, 0.17, 0]} material={clay(C.earthDark)} castShadow />
         {[-0.34, 0.34].map((x) => [-0.19, 0.19].map((z) => (
           <mesh key={`${x}${z}`} position={[x, 0.12, z]} rotation={[0, 0, Math.PI / 2]} material={clay(C.wood)} castShadow>
             <cylinderGeometry args={[0.1, 0.1, 0.06, 14]} />

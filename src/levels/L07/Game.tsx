@@ -143,18 +143,30 @@ export default function Game({ onWin }: GameProps) {
     
     setFlyingWords((prev) => [...prev, ...newWords])
     
-    // Count for line completion
-    const newCount = currentLineWords + words.length
-    if (newCount >= 2) {
+    // Count for line completion - a line needs at least 2 words
+    if (words.length >= 2) {
       const newLines = linesComplete + 1
       setLinesComplete(newLines)
       setCurrentLineWords(0)
       
       if (newLines >= 2) {
+        // Win after animation completes
         setTimeout(() => winRef.current(), 1800)
       }
     } else {
-      setCurrentLineWords(newCount)
+      // Accumulate words if less than 2
+      const newCount = currentLineWords + words.length
+      if (newCount >= 2) {
+        const newLines = linesComplete + 1
+        setLinesComplete(newLines)
+        setCurrentLineWords(0)
+        
+        if (newLines >= 2) {
+          setTimeout(() => winRef.current(), 1800)
+        }
+      } else {
+        setCurrentLineWords(newCount)
+      }
     }
   }
 
@@ -278,25 +290,41 @@ export default function Game({ onWin }: GameProps) {
             {mode === 'type' && (
               <>
                 {/* Text input field */}
-                <rect x="80.5" y="54" width="9" height="6" fill="white" rx="0.5" stroke={C.sand} strokeWidth="0.3" />
-                <text x="85" y="58" fontSize="1.6" fill={C.ink} textAnchor="middle" fontFamily="sans-serif">
-                  {phoneInput.slice(0, 12)}
-                </text>
+                <rect 
+                  x="80.5" 
+                  y="54" 
+                  width="9" 
+                  height="6" 
+                  fill="white" 
+                  rx="0.5" 
+                  stroke={C.sand} 
+                  strokeWidth="0.3"
+                />
+                {phoneInput && (
+                  <text x="85" y="57.5" fontSize="1.4" fill={C.ink} textAnchor="middle" fontFamily="sans-serif">
+                    {phoneInput.slice(0, 10)}
+                  </text>
+                )}
                 
                 {/* Send button */}
-                <rect 
-                  x="81.5" 
-                  y="61.5" 
-                  width="7" 
-                  height="3" 
-                  fill={phoneInput.trim() ? C.leaf : C.sand} 
-                  rx="0.8"
+                <g 
                   className="l07-send-btn"
                   data-qa="send-button"
-                />
-                <text x="85" y="63.8" fontSize="1.5" fill="white" textAnchor="middle" fontFamily="sans-serif">
-                  Send
-                </text>
+                  style={{ cursor: 'pointer' }}
+                  onClick={handleTypeSend}
+                >
+                  <rect 
+                    x="81.5" 
+                    y="61.5" 
+                    width="7" 
+                    height="3" 
+                    fill={phoneInput.trim() ? C.leaf : C.sand} 
+                    rx="0.8"
+                  />
+                  <text x="85" y="63.8" fontSize="1.5" fill="white" textAnchor="middle" fontFamily="sans-serif" pointerEvents="none">
+                    Send
+                  </text>
+                </g>
               </>
             )}
           </g>

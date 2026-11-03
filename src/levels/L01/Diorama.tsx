@@ -12,14 +12,14 @@ import { C, clay, Scaffold, Rock } from '../../world/kit'
 const REDUCED = typeof window !== 'undefined' &&
   !!window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-const lampOn = new THREE.MeshStandardMaterial({ color: '#f5b45e', emissive: '#ff9d3c', emissiveIntensity: 1.3, roughness: 0.55 })
+const lampOn = new THREE.MeshStandardMaterial({ color: '#f5b45e', emissive: '#ff9d3c', emissiveIntensity: 1.5, roughness: 0.55 })
 const winOn = new THREE.MeshStandardMaterial({ color: '#ffd489', emissive: '#ffb04e', emissiveIntensity: 0.85, roughness: 0.5 })
 const lampOff = new THREE.MeshStandardMaterial({ color: '#6b5847', roughness: 0.92 })
 const winOff = new THREE.MeshStandardMaterial({ color: '#9db6b3', roughness: 0.92 })
 
 const poleGeo = new THREE.CylinderGeometry(0.022, 0.03, 0.5, 6)
 const baseGeo = new THREE.CylinderGeometry(0.055, 0.07, 0.06, 8)
-const headGeo = new THREE.SphereGeometry(0.062, 12, 9)
+const headGeo = new THREE.SphereGeometry(0.072, 12, 9)
 const capGeo = new THREE.ConeGeometry(0.05, 0.05, 6)
 const winGeo = new THREE.CapsuleGeometry(0.11, 0.2, 4, 10)
 const puffGeo = new THREE.SphereGeometry(1, 10, 8)
@@ -37,6 +37,11 @@ function Lamp({ p, on }: { p: [number, number, number]; on: boolean }) {
 
 export default function Diorama({ unlocked }: DioramaProps) {
   const puffs = useRef<(THREE.Mesh | null)[]>([])
+  const roofGeo = useMemo(() => {
+    const g = new THREE.ConeGeometry(1.33, 0.56, 4)
+    g.rotateY(Math.PI / 4) // square footprint, axis-aligned so the z-squash below stays a rectangle
+    return g
+  }, [])
   const puffMats = useMemo(
     () => [0, 1, 2].map(() => new THREE.MeshStandardMaterial({ color: '#f1e7d7', transparent: true, opacity: 0, roughness: 1 })),
     [])
@@ -44,7 +49,7 @@ export default function Diorama({ unlocked }: DioramaProps) {
   useFrame((s) => {
     const t = s.clock.elapsedTime
     if (!REDUCED) {
-      lampOn.emissiveIntensity = unlocked ? 1.3 + Math.sin(t * 8.7) * 0.14 + Math.sin(t * 21.3) * 0.07 : 0
+      lampOn.emissiveIntensity = unlocked ? 1.5 + Math.sin(t * 8.7) * 0.16 + Math.sin(t * 21.3) * 0.08 : 0
       winOn.emissiveIntensity = 0.85 + Math.sin(t * 2.6) * 0.06
     }
     puffs.current.forEach((m, i) => {
@@ -65,9 +70,7 @@ export default function Diorama({ unlocked }: DioramaProps) {
         <RoundedBox args={[1.92, 0.14, 1.22]} radius={0.05} position={[0, 0.07, 0]} material={clay(C.stone)} receiveShadow castShadow />
         <RoundedBox args={[1.7, 0.86, 1.02]} radius={0.07} position={[0, 0.57, 0]} material={clay(C.cream)} castShadow receiveShadow />
         <RoundedBox args={[1.78, 0.1, 1.1]} radius={0.04} position={[0, 1.03, 0]} material={clay(C.sand)} castShadow />
-        <mesh position={[0, 1.34, 0]} rotation={[0, Math.PI / 4, 0]} scale={[1, 1, 0.62]} material={clay(C.terracotta)} castShadow>
-          <coneGeometry args={[1.33, 0.56, 4]} />
-        </mesh>
+        <mesh geometry={roofGeo} position={[0, 1.34, 0]} scale={[1, 1, 0.62]} material={clay(C.terracotta)} castShadow />
         {/* arched door + step */}
         <mesh position={[0, 0.42, 0.49]} scale={[1, 1, 0.35]} material={clay(C.wood)} castShadow>
           <capsuleGeometry args={[0.15, 0.36, 4, 10]} />
@@ -85,7 +88,7 @@ export default function Diorama({ unlocked }: DioramaProps) {
             ref={(m) => { puffs.current[i] = m }} />
         ))}
       </group>
-      <Scaffold open={unlocked} position={[0.35, 0, -0.7]} size={[2.14, 1.85, 1.4]} />
+      <Scaffold open={unlocked} position={[0.35, 0, -0.7]} size={[2.4, 2.05, 1.62]} />
 
       {/* tiny gate where the path begins */}
       <group position={[1.02, 0, 0.92]} rotation={[0, -0.45, 0]}>
@@ -121,7 +124,7 @@ export default function Diorama({ unlocked }: DioramaProps) {
 
       {/* the four lamps along the way */}
       <Lamp p={[0.72, 0, 0.52]} on={unlocked} />
-      <Lamp p={[1.32, 0, 0.28]} on={unlocked} />
+      <Lamp p={[1.45, 0, 0.42]} on={unlocked} />
       <Lamp p={[0.18, 0, 0.28]} on={unlocked} />
       <Lamp p={[1.42, 0, 1.05]} on={unlocked} />
       {unlocked && (

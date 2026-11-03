@@ -54,3 +54,9 @@ off the building, gives a badge and opens the project story. Read src/levels/reg
 - Run `npx tsc -p . --noEmit` at most a few times; filter output for your folder.
 - NEVER run pkill/killall/kill on chrome, node, or anything else. Other people's work runs on this box. If a check hangs, just wait or report it in your notes.
 - Never start/stop the dev server. It runs on :5190; if it's down, wait a minute (the coordinator restarts it).
+
+## Disk rules (box disk is nearly full)
+- Check `df -h /` before heavy steps; keep >1 GB free.
+- Headless checks use one fixed Chrome profile (/tmp/gj-chrome-profile) via the scripts; never launch Chrome with a fresh temp profile.
+- No `npx` downloads, no `pnpm/npm install`, no new node_modules: reuse the single project install.
+- Never touch /tmp/film, /tmp/kfilm, /tmp/opus, /tmp/uh, /tmp/verify-tools.

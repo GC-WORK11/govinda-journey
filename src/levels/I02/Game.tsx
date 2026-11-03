@@ -32,10 +32,14 @@ function Station({ x, i, lit }: { x: number; i: number; lit: boolean }) {
       <rect data-qa={`station-${i}`} x={x - 19} y={158} width={38} height={9} rx={4} fill={P.cream} />
       <rect x={x - 19} y={165} width={38} height={3} rx={1.5} fill={lit ? P.terra : '#d7c9b2'} />
       <rect x={x + 9} y={131} width={2.4} height={28} rx={1.2} fill={P.wood} />
-      <path d={`M${x + 2} 120 L${x + 26} 120 L${x + 22} 114 L${x + 6} 114 Z`} fill={P.terra} />
-      <rect x={x + 3} y={120} width={22} height={12} rx={3} fill={P.paper} stroke="#d3c4ab" strokeWidth={0.8} />
-      <rect x={x + 7} y={125} width={14} height={1.5} rx={0.75} fill="#d3c4ab" />
-      {lit && <rect x={x + 20} y={122} width={3.4} height={3.4} rx={1} fill={P.terra} />}
+      <rect x={x + 7.6} y={130} width={5.2} height={1.8} rx={0.9} fill={P.wood} />
+      <g transform={`rotate(${i % 2 ? 1.6 : -1.4} ${x + 10} 131)`}>
+        <rect x={x - 2} y={119} width={26} height={12} rx={3} fill="#f7ecd8" stroke="#c9b494" strokeWidth={0.9} />
+        <rect x={x + 1} y={125.4} width={20} height={2.6} rx={1.3} fill={P.terra} opacity={0.85} />
+        <circle cx={x + 1.4} cy={121.6} r={0.7} fill="#c9b494" />
+        <circle cx={x + 20.6} cy={121.6} r={0.7} fill="#c9b494" />
+        {lit && <rect x={x + 17.6} y={127.6} width={3.4} height={3.4} rx={1} fill={P.terra} />}
+      </g>
       {/* a crate waiting on the platform */}
       <rect x={x - 16} y={151} width={9} height={7} rx={1.8} fill={P.woodLight} />
       <rect x={x - 16} y={153.6} width={9} height={1.4} fill={P.wood} opacity={0.6} />
@@ -64,9 +68,10 @@ function TownGhat() {
     <g>
       <path d="M-4 -3 L12 -3 C14 10 20 24 28 38 L34 46 L-8 46 C-4 32 -2 16 -4 -3 Z" fill={P.water} />
       <path d="M0 0 C1 14 6 28 13 42 L3 42 C-1 28 -3 14 -3 0 Z" fill={P.waterLight} opacity="0.5" />
-      <path d="M-46 6 L-30 6 L-30 12 L-24 12 L-24 18 L-18 18 L-18 24 L-12 24 L-12 30 L-6 30 L-6 40 L-46 40 Z" fill={P.stoneLight} />
-      <g stroke={P.stone} strokeWidth="1.1" opacity="0.75">
-        <path d="M-46 12 L-30 12 M-46 18 L-24 18 M-46 24 L-18 24 M-46 30 L-12 30" />
+      <path d="M-46 6 L-30 6 L-30 12 L-24 12 L-24 18 L-18 18 L-18 24 L-12 24 L-12 30 L-6 30 L-6 40 L-46 40 Z" fill={P.sand} />
+      <path d="M-46 6 L-30 6 L-30 9 L-46 9 Z M-46 12 L-24 12 L-24 15 L-46 15 Z M-46 18 L-18 18 L-18 21 L-46 21 Z M-46 24 L-12 24 L-12 27 L-46 27 Z M-46 30 L-6 30 L-6 33 L-46 33 Z" fill={P.sandLight} />
+      <g stroke={P.stone} strokeWidth="1" opacity="0.65">
+        <path d="M-46 12 L-30 12 M-46 18 L-24 18 M-46 24 L-18 24 M-46 30 L-12 30 M-46 40 L-6 40" />
       </g>
       {[[-38, 9], [-32, 15], [-25, 21], [-17, 27]].map(([x, y], i) => (
         <circle key={i} cx={x} cy={y} r={1.7} fill={P.brass} opacity={0.92} />
@@ -295,6 +300,10 @@ export default function Game({ onWin }: GameProps) {
             <ellipse cx="305" cy="22" rx="12" ry="5.5" />
           </g>
           <path d="M0 100 C50 88 96 96 140 92 C186 88 226 98 268 94 C308 90 336 96 360 92 L360 168 L0 168 Z" fill={P.hillFar} />
+          <g stroke="#b6a488" strokeWidth="1.1" fill="none" strokeLinecap="round" opacity="0.5">
+            <path d="M148 54 q3.2 -3.2 6.4 0 q3.2 -3.2 6.4 0" />
+            <path d="M168 45 q2.4 -2.4 4.8 0 q2.4 -2.4 4.8 0" />
+          </g>
           <path d="M0 116 C60 106 120 114 180 110 C240 106 300 116 360 110 L360 168 L0 168 Z" fill={P.hillNear} />
 
           <g transform="translate(62 118)"><TownMountains /></g>
@@ -306,9 +315,9 @@ export default function Game({ onWin }: GameProps) {
 
           <g>
             {Array.from({ length: 28 }, (_, i) => (
-              <rect key={i} x={16 + i * 12} y={168} width={7} height={4} rx={1.6} fill={P.stoneLight} />
+              <rect key={i} x={16 + i * 12} y={168} width={7} height={4} rx={1.6} fill="#d5c6ab" />
             ))}
-            <line x1={12} y1={170} x2={348} y2={170} stroke={P.earthDark} strokeWidth={2.6} strokeLinecap="round" />
+            <line x1={12} y1={170} x2={348} y2={170} stroke={P.earthDark} strokeWidth={3} strokeLinecap="round" />
             <line x1={12} y1={168.9} x2={348} y2={168.9} stroke={P.woodLight} strokeWidth={1} opacity="0.85" />
           </g>
 

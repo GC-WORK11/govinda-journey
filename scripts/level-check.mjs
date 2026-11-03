@@ -24,7 +24,7 @@ const unlock = () => { try { rmSync(LOCK, { recursive: true, force: true }) } ca
 process.on('exit', unlock); process.on('SIGINT', () => process.exit(130)); process.on('SIGTERM', () => process.exit(143))
 setTimeout(() => { console.log('level-check hard timeout'); process.exit(3) }, 330000).unref()
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
-const browser = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', headless: 'new',
+const browser = await puppeteer.launch({ userDataDir: '/tmp/gj-chrome-profile', /* one fixed reusable profile */ executablePath: '/usr/bin/google-chrome', headless: 'new',
   args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'], protocolTimeout: 180000 })
 let ok = true
 for (const [name, vp] of [['desktop', { width: 1440, height: 900 }], ['mobile', { width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true }]]) {
