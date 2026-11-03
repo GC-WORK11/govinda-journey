@@ -379,7 +379,7 @@ const v5rnd = (seed: number, n: number) => {
  */
 export function IslandDressing5({
   id,
-  layers = 2,
+  layers = 3,
   seed = 13,
 }: {
   id: IslandId
@@ -403,7 +403,7 @@ export function IslandDressing5({
   const pieces = useMemo(() => {
     const out: { kind: number; p: Vec3; ry: number; s: number }[] = []
     let n = 0
-    for (let k = 0, placed = 0; k < 60 && placed < 9; k++) {
+    for (let k = 0, placed = 0; k < 80 && placed < 14; k++) {
       const a = v5rnd(seed, k * 5 + 1) * Math.PI * 2
       const d = 3.1 + v5rnd(seed, k * 5 + 2) * 1.4
       const x = Math.cos(a) * d, z = Math.sin(a) * d

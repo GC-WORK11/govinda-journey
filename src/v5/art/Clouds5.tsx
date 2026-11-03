@@ -9,6 +9,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { env } from '../../world/sky'
 import { IslandDressing5 } from './Dressing'
 
 const RM =
@@ -47,6 +48,8 @@ type Item = {
   geo: THREE.BufferGeometry
   v: number
   lane: [number, number]
+  /** how far this cloud sinks during the finale pull-back */
+  sink: number
 }
 
 export function Clouds5({
@@ -64,7 +67,7 @@ export function Clouds5({
   speed?: number
 }) {
   const g = useRef<THREE.Group>(null)
-  const { scene } = useThree()
+  useThree()
   const mat = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
@@ -87,6 +90,7 @@ export function Clouds5({
         geo: puffGeo(i * 13 + 5, 7, 3.1, 0.4, 0.32),
         v: speed * (0.7 + (i % 3) * 0.3),
         lane: [-span, span],
+        sink: 1,
       })
     }
     const ps = puffs.map((o, i) => ({
@@ -95,6 +99,7 @@ export function Clouds5({
       geo: puffGeo(i * 29 + 40, 5, 2.3, 0.5, 0.26),
       v: o.v ?? speed,
       lane: o.lane ?? ([o.p[0] - 10, o.p[0] + 10] as [number, number]),
+      sink: 0.55,
     }))
     return [...sea, ...ps]
   }, [seaY, span, puffs, speed])
@@ -102,10 +107,9 @@ export function Clouds5({
   useFrame((s, dt) => {
     const g0 = g.current
     if (!g0) return
-    const fog = scene.fog as THREE.Fog | null
-    // ride the fog colour: warm paper by day, deeper at night
-    if (fog) tint.copy(fog.color).lerp(PAPER, 0.5)
-    else tint.copy(PAPER)
+    // V4's tint: paper by day, then deep into the dusk/night sky so clouds
+    // blend into the dome instead of reading as dark blobs.
+    tint.copy(env.mid).lerp(env.top, 0.42).lerp(PAPER, (1 - env.night) * 0.5)
     mat.color.copy(tint)
     mat.emissive.copy(tint).multiplyScalar(0.12)
     const t = s.clock.elapsedTime
@@ -114,7 +118,7 @@ export function Clouds5({
       if (!it || RM) return
       c.position.x += dt * it.v
       if (c.position.x > it.lane[1]) c.position.x = it.lane[0]
-      c.position.y = it.p[1] + Math.sin(t * 0.2 + i * 2.1) * 0.3
+      c.position.y = it.p[1] + Math.sin(t * 0.2 + i * 2.1) * 0.3 - it.sink * env.finale * 10
     })
   })
   return (
