@@ -86,13 +86,13 @@ function DemoHeli() {
   return (
     <group>
       {/* pad marker */}
-      <mesh position={[3.6, 0.016, 2.6]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      <mesh position={[4.3, 0.016, 2.9]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <circleGeometry args={[0.95, 28]} /><meshStandardMaterial color={C.sand} roughness={0.9} />
       </mesh>
-      <mesh position={[3.6, 0.017, 2.6]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh position={[4.3, 0.017, 2.9]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[0.78, 0.95, 28]} /><meshStandardMaterial color={C.terracotta} roughness={0.9} />
       </mesh>
-      <Heli id="sandbox-heli" pad={[3.6, 0.24, 2.6]} exit={[3.6, 0.02, 4.1]} seatY={0.5}>
+      <Heli id="sandbox-heli" pad={[4.3, 0.24, 2.9]} exit={[4.3, 0.02, 4.4]} seatY={0.5}>
         {/* skids */}
         {[-0.28, 0.28].map((x) => (
           <mesh key={x} position={[x, -0.24, 0]} rotation={[Math.PI / 2, 0, 0]} material={clay(C.ink)} castShadow>

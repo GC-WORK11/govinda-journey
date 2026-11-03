@@ -727,6 +727,7 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
         cam: [+camera.position.x.toFixed(2), +camera.position.y.toFixed(2), +camera.position.z.toFixed(2)],
         pitch: +s.camPitch.toFixed(2), dist: +s.camDist.toFixed(2), grounded: s.grounded,
         anim, scale: body.current ? +body.current.scale.x.toFixed(3) : -1,
+        flying: riding, it: bestIt?.id ?? null, useDt: +(t - input.useAt).toFixed(0),
       }
     }
   })

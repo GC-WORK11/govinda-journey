@@ -146,8 +146,8 @@ export default function Controls() {
       {touchUI && (flying || prompt) && (
         <button
           className="gjv5-btn gjv5-use" data-qa="v5-use" aria-label={flying ? 'Descend' : undefined}
-          onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); if (flying) input.flyDown = true; else input.useAt = now() + MIN_HOLD }}
-          onPointerUp={() => { input.flyDown = false }}
+          onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); if (flying) input.flyDown = true }}
+          onPointerUp={(e) => { e.preventDefault(); input.flyDown = false; if (!flying) input.useAt = now() + MIN_HOLD }}
           onPointerLeave={() => { input.flyDown = false }}
           onPointerCancel={() => { input.flyDown = false }}
         >{flying ? (
