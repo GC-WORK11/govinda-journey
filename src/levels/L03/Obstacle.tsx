@@ -412,25 +412,22 @@ function LedgeWall() {
     <group position={[LEDGE.x, 0, LEDGE.z]}>
       {/* invisible collider: the climb face the player pushes against */}
       <mesh ref={side} position={[0, 0.4, 0]} visible={false}>
-        <cylinderGeometry args={[0.95, 1.3, LEDGE_TOP - 0.07, 18]} />
+        <cylinderGeometry args={[0.88, 1.12, LEDGE_TOP - 0.07, 18]} />
       </mesh>
       {/* invisible flat cap the player actually stands on */}
       <mesh ref={top} position={[0, LEDGE_TOP - 0.02, 0]} visible={false}>
         <cylinderGeometry args={[0.68, 0.68, 0.08, 20]} />
       </mesh>
-      {/* a tidy stepped knoll of warm clay — small, so the island stays clean */}
-      <mesh position={[-0.04, 0.18, 0.04]} scale={[1.22, 0.42, 1.14]} material={clay('#d8c6a0')} castShadow receiveShadow>
+      {/* a low two-stone knoll — smallest form that still reads as a climbable tor */}
+      <mesh position={[-0.04, 0.2, 0.04]} scale={[1.05, 0.4, 0.98]} material={clay('#dcc9a2')} castShadow receiveShadow>
         <sphereGeometry args={[1, 20, 13]} />
       </mesh>
-      <mesh position={[-0.14, 0.46, 0.1]} scale={[0.98, 0.38, 0.9]} material={clay('#e0cfa8')} castShadow receiveShadow>
+      <mesh position={[0.1, 0.58, -0.02]} scale={[0.82, 0.34, 0.76]} material={clay('#e7d6b0')} castShadow receiveShadow>
         <sphereGeometry args={[1, 18, 12]} />
-      </mesh>
-      <mesh position={[0.12, 0.7, -0.04]} scale={[0.76, 0.28, 0.72]} material={clay('#e7d6b0')} castShadow receiveShadow>
-        <sphereGeometry args={[1, 16, 11]} />
       </mesh>
       {/* grassy crown echoing the island top */}
       <mesh position={[0, LEDGE_TOP - 0.1, 0]} material={clay('#a7bd80')} castShadow receiveShadow>
-        <cylinderGeometry args={[0.62, 0.76, 0.22, 18]} />
+        <cylinderGeometry args={[0.56, 0.7, 0.22, 18]} />
       </mesh>
       {/* handholds + a vine rope down the SW face */}
       <group position={[WALL_AT.x - LEDGE.x, 0, WALL_AT.z - LEDGE.z]} rotation={[0, Math.atan2(WALL_AT.x - LEDGE.x, WALL_AT.z - LEDGE.z) + Math.PI, 0]}>
