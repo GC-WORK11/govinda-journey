@@ -122,6 +122,27 @@ const WATER_ISLANDS = ISLAND_POS.map((p) => [p.x, p.z, 6.2] as [number, number, 
  * eases the camera up and back past the last island until the whole lit path
  * lies in frame, then holds a very slow drift. Releases when it flips off.
  */
+/** Keeps the sky dome centred on the camera — a skybox. With the dome at a
+ * fixed origin, the finale camera (~160 out) saw its far wall past camera.far
+ * and got the background colour as a giant disc; centre it on the camera and
+ * the walls are always ~220 m away, safely inside the tight far plane. */
+function Skybox() {
+  const { scene } = useThree()
+  const dome = useRef<THREE.Object3D | null>(null)
+  useFrame((s) => {
+    if (!dome.current) {
+      scene.traverse((o) => {
+        const m = o as THREE.Mesh
+        const mat = m.material as THREE.MeshStandardMaterial | undefined
+        if (!dome.current && m.isMesh && m.geometry?.type === 'SphereGeometry' && mat?.side === THREE.BackSide)
+          dome.current = m
+      })
+    }
+    dome.current?.position.copy(s.camera.position)
+  })
+  return null
+}
+
 function FinaleCam() {
   const { camera, scene } = useThree()
   const st = useRef({ seeded: false, pos: new THREE.Vector3(), look: new THREE.Vector3(), sea: null as THREE.Mesh | null })
@@ -197,6 +218,9 @@ function PerfGuard({ onDpr, slow }: { onDpr: (n: number) => void; slow: () => vo
 
 export default function World5() {
   const [dpr, setDpr] = useState(LITE ? 1 : Math.min(1.5, window.devicePixelRatio || 1))
+  // the finale pull-back draws the whole chain at once — cap fill on it so
+  // software GL survives the widest view in the game
+  const finale = useWorldUI((s) => s.finale)
   const [fx, setFx] = useState(!LITE)
   const [water, setWater] = useState(!LITE)
   const slow = useCallback(() => { setDpr(0.6); setFx(false); setWater(false) }, [])
@@ -257,8 +281,8 @@ export default function World5() {
 
   return (
     <>
-      <Canvas shadows={LITE ? false : 'soft'} dpr={dpr}
-        camera={{ fov: 38, near: 0.1, far: 620, position: [10, 7, 12] }}
+      <Canvas shadows={LITE ? false : 'soft'} dpr={finale ? Math.min(dpr, 0.85) : dpr}
+        camera={{ fov: 38, near: 0.1, far: 340, position: [10, 7, 12] }}
         gl={{ antialias: true, powerPreference: 'high-performance' }}
         onCreated={({ gl }) => { gl.toneMapping = THREE.ACESFilmicToneMapping; gl.toneMappingExposure = 1.08 }}>
         {!LITE && <PerfGuard onDpr={setDpr} slow={slow} />}
@@ -280,6 +304,7 @@ export default function World5() {
         ) : (
           <FallbackRig />
         )}
+        <Skybox />
         <FinaleCam />
         {QA && <QaProbe />}
         {!LITE && fx && (
