@@ -12,6 +12,7 @@ import {
   LAPTOPS, CHUNKS, HUES, CHUNK_T,
   PAD_W, PAD_D, PAD_TOP, DECK_Y, GAP_EDGE,
   PlinthLaptop, ChunkSlab, LiftPad, CallPost, ExitDeck, Shard, Plank, HomeDesk, cableCurve, dockLocal,
+  DomeBlocks, Grove,
 } from './parts.v5'
 
 const _v = new THREE.Vector3()
@@ -451,6 +452,8 @@ export default function Obstacle({ id, active, complete, done }: ObstacleProps) 
       <CallPost litMat={mats.callLit} />
       <object3D ref={callMark} position={[1.25, 0.75, -3.3]} />
       <ExitDeck lanternMat={mats.lantern} />
+      <DomeBlocks gone={done} />
+      <Grove />
       <mesh position={[0, 0.02, 4.2]} rotation={[-Math.PI / 2, 0, 0]} material={clay('#d6cab4')} receiveShadow>
         <circleGeometry args={[0.5, 20]} />
       </mesh>
