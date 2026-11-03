@@ -29,6 +29,53 @@ function Laptop({ p, yaw, scr }: { p: [number, number, number]; yaw: number; scr
   )
 }
 
+/* Four model-share slabs pinned to the scaffold dome while it is up — the same
+ * rounded tiles V4's cover wore. They ride the cloth's shrink on unlock. */
+const DOME_SC: [number, number, number] = [2.35 * 0.56, 1.45 * 1.02, 1.75 * 0.56]
+const SLAB_HUES = ['#c9875f', '#7fa7b5', '#8fb36b', '#9b8bb5']
+const SLAB_ARC = [
+  { az: -0.62, el: 0.30 },
+  { az: -0.20, el: 0.48 },
+  { az: 0.22, el: 0.40 },
+  { az: 0.60, el: 0.24 },
+]
+
+function DomeBlocks({ open }: { open: boolean }) {
+  const g = useRef<THREE.Group>(null)
+  const t = useRef(open ? 1 : 0)
+  const mats = useMemo(
+    () => SLAB_HUES.map((h) => new THREE.MeshStandardMaterial({ color: h, roughness: 0.6 })),
+    [],
+  )
+  const items = useMemo(
+    () =>
+      SLAB_ARC.map(({ az, el }, i) => {
+        const d = new THREE.Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el))
+        const pos = new THREE.Vector3(d.x * DOME_SC[0], d.y * DOME_SC[1], d.z * DOME_SC[2])
+        const nrm = new THREE.Vector3(d.x / DOME_SC[0], d.y / DOME_SC[1], d.z / DOME_SC[2]).normalize()
+        const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), nrm)
+        pos.addScaledVector(nrm, 0.035)
+        return { pos, q, w: 0.34 + (i % 2) * 0.05 }
+      }),
+    [],
+  )
+  useFrame((_, dt) => {
+    const target = open ? 1 : 0
+    t.current += (target - t.current) * Math.min(1, dt * 2.2)
+    if (g.current) {
+      g.current.scale.y = Math.max(0.001, 1 - t.current)
+      g.current.visible = t.current < 0.995
+    }
+  })
+  return (
+    <group ref={g}>
+      {items.map((it, i) => (
+        <RoundedBox key={i} args={[it.w, 0.26, 0.07]} radius={0.04} position={it.pos} quaternion={it.q} material={mats[i]} castShadow />
+      ))}
+    </group>
+  )
+}
+
 export default function Diorama({ unlocked }: DioramaProps) {
   const token = useRef<THREE.Mesh>(null)
 
@@ -161,6 +208,10 @@ export default function Diorama({ unlocked }: DioramaProps) {
         <sphereGeometry args={[0.045, 12, 10]} />
       </mesh>
 
+      {/* share-coloured slabs pinned on the dust-sheet dome, gone with it */}
+      <group position={[TABLE[0], 0, TABLE[2] - 0.05]}>
+        <DomeBlocks open={unlocked} />
+      </group>
       <Scaffold open={unlocked} position={[TABLE[0], 0, TABLE[2] - 0.05]} size={[2.35, 1.45, 1.75]} />
     </group>
   )
