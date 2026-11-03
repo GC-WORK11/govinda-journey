@@ -1,7 +1,6 @@
 # V5-ISL-B — Island obstacles L03 (First websites) + I01 (Stillness)
 
-Status: implemented, verified in dev harness; final in-shell verification pending
-(queueing behind the shared browser slot).
+Status: implemented and verified in the real World5 shell (desktop + mobile).
 
 ## Files I own
 - `src/levels/L03/Obstacle.tsx`, `src/levels/L03/shared.v5.tsx` (helpers shared with I01),
@@ -10,49 +9,47 @@ Status: implemented, verified in dev harness; final in-shell verification pendin
 
 ## Design
 - L03: the straight path is fenced off south of mid-island; the real route leaves the rim on a
-  chain of floating stone platforms over open void (3 gaps). Page blocks (paper slabs with
-  printed layout bars — nav, hero, text lines) stand upright in a wooden rack on a rock ledge
-  that only opens via the handhold/vine wall (`has('climb')`). E picks up a page → carried flat
-  at `carryAnchor` (shrunk to 58%), E near a gap lays it → snaps flush, registers walkable.
-  3 placed → pages glow warm ("deployed"), landing lantern lights, then complete() → build.
-  Landmark: a small weekend studio — awning, workbench, easel with a tiny lit page, stool,
-  crates, tools. Rope fence + stone abutment guide the eye off the rim.
-- I01: shallow pond east of the path, bench facing the water (E = sit a while — glides to the
-  seat, `playerEmote.name='sit'`, gentle hold, glides back), reeds, lily pads + lotus bud,
-  willow with drooping strands, stepping stones (walkable), ripple rings, drifting fireflies,
-  stone lantern (lit when done). complete() when the player passes z < 0 (island-local). No task.
+  chain of floating stone platforms (`platform_stone` props) over open void, with three spans
+  missing. Page slabs (printed layout textures — nav, hero, text lines) stand upright in a
+  wooden rack on a rock ledge that only opens via the handhold/vine wall (`has('climb')`,
+  scripted hop driven through `__journey.player.teleport` while frozen). E picks a page up →
+  carried flat at `carryAnchor` at 58% scale, E near a gap lays it → arcs in, snaps flush,
+  registers walkable. 3 placed → pages glow warm ("deployed"), landing lantern lights, then
+  complete() → build. Landmark: weekend studio — awning, workbench, laptop + book stack props,
+  easel with a lit page, stool prop, crates. Rope fence + stone abutment guide off the rim.
+- I01: shallow pond east of the path, `bench` prop facing the water (E = glide to seat,
+  `playerEmote.name='sit'`, calm hold, glide back), reeds, lily pads + `lily_small` props,
+  lotus bud, willow with drooping strands, `rock_path_*` stepping stones (walkable), ripple
+  rings, drifting fireflies, stone lantern (lit when done). complete() at island-local z < 0.
 
-## Integration notes (written against the landed core.ts / Player.tsx)
-- Player movement is driven through `__journey.player.teleport` (authoritative `s.pos`);
-  `tpWorld`/`tpLocal` in shared.v5.tsx fall back to `core.player.pos` only in my dev harness.
-  Scripted moves (L03 climb hop ~0.7 s, I01 bench glide) call it per frame while `player.frozen`.
-- Carried pages follow `carryAnchor`/`carryQuat` from `src/v5/player/anchor.ts`; fallback
-  `player.pos + 0.9 y` while the anchor sits at its -999 sentinel (harness only).
-- I01 sit uses `core.playerEmote.name = 'sit'` (real `Sit_Floor_Idle` clip in Player.tsx).
-- Interactables: `at()` returns fresh world pos each call via `root.localToWorld`; radius is a
-  3D distance vs `s.pos` — all my radii account for it.
-- `done` prop true on mount → L03 renders already-bridged (placed slabs snap into gap poses on
-  first frame and register walkable). Payoff/lantern already lit, no re-complete.
-- QA solvers merged into `window.__journey.solve` via `useSolver` (same convention as ISL-A);
-  L03's solver climbs via the real `l03-climb` interactable when `has('climb')` (`?qa&unlock`),
-  otherwise teleports to the ledge so a bare `?qa` run still verifies the carry/place loop.
-- Materials: all assemblies use `src/world/kit.tsx` `C`/`clay()` — deliberate placeholder seam
-  until ART's toon material / `<Prop>` dressing is ready to swap (Dressing.tsx exists now;
-  swap is a follow-up polish task once ART publishes which props to use).
+## Integration notes
+- Player moves through `__journey.player.teleport` (authoritative); `tpWorld`/`tpLocal`
+  fall back to `core.player.pos` only in the dev harness. Solvers `await waitTp()` first —
+  the api attaches lazily and direct pos writes are overwritten by the controller.
+- Carried pages follow `carryAnchor`/`carryQuat`; fallback `player.pos + 0.9 y` only while
+  the anchor sits at its -999 sentinel (harness).
+- I01 sit uses `core.playerEmote.name = 'sit'` (real `Sit_Floor_Idle` clip).
+- `done` on mount → L03 renders already-bridged (placed slabs snap into gap poses and
+  register walkable); payoff/lantern pre-lit, no re-complete.
+- QA solvers merge into `window.__journey.solve` via `useSolver`. L03's solver climbs via the
+  real `l03-climb` interactable when `has('climb')`, else teleports to the ledge so a bare
+  `?qa` run still verifies the carry/place loop.
+- Visuals: ART `<Prop>` (Dressing) for platforms, bench, laptop, books, stool, rocks, path
+  stones, grass/flower tufts, lilies; `clay()` assemblies remain for the page slabs, rack,
+  ledge, fence, lantern, willow, reeds (no pack equivalent).
 
-## Requests for other areas
-- ART: page-slab, floating-rock platform, bench, willow/reeds, lantern props would slot
-  straight in; all my assemblies are positioned placeholders ready to swap.
-- WORLD: L03's exit is behind my site fence — the player reaches (0,0,-4.2) from the platform
-  landing south of the fence; the exit bridge should still land there. Verified locally.
-- PLAYER: none remaining — teleport, carryAnchor, playerEmote, frozen all work as contracted.
+## Verified (real World5 shell, ?qa&fresh + v5.goto)
+- L03 solver end-to-end in-world: climb via real interactable → take 3 pages → lay into gaps
+  → all walkable → complete(); `abilities` gained `build`. No console errors.
+- I01 solver: bench sit via real interactable + glide; complete() at z < 0.
+- Desktop 1440x900: page bridge renders laid and readable, player walks the slabs; I01 pond/
+  bench/willow/lilies/fireflies render; "E sit for a moment" prompt works.
+- Mobile 390x844: both islands render correctly with story captions; no overflow.
+- `tsc --noEmit -p .` clean.
 
-## Verified
-- Dev harness (src/levels/L03/dev.html, I01/dev.html) at 1440x900: scene reads, rack pages
-  stand upright with printed layouts, studio + fence + lantern composed; `?auto` solver
-  walks the full carry→place loop and completes (slabs walkable across the void).
-- I01: bench E → glide-sit (playerEmote), hold, glide back; auto-complete at z < 0;
-  stepping stones / seat registered walkable.
-- `tsc --noEmit -p .` clean for all owned files.
-- Pending: real-shell shots (?qa&at=L03&unlock / ?qa&at=I01) + 390x844 mobile pass,
-  solver run inside World5 (queued behind the shared Chrome slot).
+## Known cross-area observations (not mine to fix)
+- WORLD: `?qa&at=<id>` goto can fire before the lazy Player mounts; Player then seeds its
+  own spawn at island 0 and stomps the earlier `core.player.pos` write. Workaround used in
+  verification: `__journey.v5.goto(id)` after `__journey.player` exists (what solvers do).
+- ART/WORLD: L03's ground (`palette.ground #b5c27a` from registry) renders quite dark when
+  shadowed by the neighbouring island; readable, but worth an eyeball pass in final QA.
