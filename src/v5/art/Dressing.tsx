@@ -12,6 +12,10 @@ import * as THREE from 'three'
 import { useGLTF } from '@react-three/drei'
 import { applyToon, type ToonOpts } from './material'
 import { topY } from './IslandBase'
+import { scatterGeo, clayVC, Tree, Rock, Bush, ClayPot, C } from '../../world/kit'
+import { islandPos, ISLAND_R } from '../world/layout'
+import { LEVELS } from '../../levels/registry'
+import type { IslandId } from '../core'
 
 const P = '/models/packs'
 
@@ -354,6 +358,85 @@ export function Scatter({
       {items.map((it, i) => (
         <Prop key={i} name={it.name} position={it.p} rotation={[0, it.ry, 0]} scale={it.s} fit={it.fit} />
       ))}
+    </group>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+
+const PALETTE_BY_ID = Object.fromEntries(LEVELS.map((l) => [l.id, l.palette]))
+const v5rnd = (seed: number, n: number) => {
+  const x = Math.sin(seed * 91.7 + n * 12.9898) * 43758.5453
+  return x - Math.floor(x)
+}
+
+/**
+ * V4-style density for a V5 island, built from V4's own pieces: extra seeded
+ * `scatterGeo` layers (V4's merged tufts / pebbles / blossoms / rim trees,
+ * one mesh per layer) plus a handful of kit Trees / Rocks / Bushes / ClayPots
+ * on the rim. The path corridor (|x| < 1.3), the stand point and the centre
+ * play area stay clear. World-space: mount once per island id.
+ */
+export function IslandDressing5({
+  id,
+  layers = 2,
+  seed = 13,
+}: {
+  id: IslandId
+  /** extra scatterGeo layers on top of the base island's own scatter */
+  layers?: number
+  seed?: number
+}) {
+  const pal = PALETTE_BY_ID[id] ?? { ground: C.leaf, accent: C.terracotta }
+  const geos = useMemo(
+    () =>
+      Array.from({ length: layers }, (_, k) =>
+        scatterGeo({
+          radius: ISLAND_R,
+          ground: pal.ground,
+          accent: pal.accent,
+          seed: seed + k * 97,
+        }),
+      ).filter((g): g is THREE.BufferGeometry => !!g),
+    [layers, seed, pal.ground, pal.accent],
+  )
+  const pieces = useMemo(() => {
+    const out: { kind: number; p: Vec3; ry: number; s: number }[] = []
+    let n = 0
+    for (let k = 0, placed = 0; k < 60 && placed < 9; k++) {
+      const a = v5rnd(seed, k * 5 + 1) * Math.PI * 2
+      const d = 3.1 + v5rnd(seed, k * 5 + 2) * 1.4
+      const x = Math.cos(a) * d, z = Math.sin(a) * d
+      n++
+      if (Math.abs(x) < 1.3) continue // path corridor
+      if ((x + 0.9) ** 2 + (z - 1.4) ** 2 < 1.2 * 1.2) continue // stand point
+      if (d > ISLAND_R * 0.94) continue
+      out.push({
+        kind: Math.floor(v5rnd(seed, n * 7 + 3) * 4),
+        p: [x, topY(d, ISLAND_R) + 0.01, z],
+        ry: v5rnd(seed, n * 11) * Math.PI * 2,
+        s: 0.8 + v5rnd(seed, n * 13) * 0.6,
+      })
+      placed++
+    }
+    return out
+  }, [seed])
+  return (
+    <group position={islandPos(id)}>
+      {geos.map((g, i) => (
+        <mesh key={i} geometry={g} material={clayVC()} castShadow receiveShadow />
+      ))}
+      {pieces.map((it, i) =>
+        it.kind === 0 ? (
+          <Tree key={i} position={it.p} rotation={[0, it.ry, 0]} h={it.s * 1.5} />
+        ) : it.kind === 1 ? (
+          <Rock key={i} position={it.p} s={it.s * 0.4} />
+        ) : it.kind === 2 ? (
+          <Bush key={i} position={it.p} s={it.s} />
+        ) : (
+          <ClayPot key={i} position={it.p} s={it.s * 0.8} />
+        ),
+      )}
     </group>
   )
 }

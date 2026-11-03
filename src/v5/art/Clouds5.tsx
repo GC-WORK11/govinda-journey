@@ -9,6 +9,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { IslandDressing5 } from './Dressing'
 
 const RM =
   typeof matchMedia !== 'undefined' &&
@@ -117,10 +118,15 @@ export function Clouds5({
     })
   })
   return (
-    <group ref={g}>
-      {items.map((c, i) => (
-        <mesh key={i} geometry={c.geo} position={c.p} scale={c.s} material={mat} />
-      ))}
-    </group>
+    <>
+      <group ref={g}>
+        {items.map((c, i) => (
+          <mesh key={i} geometry={c.geo} position={c.p} scale={c.s} material={mat} />
+        ))}
+      </group>
+      {/* ART has no island-scope slot (Island5 composes its own base), so the
+          V4-parity dressing rides inside the always-mounted world module. */}
+      <IslandDressing5 id="L05" />
+    </>
   )
 }

@@ -11,7 +11,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { V5_ORDER, player, cinematic } from '../core'
 import { ISLAND_POS, PATH_MID } from './layout'
-import { env, makeSky, sampleSky, dampSky } from '../../world/sky'
+import { env, makeSky, dampSky, type Sky } from '../../world/sky'
 import { driveLamps } from '../../world/Lanterns'
 import { useWorldUI } from './progress'
 
@@ -20,6 +20,66 @@ const LAST = N - 1
 const tmp = makeSky()
 const a = new THREE.Vector3(), b = new THREE.Vector3(), q = new THREE.Vector3()
 export const skyDebug = { cIdx: 0, p: 0 }
+
+/* ------------------------------------------------------------------ *
+ * V5 palette constants — V4's stop colours (src/world/sky.ts STOPS),
+ * re-timed for V5's island order: golden hour must already be on by
+ * L05 (p ≈ 0.4), where V4's own L05 also sat inside the warm band.
+ * Same hexes, same fields; only the `at` schedule moved earlier.
+ * ------------------------------------------------------------------ */
+type Stop = {
+  at: number
+  top: string; mid: string; bot: string
+  hs: string; hg: string; hi: number
+  sun: string; si: number; so: [number, number, number]
+  fill: string; fi: number
+  glow: string; gi: number
+  night: number
+}
+
+const STOPS5: Stop[] = [
+  { at: 0.00, top: '#bcd6da', mid: '#efe2cb', bot: '#dcc2a0', hs: '#fff3e0', hg: '#b7a086', hi: 1.08, sun: '#ffe2b6', si: 1.9, so: [6, 12, 5], fill: '#dfe9e4', fi: 0.4, glow: '#f9e3b4', gi: 0.12, night: 0 },
+  { at: 0.28, top: '#bcd6da', mid: '#efe2cb', bot: '#dcc2a0', hs: '#fff3e0', hg: '#b7a086', hi: 1.08, sun: '#ffe2b6', si: 1.9, so: [6, 12, 5], fill: '#dfe9e4', fi: 0.4, glow: '#f9e3b4', gi: 0.12, night: 0 },
+  { at: 0.42, top: '#a9a3c6', mid: '#f5cd9d', bot: '#dda06f', hs: '#ffe6ba', hg: '#a8896d', hi: 0.95, sun: '#ffc27a', si: 1.6, so: [9, 7, 4], fill: '#d8b6a4', fi: 0.32, glow: '#ffba80', gi: 0.34, night: 0.14 },
+  { at: 0.56, top: '#a9a3c6', mid: '#f5cd9d', bot: '#dda06f', hs: '#ffe6ba', hg: '#a8896d', hi: 0.95, sun: '#ffc27a', si: 1.6, so: [9, 7, 4], fill: '#d8b6a4', fi: 0.32, glow: '#ffba80', gi: 0.34, night: 0.16 },
+  { at: 0.72, top: '#6f669a', mid: '#e29f8d', bot: '#a97e78', hs: '#d4bfc2', hg: '#6f6872', hi: 0.88, sun: '#ffc6a4', si: 0.92, so: [10.5, 3.4, 2], fill: '#8b86ac', fi: 0.34, glow: '#ff9e76', gi: 0.30, night: 0.5 },
+  { at: 0.88, top: '#6f669a', mid: '#e29f8d', bot: '#a97e78', hs: '#d4bfc2', hg: '#6f6872', hi: 0.88, sun: '#ffc6a4', si: 0.92, so: [10.5, 3.4, 2], fill: '#8b86ac', fi: 0.34, glow: '#ff9e76', gi: 0.30, night: 0.55 },
+  { at: 1.00, top: '#322e50', mid: '#514360', bot: '#3c3550', hs: '#76709e', hg: '#37324a', hi: 0.66, sun: '#c9cdee', si: 0.55, so: [-5, 13, -7], fill: '#5c5a86', fi: 0.3, glow: '#8a78b0', gi: 0.14, night: 1 },
+]
+
+const SC5 = STOPS5.map((s) => ({
+  at: s.at,
+  top: new THREE.Color(s.top), mid: new THREE.Color(s.mid), bot: new THREE.Color(s.bot),
+  hs: new THREE.Color(s.hs), hg: new THREE.Color(s.hg), hi: s.hi,
+  sun: new THREE.Color(s.sun), si: s.si, so: new THREE.Vector3(...s.so),
+  fill: new THREE.Color(s.fill), fi: s.fi,
+  glow: new THREE.Color(s.glow), gi: s.gi, night: s.night,
+}))
+
+/** sampleSky over the V5 stop table (same lerp, no allocation). */
+function sampleSky5(p: number, out: Sky): Sky {
+  let a = SC5[0], b = SC5[SC5.length - 1]
+  for (let i = 0; i < SC5.length - 1; i++) {
+    if (p >= SC5[i].at && p <= SC5[i + 1].at) { a = SC5[i]; b = SC5[i + 1]; break }
+  }
+  const t = b.at === a.at ? 0 : Math.min(1, Math.max(0, (p - a.at) / (b.at - a.at)))
+  const e = t * t * (3 - 2 * t)
+  out.top.copy(a.top).lerp(b.top, e)
+  out.mid.copy(a.mid).lerp(b.mid, e)
+  out.bot.copy(a.bot).lerp(b.bot, e)
+  out.hs.copy(a.hs).lerp(b.hs, e)
+  out.hg.copy(a.hg).lerp(b.hg, e)
+  out.hi = a.hi + (b.hi - a.hi) * e
+  out.sun.copy(a.sun).lerp(b.sun, e)
+  out.si = a.si + (b.si - a.si) * e
+  out.so.copy(a.so).lerp(b.so, e)
+  out.fill.copy(a.fill).lerp(b.fill, e)
+  out.fi = a.fi + (b.fi - a.fi) * e
+  out.glow.copy(a.glow).lerp(b.glow, e)
+  out.gi = a.gi + (b.gi - a.gi) * e
+  out.night = a.night + (b.night - a.night) * e
+  return out
+}
 
 /** Continuous index along the chain: nearest segment projection, 0 … N-1. */
 export function pathProgress(p: THREE.Vector3) {
@@ -74,9 +134,9 @@ export default function Sky5() {
     const idx = Math.min(LAST, Math.max(0, Math.round(cIdx)))
     useWorldUI.getState().setIdx(idx)
     const p = cIdx / LAST
-    if (!cur.current) cur.current = sampleSky(p, makeSky())
+    if (!cur.current) cur.current = sampleSky5(p, makeSky())
     const c = cur.current
-    dampSky(c, sampleSky(p, tmp), dt)
+    dampSky(c, sampleSky5(p, tmp), dt)
     env.night = c.night
     env.top.copy(c.top); env.mid.copy(c.mid); env.bot.copy(c.bot)
     driveLamps(c.night)
