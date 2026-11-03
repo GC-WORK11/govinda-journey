@@ -12,7 +12,7 @@ import * as THREE from 'three'
 import { C, Island, clay, clayVC, scatterGeo } from '../../world/kit'
 import { Lanterns } from '../../world/Lanterns'
 import { env } from '../../world/sky'
-import { useV5, useWalkable, useBlocker, V5_ORDER, type IslandId } from '../core'
+import { useV5, useWalkable, useBlocker, walkables, blockers, interactables, V5_ORDER, type IslandId } from '../core'
 import { ISLAND_R, ISLAND_POS } from './layout'
 import { OBSTACLES, DIORAMAS, hasObstacle, Guard } from './modules'
 import { useWorldUI } from './progress'
@@ -69,7 +69,8 @@ function ExitGate({ id, open }: { id: IslandId; open: boolean }) {
   const t = useRef(open ? 1 : 0)
   useFrame((_, dt) => {
     t.current += ((open ? 1 : 0) - t.current) * Math.min(1, dt * (RM ? 100 : 1.8))
-    if (hinge.current) hinge.current.rotation.y = -t.current * 1.9
+    // swings outward (over the void) so the open leaf never lies across the path
+    if (hinge.current) hinge.current.rotation.y = t.current * 1.9
   })
   return (
     <group position={[0, 0, -4.55]}>
@@ -139,6 +140,46 @@ function ObstaclePlaceholder({ seed }: { seed: number }) {
   )
 }
 
+/* ---------- registry hygiene ----------
+
+ * The z path corridor is WORLD's: |x| < 1.15, |z| < 4.45 island-local must
+ * never hold a wall — anything else blocks the through-walk (obstacles should
+ * gate via interactables, not corridor blockers). `walk-`/`gate-` names are
+ * ours and always kept. A blocker whose box crosses the corridor is dropped.
+ */
+const _pb = new THREE.Box3(), _pc = new THREE.Box3()
+const own = (o: THREE.Object3D) => /^(walk|gate)-/.test(o.name)
+
+export function purgeCorridors() {
+  for (const c of ISLAND_POS) {
+    _pc.set(new THREE.Vector3(c.x - 1.15, c.y - 1, c.z - 4.45), new THREE.Vector3(c.x + 1.15, c.y + 4.5, c.z + 4.45))
+    for (const o of [...blockers]) {
+      if (own(o)) continue
+      _pb.setFromObject(o)
+      if (!_pb.isEmpty() && _pb.intersectsBox(_pc)) blockers.delete(o)
+    }
+  }
+}
+
+/** A crashed obstacle can leave half-registered collision behind — sweep the
+ * whole island volume (obstacle bits only; our named pieces stay). */
+export function purgeIsland(i: number) {
+  const c = ISLAND_POS[i]
+  _pc.set(
+    new THREE.Vector3(c.x - ISLAND_R - 1.5, c.y - 6, c.z - ISLAND_R - 1.5),
+    new THREE.Vector3(c.x + ISLAND_R + 1.5, c.y + 6, c.z + ISLAND_R + 1.5),
+  )
+  const hit = (o: THREE.Object3D) => { _pb.setFromObject(o); return !_pb.isEmpty() && _pb.intersectsBox(_pc) }
+  for (const set of [walkables, blockers] as const)
+    for (const o of [...set]) if (!own(o) && hit(o)) set.delete(o)
+  for (const [k, it] of [...interactables]) {
+    try {
+      const p = it.at()
+      if (Math.abs(p.x - c.x) < ISLAND_R + 1.5 && Math.abs(p.z - c.z) < ISLAND_R + 1.5) interactables.delete(k)
+    } catch { interactables.delete(k) }
+  }
+}
+
 /* ---------- the island ---------- */
 
 export function Island5({ id, i }: { id: IslandId; i: number }) {
@@ -172,7 +213,7 @@ export function Island5({ id, i }: { id: IslandId; i: number }) {
       {Obstacle ? (
         mounted.current && (
           <Suspense fallback={null}>
-            <Guard onError={() => useWorldUI.getState().markBroken(id)}>
+            <Guard onError={() => { useWorldUI.getState().markBroken(id); purgeIsland(i) }}>
               <Obstacle id={id} active={idx === i} complete={complete} done={done} />
             </Guard>
           </Suspense>

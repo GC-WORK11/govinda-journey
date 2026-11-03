@@ -56,12 +56,16 @@ function bridgeGeo(from: THREE.Vector3, to: THREE.Vector3) {
   const rails = mergeGeometries(geos, false)!
   geos.forEach((x) => x.dispose())
   // invisible walk strip following the deck profile — at least plank width
-  // (planks are 0.95 across; a hair over for forgiveness at the edges)
+  // (planks are 0.95 across; a hair over for forgiveness at the edges).
+  // The strip runs a touch past both ends so it always overlaps the island
+  // walk discs — no seam to catch a foot on.
   const w = 0.98, strip: number[] = []
   const idx: number[] = []
+  const T0 = -0.05, T1 = 1.05
   for (let i = 0; i <= 40; i++) {
-    const t = i / 40, p = from.clone().lerp(to, t)
-    const y = deckY(from, to, t) + 0.045
+    const t = T0 + (i / 40) * (T1 - T0), p = from.clone().lerp(to, t)
+    const tc = Math.min(1, Math.max(0, t))
+    const y = deckY(from, to, tc) + 0.045
     strip.push(p.x - lat.x * (w / 0.44) * 0.5, y, p.z - lat.z * (w / 0.44) * 0.5, p.x + lat.x * (w / 0.44) * 0.5, y, p.z + lat.z * (w / 0.44) * 0.5)
     if (i < 40) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2) }
   }
@@ -110,9 +114,9 @@ export function Bridge5({ i, shown }: { i: number; shown: boolean }) {
   })
   return (
     <group name={`bridge-${i}`}>
-      {/* walk surface: invisible strip (draws nothing, still raycastable) */}
+      {/* walk surface: invisible strip (draws nothing, still raycastable; DoubleSide so the down-ray can't miss) */}
       <mesh ref={walkRef} geometry={walk} name={`walk-bridge-${i}`}>
-        <meshBasicMaterial visible={false} />
+        <meshBasicMaterial visible={false} side={THREE.DoubleSide} />
       </mesh>
       <group position={exitWorld(i)} rotation={[0, yaw, 0]}>
         <group ref={railsWrap}>
