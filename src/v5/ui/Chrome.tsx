@@ -48,9 +48,10 @@ function useProgression() {
 
 export default function Chrome() {
   useProgression()
+  const idx = useWorldUI((s) => s.idx)
   return (
     <div className="v5">
-      <span className="v5-mark">Govinda<small>The Journey</small></span>
+      <span className="v5-mark">Govinda<em className="v5-prog">{String(idx + 1).padStart(2, '0')} / {V5_ORDER.length}</em><small>The Journey</small></span>
       <Ribbon />
       <Caption />
       <Glyphs />
