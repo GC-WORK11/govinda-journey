@@ -18,6 +18,7 @@ import { Island5, purgeCorridors } from './world/Island5'
 import { Bridge5 } from './world/Bridge5'
 import { hasObstacle, Player, ArtWater, Guard } from './world/modules'
 import { useWorldUI } from './world/progress'
+import { input, now } from './player/input'
 import Sky5, { skyDebug } from './world/Sky5'
 import { env } from '../world/sky'
 import { Clouds } from '../world/Clouds'
@@ -203,6 +204,11 @@ export default function World5() {
         const p = ISLAND_POS[i].clone().add(ENTRY)
         player.pos.copy(p); player.vel.set(0, 0, 0); player.island = id
         w.__journey?.player?.teleport?.(p.x, p.y, p.z)
+        // The DOM header/caption key off useWorldUI.idx — normally Sky5's
+        // per-frame setIdx follows pos, but a backgrounded page pauses rAF and
+        // the UI would stay frozen at 01/11. Drive it here too (it's a no-op
+        // write when the value is already right).
+        useWorldUI.getState().setIdx(i)
       },
     })
     // &at=<ID> teleports; &unlock marks every island before it complete; &finale completes all
@@ -211,20 +217,30 @@ export default function World5() {
     const at = q.get('at') as IslandId | null
     if (at && (V5_ORDER as readonly string[]).includes(at)) {
       if (q.has('unlock')) for (const id of V5_ORDER.slice(0, islandIndex(at))) useV5.getState().complete(id)
-      // PLAYER mounts lazily and re-seeds/overwrites core.player.pos — a single
-      // goto can be clobbered before the real controller picks it up. Re-goto
-      // until pos *stays* at the target between ticks (checking before this
-      // tick's write — goto's own writes would always pass the check).
+      // ?at is a QA pin, not a one-shot teleport. Everything that owns
+      // player.pos can displace it later — PLAYER's lazy mount re-seeds, its
+      // respawn/reset runs after a backgrounded restore (rAF freeze makes a
+      // hidden position look stable right up until it isn't), and island
+      // cutscenes (L09's finale lerps player.pos) drag the player at any
+      // time. So keep correcting whenever the player is away from the
+      // target for the life of the page; yield only to real movement input
+      // (keys, joystick, or a live ?qa pressKey hold) so a human who loads
+      // ?at=L05 and walks keeps control.
       const target = ISLAND_POS[islandIndex(at)].clone().add(ENTRY)
-      let tries = 0
       const iv = window.setInterval(() => {
-        if (player.island === at && player.pos.distanceToSquared(target) < 1) {
+        const t = now()
+        if (input.keys.size > 0 || input.joy.active ||
+          [...input.synth.values()].some((d) => d > t)) {
           window.clearInterval(iv)
           return
         }
+        // Near target + visible → nothing to do. Re-goto while hidden too:
+        // it re-pins PLAYER's s.pos ahead of the restore frame.
+        if (document.visibilityState === 'visible' &&
+          player.pos.distanceToSquared(target) < 4) return
         v5.goto?.(at)
-        if (++tries > 80) window.clearInterval(iv) // ~40 s bound for slow mounts
       }, 500)
+      return () => window.clearInterval(iv)
     }
   }, [])
 
