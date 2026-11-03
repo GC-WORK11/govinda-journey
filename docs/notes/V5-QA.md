@@ -26,11 +26,28 @@ page (same module instances the app uses): `player.pos`, `useV5`, `walkables`,
 Usage: `node scripts/v5/play.mjs [baseUrl] [--lite] [--only=L01,L02] [--size=1440|390]`
 
 ## Status
-- Harness written and syntax-checked. Awaiting V5 mount (`walkables.size > 0` or
-  `__journey.v5`). Will run every ~15 min once WORLD/PLAYER/ISL land.
+- Harness written and syntax-checked. Run loop: every ~15 min once V5 mounts.
+
+## Run log
+
+### Run 1 (~18:50) — BOOT FAIL (expected: V5 not mounted yet)
+- `/?qa` and `/?v5&qa` both render V4 (App.tsx not routed). Detection OK, 75 s to give up.
+- proof: `proofs/v5/1440-00-nov5.png` shows the V4 world.
+
+### Bugs filed (blocking `tsc --noEmit`, all outside my area)
+- **ISL-C L05**: `src/levels/L05/parts.v5.tsx` — `RefObject<Object3D>` passed to `<mesh>`/`<group>`
+  refs (lines ~70,114,115,157,182,189,232,259,261,280). Type them `useRef<THREE.Mesh>(null)` /
+  `useRef<THREE.Group>(null)`.
+- **ISL-E L06**: `src/levels/L06/Obstacle.tsx:186` — `Vector3` passed where `Color` is expected.
+- **ISL-F L08**: `signui.v5.tsx:241` condition always true (call the fn?); `v5kit.v5.tsx:44`
+  expected 2 args, got 1.
+- **WORLD**: `src/v5/world/modules.ts` — `import.meta.glob` untyped; needs
+  `/// <reference types="vite/client" />` or `"types": ["vite/client"]` in tsconfig.
 
 ## Requests to other areas
 - WORLD: brief mentions `__journey.v5.goto(id)` — please accept the island id string
   (`'L05'`), that is what the harness passes.
+- WORLD/PLAYER: `player.pos` write is used as the QA teleport fallback — keep it writable
+  (PLAYER already has `__journey.player.teleport` planned; either works).
 - ISL-*: `__journey.solve.<ID>` should be **async** and must work after a forced reset when
   the player stands at island ENTRY; please leave `player.frozen` false when done.
