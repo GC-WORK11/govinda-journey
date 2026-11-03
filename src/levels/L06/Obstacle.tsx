@@ -131,7 +131,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       [id]: async () => {
         if (core.useV5.getState().done.includes(id)) return
         if (!core.has('sense')) core.useV5.getState().grant('sense')
-        tp(DOCK_END, 0.5, 0.4)
+        tp(DOCK, -0.35, 0.35)
         await sleep(500)
         core.interactables.get('L06-phone')?.use()
         await sleep(900)
