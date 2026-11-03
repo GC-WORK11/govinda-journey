@@ -190,3 +190,8 @@ h2 { font-size: clamp(32px, 4.2vw, 48px); margin: 8px 0 10px; }
 .ui.night .pips i, .ui.dusk .pips i { background: rgba(246,236,220,.45); }
 .ui.night .pips i.on, .ui.dusk .pips i.on { background: #f6ecdc; }
 .ui.dusk .mark, .ui.dusk .count, .ui.dusk .corner .link { text-shadow: 0 1px 10px rgba(251,246,238,.75); }
+/* mobile dusk legibility: the dusk sky fills the top of narrow screens, so switch the corner text to night ink */
+@media (max-width: 720px) {
+  .ui.dusk .mark, .ui.dusk .count, .ui.dusk .corner .link { color: #f6ecdc; text-shadow: 0 1px 10px rgba(30,26,46,.65), 0 0 2px rgba(30,26,46,.45); }
+  .ui.night .mark, .ui.night .count, .ui.night .corner .link { text-shadow: 0 1px 10px rgba(30,26,46,.75), 0 0 2px rgba(30,26,46,.5); }
+}
