@@ -73,6 +73,12 @@ shelf, `use()`s `L07-speak`, submits `"open"` through the same `submitRef` the s
   The `mergeGeometries(geos, false)!` call sites are in `src/levels/I02/station.v5.tsx` and
   `src/levels/L04/street.v5.tsx` — a null merged geometry reaches a mesh and crashes the renderer
   every frame. Owner of those files should guard `mergeGeometries` returning null.
+- **Cold-start teleport race (WORLD/PLAYER):** `?at=<ID>`'s `j.v5.goto` calls
+  `__journey.player.teleport` but falls back to `player.pos.copy` — PLAYER writes `core.player.pos`
+  from its own state every frame, so if the lazy Player chunk hasn't attached its api yet the goto
+  silently no-ops and the traveller stays at island 0. Observed once on a cold load (`at=L07`
+  screenshot showed the L01 island with the L07 caption). My solvers now poll for the api (up to
+  8 s) before teleporting; `goto` should do the same (or queue the teleport until the api exists).
 - Shared-tree noise from other areas' WIP is expected; my files are tsc-clean.
 
 ## Rough edges / ideas if time allows
