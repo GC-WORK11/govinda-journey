@@ -32,7 +32,21 @@ All packs are CC0 (public domain). Only the files used in-game are kept on disk.
 ## quaternius/ — Quaternius, "Ultimate Stylized Nature" / "Ultimate Nature"
 - Source: https://poly.pizza/u/Quaternius (models mirrored from https://quaternius.com)
 - License: CC0 1.0 Universal
-- Optimisation: normal/ORM maps stripped, colour maps re-encoded ≤ 256 px (tools/glbopt).
+- Optimisation: normal/ORM maps stripped, colour maps re-encoded ≤ 256 px.
+
+## citykit/ — Kenney, "City Kit Commercial" (+ helicopter)
+- Source: https://kenney.nl/assets/city-kit-commercial
+- License: CC0 1.0 Universal
+- GLBs share the `Textures/colormap.png` atlas sidecar (must stay adjacent).
+- All .glb EXT_meshopt_compression encoded (tools/glbmeshopt.mjs, round-trip verified).
+- `helicopter.glb` — "Helicopter" by kazuma via poly.pizza (https://poly.pizza/m/EQJ2MECUbx), CC0.
+
+## pet/ (public/models/pet/dog.glb) — Quaternius, "Animated Animals: Husky"
+- Source: https://poly.pizza/m/wcWiuEqwzq (mirrored from quaternius.com Animated Animals)
+- License: CC0 1.0 Universal
+- Optimisation: duplicate `AnimalArmature|*` clip entries stripped (12 unique clips kept),
+  then EXT_meshopt_compression via tools/glbmeshopt.mjs (every view round-trip verified;
+  needs MeshoptDecoder wired into the loader — see docs/notes/V6-ART.md).
 
 ## Existing
 - public/models/student.glb — KayKit Adventurers Rogue (CC0), already in repo.
