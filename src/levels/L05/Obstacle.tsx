@@ -4,16 +4,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
+import { Html } from '@react-three/drei'
 import { player, interactables, useInteractable, has, useV5 } from '../../v5/core'
 import type { Interactable, ObstacleProps } from '../../v5/core'
 import { carryAnchor, carryQuat } from '../../v5/player/anchor'
 import { clay } from '../../world/kit'
 import {
   LAPTOPS, CHUNKS, HUES, CHUNK_T,
-  PAD_W, PAD_D, PAD_TOP, DECK_Y, GAP_EDGE,
+  PAD_W, PAD_D, PAD_TOP, DECK_Y, GAP_EDGE, STORY_P,
   PlinthLaptop, ChunkSlab, LiftPad, CallPost, ExitDeck, Shard, Plank, HomeDesk, cableCurve, dockLocal,
-  DomeBlocks, Grove,
+  YardRack, YardCrates, YardLight, StoryPost,
 } from './parts.v5'
+import EntCard from './card.v5'
 
 const _v = new THREE.Vector3()
 const _w = new THREE.Vector3()
@@ -21,6 +23,10 @@ const _a = new THREE.Vector3()
 const sm01 = (x: number) => { const t = Math.min(1, Math.max(0, x)); return t * t * (3 - 2 * t) }
 const ease = (t: number) => 1 - (1 - t) ** 3
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
+
+/** Idle screens glow warm ember; docked, they take the slab's hue. */
+const SCREEN_WARM = new THREE.Color('#e8a34e')
+const SCREEN_HUES = LAPTOPS.map((l) => new THREE.Color(HUES[l.size]))
 
 type ChunkSt = 'home' | 'carried' | 'toDock' | 'dockHold' | 'eject' | 'docked'
 type Rt = {
@@ -157,6 +163,8 @@ export default function Obstacle({ id, active, complete, done }: ObstacleProps) 
   const padRef = useRef<THREE.Group>(null)
   const gapMark = useRef<THREE.Object3D>(null)
   const callMark = useRef<THREE.Object3D>(null)
+  const storyMark = useRef<THREE.Object3D>(null)
+  const [cardOpen, setCardOpen] = useState(false)
   const [, force] = useState(0)
 
   const st = useRef<St>({
@@ -183,7 +191,7 @@ export default function Obstacle({ id, active, complete, done }: ObstacleProps) 
     const mk = (c: string, e: string, ei = 0, extra: Partial<THREE.MeshStandardMaterialParameters> = {}) =>
       new THREE.MeshStandardMaterial({ color: c, roughness: 0.55, emissive: e, emissiveIntensity: ei, ...extra })
     return {
-      screens: LAPTOPS.map((l) => mk('#332e2b', HUES[l.size])),
+      screens: LAPTOPS.map(() => mk('#332e2b', '#e8a34e', 0.3)),
       chunks: CHUNKS.map((c) => mk(HUES[c.size], HUES[c.size], 0.5, { transparent: true, opacity: 0.72, roughness: 0.3 })),
       cables: LAPTOPS.map(() => mk('#453c35', '#e08a4e')),
       segs: LAPTOPS.map(() => mk('#57504b', '#e08a4e', 0.05)),
@@ -192,6 +200,9 @@ export default function Obstacle({ id, active, complete, done }: ObstacleProps) 
       lantern: mk('#f0e3cc', '#e8a34e'),
       led: mk('#e9dfcf', '#8fb36b', 0.8),
       lamp: mk('#f0e3cc', '#e8b34e', 0.75),
+      workLamp: mk('#f0e3cc', '#e8a34e', 1.0),
+      leds: Array.from({ length: 6 }, () => mk('#e9dfcf', '#e8a34e', 0.6)),
+      paper: mk('#efe3cd', '#efe3cd', 0.04),
       wifi: mk('#efe4d2', '#e08a4e', 0, { transparent: true, opacity: 0 }),
     }
   }, [])
@@ -279,8 +290,19 @@ export default function Obstacle({ id, active, complete, done }: ObstacleProps) 
     enabled: () => st.current.active && st.current.phase === 'top',
     use: () => { st.current.phase = 'down'; st.current.liftT = 0 },
   }), [])
+  const wpStory = useMemo(() => new THREE.Vector3(), [])
+  const storyI = useMemo<Interactable>(() => ({
+    id: 'L05-story', at: () => (storyMark.current ? storyMark.current.getWorldPosition(wpStory) : wpStory.set(0, -99, 0)),
+    radius: 1.5, label: 'Read about Ent',
+    enabled: () => st.current.active && !cardOpen,
+    use: () => { player.frozen = true; setCardOpen(true) },
+  }), [cardOpen])
   useInteractable(gapI); useInteractable(gapHintI); useInteractable(liftDeadI)
-  useInteractable(liftI); useInteractable(liftDownI); useInteractable(callI)
+  useInteractable(liftI); useInteractable(liftDownI); useInteractable(callI); useInteractable(storyI)
+
+  const closeCard = () => { setCardOpen(false); player.frozen = false }
+  // safety: if this obstacle unmounts with the card up, never strand the player
+  useEffect(() => () => { player.frozen = false }, [])
 
   useEffect(() => {
     registerSolve(() => st.current)
@@ -382,9 +404,12 @@ export default function Obstacle({ id, active, complete, done }: ObstacleProps) 
       if (S2.phase === 'idle' && S2.powerT > 1.5) S2.phase = 'lit'
     }
     mats.screens.forEach((m, i) => {
-      const target = S2.loaded[i] ? 0.85 + Math.sin(t * 2 + i * 1.3) * 0.12 : 0
+      // warm ember while idle, the slab's hue once a share is docked
+      const target = S2.loaded[i] ? 0.9 + Math.sin(t * 2 + i * 1.3) * 0.12 : 0.32 + Math.sin(t * 1.4 + i * 0.9) * 0.07
       m.emissiveIntensity += (target - m.emissiveIntensity) * Math.min(1, dtm * 6)
+      m.emissive.lerp(S2.loaded[i] ? SCREEN_HUES[i] : SCREEN_WARM, Math.min(1, dtm * 3))
     })
+    mats.leds.forEach((m, i) => { m.emissiveIntensity = 0.35 + (Math.sin(t * 3.1 + i * 2.4) > 0.2 ? 0.5 : 0.05) })
     mats.segs.forEach((m, i) => {
       const target = S2.loaded[i] ? 1.2 : 0.05
       m.emissiveIntensity += (target - m.emissiveIntensity) * Math.min(1, dtm * 5)
@@ -452,8 +477,16 @@ export default function Obstacle({ id, active, complete, done }: ObstacleProps) 
       <CallPost litMat={mats.callLit} />
       <object3D ref={callMark} position={[1.25, 0.75, -3.3]} />
       <ExitDeck lanternMat={mats.lantern} />
-      <DomeBlocks gone={done} />
-      <Grove />
+      <YardRack ledMats={mats.leds} />
+      <YardCrates />
+      <YardLight lampMat={mats.workLamp} />
+      <StoryPost paperMat={mats.paper} />
+      <object3D ref={storyMark} position={[STORY_P[0], STORY_P[1] + 0.85, STORY_P[2]]} />
+      {cardOpen && (
+        <Html fullscreen zIndexRange={[200, 0]}>
+          <EntCard open onClose={closeCard} />
+        </Html>
+      )}
       <mesh position={[0, 0.02, 4.2]} rotation={[-Math.PI / 2, 0, 0]} material={clay('#d6cab4')} receiveShadow>
         <circleGeometry args={[0.5, 20]} />
       </mesh>
