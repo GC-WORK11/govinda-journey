@@ -39,6 +39,16 @@ hit). Post-solve screenshots inspected at 1440x900 (door swung open + lantern li
 - `src/levels/L0{6,7}/dev.{html,v5.tsx}` — standalone dev harnesses from before the world landed
   (own Canvas + stub player). Kept for quick solo tweaks; the real check is `/?qa&at=<ID>&unlock`.
 
+## Corridor rule compliance (WORLD `purgeCorridors`, ~1.6 s cadence)
+
+Any unnamed blocker crossing |x|<1.15, |z|<4.45 island-local is dropped — so the L07 door leaf and
+the inner wall sections cannot physically block. That's by design: the real exit gate is WORLD's
+`gate-` ExitGate at z=-4.55 (closed until `done`), and the door is the fiction on top — it stays
+visually shut until the word is spoken, the wall keeps real blockers for |x|>1.15 (x∈[1.25,3.25]
+each side + flanks x∈[3.1,4.7]). A player can clip through the closed door mesh for ~0.3 m if they
+shove straight through; they still can't leave the island. L06 had no corridor blockers (all its
+physics sits off-path at the dock/rock/pergola, plus walk-kind ford stones).
+
 ## Conventions adopted from the landed world
 
 - `clay()` in both kits now wraps ART's `toon()` (shared cache, wrapped diffuse + rim).

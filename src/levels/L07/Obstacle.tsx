@@ -317,10 +317,10 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
           <BlockBox position={[s * 3.9, 1.1, DOOR_Z]} args={[1.6, 2.4, 1.2]} />
         </group>
       ))}
-      <BlockBox position={[-2.0, 1.05, DOOR_Z]} args={[2.5, 2.2, 0.5]} />
-      <BlockBox position={[2.0, 1.05, DOOR_Z]} args={[2.5, 2.2, 0.5]} />
-      {/* the door itself blocks until it swings */}
-      <BlockBox position={[0, 1.0, DOOR_Z]} args={[1.7, 2.1, 0.45]} on={doorT.current < 0.5 && phase !== 'open'} />
+      {/* corridor rule: no blockers inside |x|<1.15 — the exit gate is the real
+          physical gate; the door leaf is visual and opens via the speak prompt */}
+      <BlockBox position={[-2.25, 1.05, DOOR_Z]} args={[2.0, 2.2, 0.5]} />
+      <BlockBox position={[2.25, 1.05, DOOR_Z]} args={[2.0, 2.2, 0.5]} />
 
       {/* lantern post by the door */}
       <group position={[1.25, 0, DOOR_Z + 0.55]}>
