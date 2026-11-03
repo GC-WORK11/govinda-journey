@@ -4,7 +4,7 @@
  * geometry that needs exact collider sizes (walls, ledge, gate, mound, letter).
  */
 import { useEffect, useMemo, useRef, type RefObject } from 'react'
-import { createPortal } from 'react-dom'
+import { createRoot, type Root } from 'react-dom/client'
 import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
@@ -82,16 +82,36 @@ function ensurePillCSS() {
   document.head.appendChild(s)
 }
 
-/** The one quiet line at the bottom of the screen (verb + object), like V4's hint pill. */
+/**
+ * The one quiet line at the bottom of the screen (verb + object), like V4's hint pill.
+ * Renders via a dedicated DOM root — a plain createPortal inside the R3F tree would go
+ * through the R3F reconciler and crash on real DOM tags.
+ */
 export function PillHint({ text }: { text: string | null }) {
-  ensurePillCSS()
-  if (!text) return null
-  return createPortal(
-    <div className="gjv5-isla-hint" role="status">
-      <span key={text}>{text}</span>
-    </div>,
-    document.body,
-  )
+  const host = useMemo(() => {
+    if (typeof document === 'undefined') return null
+    const el = document.createElement('div')
+    document.body.appendChild(el)
+    return el
+  }, [])
+  const root = useRef<Root | null>(null)
+  useEffect(() => {
+    if (!host) return
+    ensurePillCSS()
+    const r = createRoot(host)
+    root.current = r
+    return () => { root.current = null; r.unmount(); host.remove() }
+  }, [host])
+  useEffect(() => {
+    root.current?.render(
+      text ? (
+        <div className="gjv5-isla-hint" role="status">
+          <span key={text}>{text}</span>
+        </div>
+      ) : null,
+    )
+  }, [text])
+  return null
 }
 
 /* ---------- path stones ---------- */
