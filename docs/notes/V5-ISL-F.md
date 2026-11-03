@@ -1,7 +1,8 @@
 # V5-ISL-F — Island obstacles L08 (Sign Flow) + L09 (Chalk finale)
 
-Status: complete. Both islands play end-to-end via their ?qa solvers (verified in the
-preview harness); world/player/art seams now use the real landed modules.
+Status: complete — verified end-to-end in the real World5 + Player via the ?qa solvers
+(L08: speak→sign→guardian aside→done; L09: four stations→door→complete()→finale
+pullback + Finale UI observed). World/player/art seams use the real landed modules.
 
 ## Files I own
 - `src/levels/L08/Obstacle.tsx`, `src/levels/L08/*.v5.tsx` (guardian, sign pad, voice prompt, shared kit, preview)
@@ -19,12 +20,18 @@ preview harness); world/player/art seams now use the real landed modules.
 - Physics via core `useWalkable`/`useBlocker`, prompts via core `useInteractable`,
   abilities via `has()`, grant via `complete()` — all as the contract specifies.
 
-## Requests for other areas
+## Requests / observations for other areas
 - PLAYER: please confirm semantics of `player.frozen` (does the controller still integrate/gravity
   while frozen?) and how `blockers` are tested. My climbable wall registers its top pad as
   walkable + side as blocker, and offers a 'Climb over' hop interactable as fallback.
+- WORLD+PLAYER: `?qa&at=<id>` fires `j.v5.goto` 400ms after mount, but PLAYER's lazy spawn
+  seed can land later and overwrite the teleport (observed: page loaded, player ended up at
+  L01). Workaround used in checks: re-issue `goto` once `__journey.player` exists. A re-goto
+  after `player` mounts (or PLAYER respecting an earlier goto) would fix it for everyone.
+- WORLD: islands only mount obstacles within `idx ± 2` — solvers appear only after the
+  player travels there (by design; noting for QA script authors).
 - WORLD: L09 calls `complete()` after the door swing; finale pullback + Resume/Contact are
-  handled by Chrome/FinaleCam (verified in World5.tsx — nothing needed from me).
+  handled by Chrome/FinaleCam — verified working in-world.
 - ART: a stone-guardian / schoolhouse / bell prop in PROPS would be welcome; my assemblies
   sit behind stable JSX positions if you want to swap them.
 
