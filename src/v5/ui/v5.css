@@ -99,6 +99,10 @@
 .v5-how .begin { font: 500 11px var(--sans); letter-spacing: .13em; text-transform: uppercase; color: var(--ink2); margin-top: 34px;
   animation: v5how 2.8s ease-in-out infinite; }
 @keyframes v5how { 0%, 100% { opacity: .55; } 50% { opacity: .95; } }
+/* while the veil is up, the island caption + bottom pill stay quiet — the
+   veil is translucent, so without this two text layers read through each other */
+body:has(.v5-how.on) .v5-cap { opacity: 0; }
+body:has(.v5-how.on) .gjv5-isla-hint { opacity: 0; visibility: hidden; }
 
 @media (prefers-reduced-motion: reduce) {
   .v5-ribbon .dot, .v5-cap, .v5-fin, .v5-how { transition: none; }
