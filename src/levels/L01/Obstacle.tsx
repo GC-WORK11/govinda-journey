@@ -12,7 +12,6 @@ import { C, Gate, Hint, LowWall, PathStones, Rock, tpLocal, sleep, useLocalPlaye
 import { Bush, Fence, LampPost } from '../../world/kit'
 import { BigTree, CampusBlock, LaptopDesk } from './campus.v5'
 
-const ENTRY = new THREE.Vector3(0, 0, 4.2)
 const DESK = new THREE.Vector3(1.85, 0, -0.9)
 const WALL_Z = 0.55
 
@@ -27,6 +26,10 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   const completed = useRef(done)
   const moved = useRef(done)
   const crossed = useRef(done)
+  const approached = useRef(done)
+  const walked = useRef(0)
+  const prev = useRef(new THREE.Vector3())
+  const inited = useRef(false)
 
   useLocalPlayer(root, local)
 
@@ -47,8 +50,14 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   core.useInteractable(inter)
 
   useFrame((_, dt) => {
-    if (!moved.current && local.distanceTo(ENTRY) > 0.8) moved.current = true
-    if (!crossed.current && local.z < WALL_Z - 0.35) crossed.current = true
+    // teaching flags — count only real per-frame walking so spawn teleports don't fake progress
+    if (!inited.current) { prev.current.copy(local); inited.current = true }
+    const step = local.distanceTo(prev.current)
+    prev.current.copy(local)
+    if (step > 0.001 && step < 0.3) walked.current += step
+    if (!moved.current && walked.current > 0.7) moved.current = true
+    if (!approached.current && moved.current && local.z > WALL_Z + 0.45) approached.current = true
+    if (approached.current && !crossed.current && local.z < WALL_Z - 0.35) crossed.current = true
     if (open && openT.current < 1) {
       openT.current = Math.min(1, openT.current + dt / 1.7)
       if (openT.current > 0.8 && !completed.current) { completed.current = true; complete() }
@@ -69,7 +78,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   return (
     <group ref={root}>
       {/* courtyard landmark + the desk under the tree */}
-      <CampusBlock position={[-2.15, 0, -2.8]} yaw={0.5} warm={warm} />
+      <CampusBlock position={[-2.3, 0, -2.85]} yaw={0.55} warm={warm} />
       <BigTree position={[2.7, 0, -1.7]} s={1.15} />
       <LaptopDesk position={[DESK.x, 0, DESK.z]} yaw={-1.05} lit={warm} laptopRef={laptopRef} />
 
@@ -91,7 +100,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       <PathStones pts={[[0.15, -0.4], [1.15, -0.8]]} seed={7} />
 
       {/* dressing */}
-      <Fence pts={[new THREE.Vector3(-3.7, 0, -1.4), new THREE.Vector3(-4.05, 0, -2.3), new THREE.Vector3(-3.7, 0, -3.3)]} seed={4} />
+      <Fence pts={[new THREE.Vector3(-4.15, 0, -0.7), new THREE.Vector3(-4.4, 0, -1.7), new THREE.Vector3(-4.2, 0, -2.7)]} seed={4} />
       <Bush position={[-3.4, 0, -0.6]} s={1.1} />
       <Bush position={[3.55, 0, -2.7]} s={1.2} color={C.leaf} />
       <Rock position={[-3.3, 0.04, 1.9]} s={0.3} block={false} />

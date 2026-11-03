@@ -1,7 +1,13 @@
 # ISL-A — L01 (tutorial) + L02 (rejections)
 
-Status: obstacles implemented against core.ts, tsc-clean. Waiting on WORLD (?v5 route +
-island group) for visual verification.
+Status: **both islands working end-to-end** — `node scripts/v5/play.mjs --only=L01,L02` PASSes
+(real walking + solvers + done + climb grant). Visually verified at 1440x900 and 390x844.
+
+## Dev harness
+
+`src/levels/L01/dev.html` + `dev.v5.tsx` — self-contained preview (own Canvas, stub player with
+walkable raycast + blocker push-out + jump, E-prompt HUD). Open
+`/src/levels/L01/dev.html?island=L01|L02&done&solve`. Uses the V4 Island as ground.
 
 ## What is built
 
@@ -29,6 +35,12 @@ island group) for visual verification.
 replace). They teleport (player.pos ← localToWorld of local point) then use real interactions:
 L01 calls `interactables.get('l01-laptop').use()`; L02 teleports onto each letter (real proximity
 pickup) then onto the ledge. Registered only while the obstacle is mounted.
+
+## Known issues (not mine)
+
+- `pageerror: Cannot read properties of undefined (reading 'copy')` fires on many islands during
+  QA runs. Audited L01/L02/L05/L06/L08/L09 — no such call; likely in a shared WORLD/Sky/Bridge
+  module (suspect `Sky5.tsx` dome uniforms or `Bridge5`). Flagging for WORLD.
 
 ## Requests / assumptions for other areas
 

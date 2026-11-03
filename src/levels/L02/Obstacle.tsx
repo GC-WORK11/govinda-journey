@@ -168,6 +168,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
 
       {/* the closed gate on the ledge */}
       <Gate position={[0, 1.62, -3.78]} open={open} instant={done} width={1.85} height={1.5} />
+      {open && <pointLight position={[0, 2.6, -3.5]} color="#ffc27e" intensity={2.0} distance={4.5} decay={2} />}
 
       {/* scattered letters + what hides them */}
       {slots.map((s, i) => (
