@@ -1,22 +1,15 @@
 # V5-PLAYER notes
 
-Status: in progress.
+Status: complete and integrated — all requests below were delivered by WORLD.
 
-## Requests to WORLD
-1. `?v5&sandbox` (and/or `?sandbox`) route → lazy `src/v5/player/Sandbox.tsx` (default
-   export, renders its own `<Canvas>` + `<Controls/>` overlay; self-contained). Brief says you own
-   App.tsx — I will add the route myself only if it has not landed ~20 min after this note.
-2. `src/v5/world/layout.ts`: please export `ISLAND_POS: THREE.Vector3[]` (indexed by V5_ORDER),
-   `ISLAND_R`, `ENTRY`, `EXIT` as promised. Until it lands I stub it in
-   `src/v5/player/islandLayout.ts` — I will switch the import once your file exists.
-   `player.island` = nearest island centre within `ISLAND_R * 1.7`, else unchanged.
-3. Please render `<Player/>` (default export of src/v5/player/Player.tsx) inside the Canvas and
-   `<Controls/>` (src/v5/player/Controls.tsx) as a plain DOM sibling (it is a fixed overlay,
-   pointer-events only on its buttons). Camera orbit/pinch/wheel are driven from Controls via
-   window pointer events filtered to the canvas element — no extra wiring needed.
-4. If you add `export const cinematic = { on:false }` to core.ts (marked section): the player
-   camera already checks `(core as any).cinematic?.on` and hands control over while it is set
-   (movement input also freezes).
+## Requests to WORLD (all resolved)
+1. ~~`?v5&sandbox` route~~ — done, App.tsx lazy-loads `src/v5/player/Sandbox.tsx` at `?sandbox`.
+2. ~~`src/v5/world/layout.ts`~~ — done; PLAYER imports `ISLAND_POS`, `ENTRY`, `nearestIsland`
+   from it. `player.island` = `V5_ORDER[nearestIsland(pos)]` every frame.
+3. ~~Render `<Player/>` + `<Controls/>`~~ — done via `world/modules.ts` globs; `<Controls/>` is
+   mounted by WORLD's Chrome.
+4. ~~`export const cinematic`~~ — done; PLAYER reads `cinematic.on` (camera writes + movement
+   input both stop while set).
 
 ## For ISL-* agents (contract usage)
 - `core.interactables` — register via `useInteractable({ id, at, radius, label, use, enabled? })`.
@@ -37,6 +30,21 @@ Status: in progress.
   `press` accepts `w a s d`, `arrowup…`, `shift`, `space`, `e`, `enter`.
 
 ## Progress
-- [x] islandLayout stub, input, uiState, anchor
-- [ ] Player.tsx, Controls.tsx, Sandbox.tsx
-- [ ] tsc + live screenshots
+- [x] islandLayout stub → replaced by WORLD's layout.ts (stub deleted)
+- [x] Player.tsx, Controls.tsx, Sandbox.tsx — all landed, tsc clean
+- [x] Verified live at 1440x900 + 390x844 (`?sandbox` and `/?qa`): retinted
+  student GLB renders (cream shirt, brown skin, indigo backpack), idle/walk/jump
+  anims drive locomotion, carry prompt toggles, fall respawns.
+- [x] Camera: V4-style follow — base dist 9.5 m (student ≈ 1/8 screen height),
+  pitch 0.42, portrait pull-back `1 + (1 - aspect) * 0.45`, orbit/zoom damped,
+  pull-in vs walkables+blockers, hands off while `cinematic.on`.
+- [x] Fixed scratch-vector clobber (`near*` helpers now use dedicated `_n1/_n2`)
+  that broke camera + wall-ray math.
+- [x] `press(key,ms)` keeps jump/use buffers live for the whole hold (QA-safe).
+
+## Still open / watch
+- `window.__pldbg` + the `DebugLine` in Sandbox.tsx are dev aids — sandbox is a
+  test route only, but strip them if the route ever ships to visitors.
+- `player.frozen` zeroes input (move/jump/use) and camera writes while
+  `cinematic.on`; gravity/grounding keep integrating so the player stays put
+  physically. Velocity damps to a stop.

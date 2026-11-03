@@ -247,6 +247,7 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
       teleport: (x: number, y: number, z: number) => {
         const s = S.current
         s.pos.set(x, y, z); s.vel.set(0, 0, 0); s.lastSafe.copy(s.pos)
+        s.hist.fill(s.pos.clone()); s.histT = 0 // don't respawn back across the map
         s.targetSm.copy(s.pos).add(_v2.set(0, 1.05, 0)); s.first = true
       },
       press: (key: string, ms?: number) => pressKey(key, ms),
