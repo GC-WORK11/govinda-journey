@@ -80,7 +80,7 @@ function LetterRunner({ slot, player, onPickup, onLanded }: {
         from.copy(slot.pos)
         const to = STEP_POS[slot.seat]
         ctrl.copy(from).lerp(to, 0.5)
-        ctrl.y = Math.max(from.y, to.y) + 1.35
+        ctrl.y = Math.max(from.y, to.y) + 1.7
       }
       return
     }
