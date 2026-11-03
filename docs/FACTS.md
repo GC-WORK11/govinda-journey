@@ -83,7 +83,7 @@ Not used as sources: the Devpost "NoHands" page (a different project), and alive
 | CEO Hunt, Flow Pitch, Delegators Workbench and Doorway IDE are weekend builds you can open today. | src/levels/registry.ts:48 | S1 "PRODUCTS & WEEKEND BUILDS"; S13 (all 200) | yes | "Each one took a weekend, so the idea could meet real people fast" removed (unsourced motive) |
 | React front ends, shipped on Vercel. | src/levels/registry.ts:49 | S13: react-dom and createRoot in the bundles of CEO Hunt, Flow Pitch, Workbench and Doorway IDE; *.vercel.app hosting | yes | |
 | Doorway, a desktop app, is a cockpit for visible terminal agents, with git worktrees and review flows. | src/levels/registry.ts:49 | S8 description ("Local-first desktop cockpit for visible terminal agents, git worktrees, and review/merge workflows"); topics include electron | yes | replaces "grew into a cockpit ... side by side" |
-| CEO Hunt, Flow Pitch, Workbench, Doorway (links) | src/levels/registry.ts:50-55 | the four demo URLs above | yes | all 200 |
+| CEO Hunt, Flow Pitch, Delegators Workbench, Doorway IDE (links) | src/levels/registry.ts:51-54 | the four demo URLs above | yes | all 200. "Workbench" and "Doorway" labels changed to the destinations' names |
 | Shipper (badge) | src/levels/registry.ts:55 | n/a | n/a | label |
 
 ### L05 (Ent)
@@ -107,7 +107,7 @@ Not used as sources: the Devpost "NoHands" page (a different project), and alive
 | claim | file:line | source URL | verified | note |
 |---|---|---|---|---|
 | Delhi · Oct 2026 (place) | src/levels/registry.ts:71 | S3: ALive created 2026-10-10, pushed 2026-10-16; S1 "ALive OCT 2026" | yes | |
-| Alive (title) | src/levels/registry.ts:71 | S13 page title "Alive — Delhi's air, priced in breath" | yes | |
+| ALive (title) | src/levels/registry.ts:71 | https://github.com/GC-WORK11/ALive (repo name); S4 README; S1; S2 | yes | changed from "Alive". The live app's page title says "Alive" (https://delhi-is-alive.vercel.app/app/). The repo, README, résumé and portfolio all write "ALive" |
 | Built for the AWS × WeMakeDevs Environmental Hacks. | src/levels/registry.ts:72 | S4: "Built for the AWS × WeMakeDevs Environmental Hacks 2026" | yes | "Four days at" and "demoed at DTU" removed. The hackathon ran Oct 8 to 11 (S11), but no source says ALive was demoed there |
 | Live, street-level air for Delhi-NCR. | src/levels/registry.ts:72 | S4 | yes | |
 | Place the sensors and clear the smog. / Drag the sensors onto the glowing spots | src/levels/registry.ts:73 | n/a | n/a | instruction |
@@ -162,7 +162,7 @@ Not used as sources: the Devpost "NoHands" page (a different project), and alive
 | claim | file:line | source URL | verified | note |
 |---|---|---|---|---|
 | Oct 27 – 31, 2026 (place) | src/levels/registry.ts:110 | S3: sign-wrap created 2026-10-27, pushed 2026-10-31 | yes | |
-| Sign Flow (title) | src/levels/registry.ts:110 | n/a | n/a | name |
+| Sign-Flow (title) | src/levels/registry.ts:110 | https://github.com/GC-WORK11/sign-wrap (README "# Sign-Flow"); https://sign-flow-eight.vercel.app/ (title "Sign-Flow — type and control your laptop without touching it") | yes | changed from "Sign Flow". The repo folder is named sign-wrap |
 | Teach the laptop your own hand signs. | src/levels/registry.ts:111 | S6 ("Teach your phone camera a few hand signs of your own"); S13 site description | yes | |
 | Match each sign to what it does. / Tap the hand that matches | src/levels/registry.ts:112 | n/a | n/a | instruction |
 | Sign-Flow lets you record your own hand signs on a phone camera, then use them to type or control the laptop. | src/levels/registry.ts:113 | S6 (three takes; Text and Control modes) | yes | |
@@ -198,7 +198,42 @@ Not used as sources: the Devpost "NoHands" page (a different project), and alive
 | L05 | Ent | none public | https://ent-01.vercel.app; working paper https://active-parameter-runtime.govindach-iitp.chatgpt.site/working-set-routing-paper.pdf | 200; 200 |
 | L06 | Remote | https://github.com/GC-WORK11/remote | https://remote-01.vercel.app | 200; 200 |
 | L07 | Wispr Wrap | https://github.com/GC-WORK11/wispr-wrap | none | 200 (repo) |
-| L08 | Sign Flow | https://github.com/GC-WORK11/sign-wrap | https://sign-flow-eight.vercel.app | 200; 200 |
+| L08 | Sign-Flow | https://github.com/GC-WORK11/sign-wrap | https://sign-flow-eight.vercel.app | 200; 200 |
+
+## Finale: dates and names (checked 2026-11-04, registry commit 3b230a7)
+
+What the finale shows: the L09 eyebrow and line, the project list (title, place, links), the stack words, the contact links and the Résumé button. Every date and name it can show is listed here. Fixed in this pass: "Alive" to "ALive", "Sign Flow" to "Sign-Flow", and the link labels "Workbench" and "Doorway" to "Delegators Workbench" and "Doorway IDE". No date was cut: all five project dates have a public source.
+
+| item | file:line | source URL | verified | note |
+|---|---|---|---|---|
+| Ent, "Aug – Sep 2026" (date) | src/levels/registry.ts:59 (place); src/v5/ui/Finale.tsx:44 | https://ent-01.vercel.app/ (runs dated August 14, September 13 and September 16, 2026) | yes | the three dated runs. The portfolio card says "Ongoing · 2026" (https://govinda-01.vercel.app/) |
+| Ent (name) | src/levels/registry.ts:59 (title); src/v5/ui/Finale.tsx:43 | https://ent-01.vercel.app/ (nav "Ent"); résumé "Project ENT" (https://govinda-01.vercel.app/Govinda_Chauhan_ML_Systems_Resume.pdf) | yes | the site's title uses "ENT". Kept "Ent" to match its nav |
+| ALive, "Delhi · Oct 2026" (date) | src/levels/registry.ts:71 (place) | https://api.github.com/repos/GC-WORK11/ALive: created 2026-10-10, pushed 2026-10-16 | yes | month only. The hackathon window was Oct 8 to 11, 2026 (https://www.wemakedevs.org/blogs/announcing-environmental-hacks) |
+| ALive (spelling) | src/levels/registry.ts:71 (title, changed from "Alive"), 74, 120, 122 | https://github.com/GC-WORK11/ALive (repo and README); résumé; https://govinda-01.vercel.app/ | yes | the repo, README, résumé and portfolio all write "ALive". The live app's page title says "Alive" (https://delhi-is-alive.vercel.app/app/) |
+| Remote, "Oct 2026" (date) | src/levels/registry.ts:92 (place) | https://api.github.com/repos/GC-WORK11/remote: created 2026-10-11, pushed 2026-10-15; earliest listed commit 2026-10-05 | yes | month only. Created 05:11 on Oct 12 in IST, still October |
+| Remote (name) | src/levels/registry.ts:92 (title) | https://github.com/GC-WORK11/remote (README "# Remote"); https://remote-01.vercel.app/ (title "Remote — code from your phone") | yes | |
+| Wispr Wrap, "Oct 22, 2026" (date) | src/levels/registry.ts:101 (place) | https://api.github.com/repos/GC-WORK11/wispr-wrap: created 2026-10-22; first listed commit 2026-10-22 "Wispr Wrap — phone-to-Linux input bridge" | yes | created 16:33 UTC, which is 22:03 on Oct 22 in IST |
+| Wispr Wrap (name) | src/levels/registry.ts:101 (title) | https://github.com/GC-WORK11/wispr-wrap (README "# ✳ Wispr Wrap") | yes | |
+| Sign-Flow, "Oct 27 – 31, 2026" (date) | src/levels/registry.ts:110 (place) | https://api.github.com/repos/GC-WORK11/sign-wrap: created 2026-10-27, first commit 2026-10-27 "Initial public release", last commit 2026-10-31 | yes | these are public repo dates. The label is the public window, not a claim about earlier private work. The README says Sign-Flow grew out of Wispr Wrap (created Oct 22) |
+| Sign-Flow (spelling) | src/levels/registry.ts:110 (title, changed from "Sign Flow"), 113 | https://github.com/GC-WORK11/sign-wrap (README "# Sign-Flow"); https://sign-flow-eight.vercel.app/ (title "Sign-Flow — type and control your laptop without touching it") | yes | the repo folder is named sign-wrap |
+| Now (L09 place; eyebrow) | src/levels/registry.ts:119 (place); src/v5/ui/Finale.tsx:33 | relative to the visit, 2026-11-04 | n/a | relative label |
+| The schoolhouse (L09 title; eyebrow) | src/levels/registry.ts:119 (title); src/v5/ui/Finale.tsx:33 | n/a | n/a | game label, not a name claim |
+| "Right now I’m building ALive and Remote." | src/levels/registry.ts:120; src/v5/ui/Finale.tsx:35 | https://govinda-01.vercel.app/ ("Right now I’m building", followed by ALive and Remote) | yes | |
+| Govinda Chauhan (name) | src/v5/ui/Finale.tsx:34 | https://github.com/GC-WORK11 (profile name "Govinda Chauhan"); résumé header; https://govinda-01.vercel.app/ | yes | |
+| CEO Hunt (link label) | src/levels/registry.ts:51 | https://ceohunt.vercel.app/ (title "CEO HUNT | The Complete Ecosystem"); résumé "CEO Hunt" | yes | the site writes it in capitals |
+| Flow Pitch (link label) | src/levels/registry.ts:52 | https://flow-pitch.vercel.app/ (title "Flow | Orchestrate Intelligence"); résumé "Flow Pitch" | yes | |
+| Delegators Workbench (link label, changed from "Workbench") | src/levels/registry.ts:53 | https://delegators-workbench.vercel.app/ (title "Delegators Workbench") | yes | |
+| Doorway IDE (link label, changed from "Doorway") | src/levels/registry.ts:54 | https://doorway-ide.vercel.app/ (title "Doorway - The Orchestration Layer"); résumé "Doorway IDE" | yes | the desktop app is a separate product: https://github.com/GC-WORK11/doorway |
+| Ent (link label) | src/levels/registry.ts:65 | https://ent-01.vercel.app | yes | |
+| Paper (link label) | src/levels/registry.ts:66 | https://active-parameter-runtime.govindach-iitp.chatgpt.site/working-set-routing-paper.pdf | yes | |
+| Live, GitHub (link labels) | src/levels/registry.ts:77, 78, 97, 106, 115 | the demo and repo URLs in the repo table above | yes | |
+| React · Vercel (stack, L03) | src/v5/ui/Finale.tsx:22 | the four L03 demos (react-dom in the bundles, *.vercel.app hosting) | yes | shown only when facts.ts marks it verified |
+| Rust (stack, L05) | src/v5/ui/Finale.tsx:23 | résumé ENT entry ("Rust · 23k LOC") | yes | |
+| C++20 · Expo (stack, L06) | src/v5/ui/Finale.tsx:24 | https://github.com/GC-WORK11/remote (README: zero-dependency C++20 daemon, Expo app) | yes | |
+| Contact labels and URLs (Email, GitHub, LinkedIn, Résumé) | src/levels/registry.ts:10-13; src/v5/ui/Finale.tsx:63-66 | mailto address in résumé and portfolio; https://github.com/GC-WORK11; https://in.linkedin.com/in/govinda-flow (linked from résumé and portfolio); RESUME (200) | yes | LinkedIn answers 999 to scripts, so the page itself was not fetched |
+| Weekends (L03 place; finale project list) | src/levels/registry.ts:45 (place); src/v5/ui/Finale.tsx:44 | résumé section "PRODUCTS & WEEKEND BUILDS" and "weekend web products" (https://govinda-01.vercel.app/Govinda_Chauhan_ML_Systems_Resume.pdf) | yes | not a calendar date: it names the weekend builds |
+| Small websites (L03 title; finale project list) | src/levels/registry.ts:45 (title); src/v5/ui/Finale.tsx:43 | n/a | n/a | game label for the four weekend sites: CEO Hunt, Flow Pitch, Delegators Workbench, Doorway IDE |
+| Project list includes L01 ("The first step", place "IIT Patna") | src/v5/ui/Finale.tsx:17 | résumé ("IIT Patna — BS, Computer Science & Data Analytics") for the place | no | L01 is not a project. The place is verified; the listing is a WORLD filter issue, not a date or name error |
 
 ## Other on-screen copy (owners act on these)
 
@@ -216,7 +251,8 @@ Not used as sources: the Devpost "NoHands" page (a different project), and alive
 | AQI readings 232, 187, 168, 151 on the sensor signs | src/levels/L04/Obstacle.tsx:33-35 | none | no | invented readings shown on screen. Owner: remove the digits or label them as illustration |
 | "Helper, make a 3 question test on photosynthesis" and "Ask the helper for a test." | src/levels/L09/Game.tsx:123, 134 | none | no | demonstrates the removed Chalk product. Owner: remove or re-theme |
 | "every 15 min" pill | src/levels/L04/Game.tsx:142 | S4 | yes | |
-| Canvas text "Sign Flow", "teach the laptop", "your own hand signs" | src/levels/L08/plaza.v5.tsx:137-141 | S6 | yes | |
+| Pennant labels "Workbench" and "Doorway" | src/levels/L03/Game.tsx:20-21 | S13 | yes | short names of the same two products. Kept as pennants; the link labels now use the full names. Owner optional |
+| Canvas text "Sign Flow" (should read "Sign-Flow"), "teach the laptop", "your own hand signs" | src/levels/L08/plaza.v5.tsx:137-141 | S6 | no | spelling: the canvas still says "Sign Flow", which does not match the registry title. The other two phrases match S6. Owner: L08 |
 | Finale STACK: "React · Vercel", "Rust", "C++20 · Expo" | src/v5/ui/Finale.tsx:21-25 | S13 bundles, S1, S5 | yes | gated by facts.ts |
 | Finale name "Govinda Chauhan" and the Résumé button | src/v5/ui/Finale.tsx:34, 66 | S1 | yes | |
 | Other labels, prompts, captions, hints, aria text and control text (L01 to L09, I01, I02, HowTo, Chrome, Glyphs) | src/levels/*/Obstacle.tsx, Game.tsx, *.v5.tsx; src/v5/ui/HowTo.tsx:52-55; src/v5/ui/Chrome.tsx:55 | n/a | n/a | game copy with no factual claim. Examples: "The bell rings out over the rooftops." (L09), "A small rail line running past four towns" (I02), "Deploy" (L03), sample task labels (L06 Game.tsx:8-10) |
@@ -236,6 +272,7 @@ Each of these had no source:
 - L08: "a small model learns the signs".
 - L09: the Chalk title and story, "a messaging app for Indian schools", "bots a teacher can ask for a test", the "What's next" badge.
 - CONTACT: the X link.
+- Names: "Alive" to "ALive" (L04 title); "Sign Flow" to "Sign-Flow" (L08 title); link labels "Workbench" to "Delegators Workbench" and "Doorway" to "Doorway IDE" (L03).
 
 ## Open items for the owner
 
