@@ -4,7 +4,7 @@ import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import type { DioramaProps } from '../types'
-import { C, clay, Scaffold, Tree, Rock } from '../../world/kit'
+import { C, clay, Scaffold, Tree, Rock, LampPost } from '../../world/kit'
 
 const TRACK_Z = -0.12
 const CAR: [number, number, number] = [0.1, 0, TRACK_Z]
@@ -89,6 +89,34 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
           <boxGeometry args={[0.035, 0.14, 0.13]} />
         </mesh>
       ))}
+
+      {/* luggage waiting for the next train */}
+      <group position={[0.62, 0.13, -0.82]} rotation={[0, 0.28, 0]}>
+        <RoundedBox args={[0.22, 0.15, 0.1]} radius={0.025} smoothness={3} position={[0, 0.08, 0]} material={clay(C.brick)} castShadow />
+        <RoundedBox args={[0.23, 0.03, 0.105]} radius={0.01} position={[0, 0.13, 0]} material={clay(C.wood)} />
+      </group>
+      <group position={[0.3, 0.13, -0.7]} rotation={[0, -0.4, 0]}>
+        <mesh position={[0, 0.07, 0]} scale={[1, 0.75, 0.9]} material={clay('#d9c9a8')} castShadow>
+          <sphereGeometry args={[0.11, 12, 9]} />
+        </mesh>
+        <mesh position={[0, 0.12, 0]} rotation={[Math.PI / 2, 0, 0.4]} material={clay(C.wood)}>
+          <torusGeometry args={[0.08, 0.012, 6, 14, Math.PI * 1.4]} />
+        </mesh>
+      </group>
+      <LampPost position={[1.34, 0, -0.92]} h={0.62} lit={unlocked} />
+
+      {/* brass milk churn by the tea stall */}
+      <group position={[-1.98, 0, 0.6]}>
+        <mesh position={[0, 0.1, 0]} material={clay('#d9b26a')} castShadow>
+          <cylinderGeometry args={[0.055, 0.075, 0.2, 10]} />
+        </mesh>
+        <mesh position={[0, 0.21, 0]} material={clay('#d9b26a')} castShadow>
+          <sphereGeometry args={[0.055, 10, 8]} />
+        </mesh>
+        <mesh position={[0, 0.245, 0]} material={clay(C.brick)}>
+          <cylinderGeometry args={[0.018, 0.018, 0.03, 8]} />
+        </mesh>
+      </group>
 
       {/* tea stall, front left */}
       <group position={[-1.55, 0, 0.3]} rotation={[0, 0.4, 0]}>

@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import type { DioramaProps } from '../types'
-import { C, clay, Scaffold, Rock } from '../../world/kit'
+import { C, clay, Scaffold, Rock, Fence, Bush } from '../../world/kit'
 import { LAMP_POS, HEAD_Y, Lantern, lampLit, lampDark, haloTexture } from './lanterns'
 
 /* A small IIT Patna-style campus block: cream walls, a terracotta hip roof,
@@ -126,6 +126,11 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
       <mesh position={[-0.72, 0.14, 0.12]} material={clay(C.leaf)} castShadow><sphereGeometry args={[0.17, 10, 8]} /></mesh>
       <mesh position={[1.62, 0.16, -0.45]} material={clay(C.leafDark)} castShadow><sphereGeometry args={[0.2, 10, 8]} /></mesh>
       <Rock position={[1.72, 0.05, -0.85]} s={0.16} />
+
+      {/* low fence curving around the back-left rim, shrubs by the wall */}
+      <Fence pts={[new THREE.Vector3(-2.35, 0, -0.7), new THREE.Vector3(-2.15, 0, -1.55), new THREE.Vector3(-1.45, 0, -2.15)]} seed={4} />
+      <Bush position={[2.08, 0, -0.3]} s={0.95} />
+      <Bush position={[-1.9, 0, 0.35]} s={0.8} color={C.leaf} />
     </group>
   )
 }

@@ -138,6 +138,24 @@ export default function Diorama({ unlocked }: DioramaProps) {
       {cables.map((g, i) => <mesh key={'c' + i} geometry={g} material={clay(C.earthDark)} castShadow />)}
       {roots.map((g, i) => <mesh key={'r' + i} geometry={g} material={clay(C.wood)} castShadow />)}
 
+      {/* two mugs and a folded note — the home-lab feel */}
+      {[[-0.44, -0.34, '#c9875f'], [0.4, -0.38, '#7fa7b5']].map(([x, z, c], i) => (
+        <group key={i} position={[TABLE[0] + (x as number), TOP, TABLE[2] + (z as number)]}>
+          <mesh position={[0, 0.035, 0]} material={clay(c as string)} castShadow>
+            <cylinderGeometry args={[0.042, 0.036, 0.07, 10]} />
+          </mesh>
+          <mesh position={[0.05, 0.038, 0]} rotation={[Math.PI / 2, 0, 0]} material={clay(c as string)}>
+            <torusGeometry args={[0.026, 0.008, 6, 12, Math.PI]} />
+          </mesh>
+        </group>
+      ))}
+      <RoundedBox args={[0.2, 0.025, 0.15]} radius={0.01} position={[TABLE[0] - 0.28, TOP + 0.012, TABLE[2] - 0.52]} rotation={[0, 0.45, 0]} material={clay(C.paper)} castShadow />
+
+      {/* a floor cushion someone pulled up to the table */}
+      <mesh position={[-1.32, 0.055, 0.42]} scale={[1, 0.32, 1]} material={clay('#b5654a')} castShadow receiveShadow>
+        <sphereGeometry args={[0.3, 14, 10]} />
+      </mesh>
+
       {/* the word that hops laptop to laptop */}
       <mesh ref={token} position={tops[0]} material={clay(C.paper)} visible={false} castShadow>
         <sphereGeometry args={[0.045, 12, 10]} />

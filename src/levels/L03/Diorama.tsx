@@ -63,7 +63,55 @@ function PaperPlane({ live }: { live: boolean }) {
   )
 }
 
-export default function Diorama({ unlocked }: DioramaProps) {
+/** The weekend workbench: a small bench, a leaning easel frame with a blank page, a pot of tools. */
+function Workbench() {
+  return (
+    <group>
+      {/* bench */}
+      <group position={[1.78, 0, 0.28]} rotation={[0, -0.55, 0]}>
+        <RoundedBox args={[0.68, 0.06, 0.4]} radius={0.025} position={[0, 0.32, 0]} material={clay(C.woodLight)} castShadow receiveShadow />
+        {[[-0.28, -0.14], [0.28, -0.14], [-0.28, 0.14], [0.28, 0.14]].map(([x, z], i) => (
+          <mesh key={i} position={[x, 0.16, z]} material={clay(C.wood)} castShadow>
+            <cylinderGeometry args={[0.028, 0.034, 0.32, 6]} />
+          </mesh>
+        ))}
+        {/* two little site pieces waiting to ship */}
+        <RoundedBox args={[0.16, 0.11, 0.05]} radius={0.015} position={[-0.17, 0.41, -0.05]} rotation={[0, 0.15, 0]} material={clay(C.paper)} castShadow />
+        <RoundedBox args={[0.16, 0.045, 0.052]} radius={0.01} position={[-0.17, 0.375, -0.05]} rotation={[0, 0.15, 0]} material={clay('#e0a458')} />
+        <RoundedBox args={[0.2, 0.08, 0.05]} radius={0.015} position={[0.14, 0.39, 0.06]} rotation={[0, -0.3, 0]} material={clay('#8fc1c9')} castShadow />
+        {/* a cup of brushes */}
+        <mesh position={[0.26, 0.39, -0.08]} material={clay(C.brick)} castShadow>
+          <cylinderGeometry args={[0.04, 0.033, 0.08, 8]} />
+        </mesh>
+        {[[0.24, -0.1, 0.15], [0.28, -0.07, -0.2]].map(([x, z, r], i) => (
+          <mesh key={i} position={[x, 0.47, z]} rotation={[0, 0, r]} material={clay(C.wood)}>
+            <cylinderGeometry args={[0.008, 0.01, 0.12, 5]} />
+          </mesh>
+        ))}
+      </group>
+      {/* small easel with a blank page, echoing the game */}
+      <group position={[2.3, 0, -0.12]} rotation={[0, -0.72, 0]}>
+        <mesh position={[-0.13, 0.3, 0]} rotation={[0, 0, 0.16]} material={clay(C.wood)} castShadow>
+          <cylinderGeometry args={[0.02, 0.026, 0.62, 6]} />
+        </mesh>
+        <mesh position={[0.13, 0.3, 0]} rotation={[0, 0, -0.16]} material={clay(C.wood)} castShadow>
+          <cylinderGeometry args={[0.02, 0.026, 0.62, 6]} />
+        </mesh>
+        <mesh position={[0, 0.3, -0.09]} rotation={[-0.3, 0, 0]} material={clay(C.wood)} castShadow>
+          <cylinderGeometry args={[0.018, 0.024, 0.56, 6]} />
+        </mesh>
+        <group position={[0, 0.48, 0.02]} rotation={[-0.09, 0, 0]}>
+          <RoundedBox args={[0.36, 0.44, 0.035]} radius={0.02} material={clay(C.paper)} castShadow />
+          <RoundedBox args={[0.3, 0.07, 0.04]} radius={0.012} position={[0, 0.15, 0.005]} material={clay('#e0a458')} />
+          <RoundedBox args={[0.14, 0.11, 0.04]} radius={0.012} position={[-0.07, -0.04, 0.005]} material={clay('#8fc1c9')} />
+          <RoundedBox args={[0.11, 0.05, 0.04]} radius={0.012} position={[0.09, -0.13, 0.005]} material={clay(C.terracotta)} />
+        </group>
+      </group>
+    </group>
+  )
+}
+
+export default function Diorama({ unlocked, active }: DioramaProps) {
   return (
     <group>
       {STALLS.map((s, i) => <Stall key={i} {...s} live={unlocked} i={i} />)}
@@ -73,6 +121,8 @@ export default function Diorama({ unlocked }: DioramaProps) {
       <RoundedBox args={[0.2, 0.2, 0.2]} radius={0.04} position={[-2.05, 0.1, 0.15]} material={clay(C.wood)} castShadow />
       <RoundedBox args={[0.15, 0.15, 0.15]} radius={0.04} position={[-2.0, 0.28, 0.1]} rotation={[0, 0.5, 0]} material={clay(C.woodLight)} castShadow />
       <PaperPlane live={unlocked} />
+      {/* the workbench steps aside while the game borrows the front of the island */}
+      {!active && <Workbench />}
       <Scaffold open={unlocked} position={[0, 0, -0.68]} size={[4.5, 1.95, 1.75]} />
     </group>
   )

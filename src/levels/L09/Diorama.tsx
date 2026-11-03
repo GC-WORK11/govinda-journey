@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import type { DioramaProps } from '../types'
-import { C, clay, Scaffold, Rock } from '../../world/kit'
+import { C, clay, Scaffold, Rock, ClayPot, Bush } from '../../world/kit'
 
 const SCHOOL_POS: [number, number, number] = [0.2, 0, -0.7]
 
@@ -157,6 +157,21 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
       {/* Gate and lamp */}
       <SchoolGate open={unlocked} />
       <GateLamp on={unlocked} />
+
+      {/* pots flanking the gate, shrubs at the school corners */}
+      <ClayPot position={[1.12, 0, 0.58]} s={0.9} />
+      <ClayPot position={[2.08, 0, 0.58]} s={0.85} />
+      <Bush position={[-0.72, 0, -0.1]} s={0.95} />
+      <Bush position={[1.02, 0, 0.02]} s={0.75} color={C.leaf} />
+
+      {/* a school satchel waiting by the door */}
+      <group position={[0.58, 0, -0.06]} rotation={[0, -0.35, 0]}>
+        <RoundedBox args={[0.15, 0.13, 0.07]} radius={0.025} position={[0, 0.07, 0]} material={clay(C.terracotta)} castShadow />
+        <RoundedBox args={[0.15, 0.05, 0.075]} radius={0.02} position={[0, 0.115, 0]} material={clay(C.brick)} castShadow />
+        <mesh position={[0, 0.15, 0]} rotation={[Math.PI / 2, 0, 0]} material={clay(C.wood)}>
+          <torusGeometry args={[0.045, 0.008, 6, 12, Math.PI]} />
+        </mesh>
+      </group>
 
       {/* Permanent scaffolding in one corner (level is still being built) */}
       <group position={[-0.55, 0, -1.1]}>

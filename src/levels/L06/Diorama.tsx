@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
 import type { DioramaProps } from '../types'
-import { Scaffold, clay, C } from '../../world/kit'
+import { Scaffold, clay, C, ClayPot, Bush, Fence } from '../../world/kit'
 import * as THREE from 'three'
 
 export default function Diorama({ unlocked, active }: DioramaProps) {
@@ -65,6 +65,19 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
           position={[-0.35, 0.62, 0.56]}
           material={clay(C.water)}
         />
+
+        {/* little dish on the roof beaming tasks out */}
+        <group position={[0.34, 1.42, -0.3]} rotation={[0.5, 0.35, -0.25]}>
+          <mesh position={[0, 0.02, 0]} material={clay(C.stoneLight)} castShadow>
+            <sphereGeometry args={[0.13, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2.6]} />
+          </mesh>
+          <mesh position={[0, -0.09, 0]} material={clay(C.wood)} castShadow>
+            <cylinderGeometry args={[0.014, 0.018, 0.2, 6]} />
+          </mesh>
+          <mesh position={[0, 0.1, 0.02]} rotation={[0.9, 0, 0]} material={clay(C.ink)}>
+            <cylinderGeometry args={[0.006, 0.006, 0.1, 5]} />
+          </mesh>
+        </group>
 
         {/* Desk visible through window */}
         <group position={[-0.35, 0.15, 0.35]}>
@@ -197,6 +210,12 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
           })}
         </group>
       )}
+
+      {/* pots by the door, a fenced garden corner at the back rim */}
+      <ClayPot position={[1.48, 0, -0.52]} s={0.9} />
+      <ClayPot position={[0.92, 0, -0.46]} s={0.72} />
+      <Bush position={[-1.62, 0, -1.5]} s={0.9} />
+      <Fence pts={[new THREE.Vector3(-2.32, 0, -0.72), new THREE.Vector3(-2.45, 0, -1.5), new THREE.Vector3(-2.05, 0, -2.15)]} seed={7} />
 
       {/* Scaffold wrapper */}
       <Scaffold open={unlocked} position={[0.8, 0, -1.2]} size={[1.6, 1.8, 1.6]} />

@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
 import type { DioramaProps } from '../types'
-import { Scaffold, clay, C } from '../../world/kit'
+import { Scaffold, clay, C, Letter, Rock } from '../../world/kit'
 import * as THREE from 'three'
 
 export default function Diorama({ unlocked }: DioramaProps) {
@@ -114,6 +114,17 @@ export default function Diorama({ unlocked }: DioramaProps) {
           />
         </>
       )}
+
+      {/* letters that never got through — one slipped under the closed gate, a few kept by the pillars */}
+      <Letter position={[0, 0.008, -0.5]} rotation={[0, 0.12, 0]} />
+      <Letter position={[-0.8, 0.09, -0.47]} rotation={[-0.5, 0.08, 0.06]} />
+      <Letter position={[-1.35, 0.01, -0.2]} rotation={[0, 0.65, 0]} />
+      <group position={[1.3, 0, -0.42]}>
+        <Letter position={[0, 0.009, 0]} rotation={[0, -0.35, 0]} />
+        <Letter position={[0.03, 0.027, -0.02]} rotation={[0, -0.2, 0]} seal={C.brick} />
+      </group>
+      <Rock position={[-1.9, 0.05, -0.9]} s={0.15} />
+      <Rock position={[1.85, 0.04, 0.35]} s={0.11} color={C.earthDark} />
 
       {/* Stepping stones pond (after unlock) */}
       {unlocked && (

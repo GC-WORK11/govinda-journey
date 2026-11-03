@@ -64,6 +64,30 @@ function Fireflies({ on, active }: { on: boolean; active: boolean }) {
   )
 }
 
+/** A small stacked stone lantern, quiet at the pond's edge. */
+function StoneLantern(p: JSX.IntrinsicElements['group']) {
+  return (
+    <group {...p}>
+      <mesh position={[0, 0.05, 0]} material={clay(C.stone)} castShadow receiveShadow>
+        <cylinderGeometry args={[0.16, 0.2, 0.1, 8]} />
+      </mesh>
+      <mesh position={[0, 0.2, 0]} material={clay(C.stone)} castShadow>
+        <cylinderGeometry args={[0.05, 0.065, 0.22, 8]} />
+      </mesh>
+      <RoundedBox args={[0.2, 0.14, 0.2]} radius={0.025} position={[0, 0.38, 0]} material={clay(C.stoneLight)} castShadow />
+      <mesh position={[0, 0.38, 0]} material={clay('#f0dcae')}>
+        <boxGeometry args={[0.09, 0.08, 0.205]} />
+      </mesh>
+      <mesh position={[0, 0.5, 0]} rotation={[0, Math.PI / 4, 0]} material={clay(C.stone)} castShadow>
+        <coneGeometry args={[0.17, 0.12, 4]} />
+      </mesh>
+      <mesh position={[0, 0.59, 0]} material={clay(C.stone)} castShadow>
+        <sphereGeometry args={[0.045, 8, 6]} />
+      </mesh>
+    </group>
+  )
+}
+
 export default function Diorama({ unlocked, active }: DioramaProps) {
   const padGeo = useMemo(() => new THREE.CircleGeometry(1, 24, 0.5, 5.55), [])
   return (
@@ -90,6 +114,22 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
       {[[-1.34, -1.5, 0.1], [-1.22, -1.62, -0.14], [-1.44, -1.42, 0.24]].map(([x, z, r], i) => (
         <mesh key={i} position={[POND_X + x, 0.2, POND_Z + z]} rotation={[0, 0, r]} material={clay(C.leafDark)} castShadow>
           <cylinderGeometry args={[0.012, 0.02, 0.4, 5]} />
+        </mesh>
+      ))}
+      {/* a second, smaller reed clump on the right bank */}
+      {[[1.32, -0.78, -0.12], [1.46, -0.6, 0.16]].map(([x, z, r], i) => (
+        <mesh key={i} position={[POND_X + x, 0.18, POND_Z + z]} rotation={[0, 0, r]} material={clay(C.moss)} castShadow>
+          <cylinderGeometry args={[0.011, 0.018, 0.34, 5]} />
+        </mesh>
+      ))}
+
+      {/* the stone lantern watching over the water */}
+      <StoneLantern position={[-1.82, 0, -1.32]} rotation={[0, 0.5, 0]} />
+
+      {/* flat pebbles along the back bank */}
+      {[[-0.62, -2.32, 0.5], [0.18, -2.44, 2.1], [0.92, -2.2, 1.2]].map(([x, z, r], i) => (
+        <mesh key={i} position={[x, 0.022, z]} rotation={[0, r, 0]} scale={[1, 0.55, 0.78]} material={clay(i % 2 ? C.stone : '#d6cab4')} castShadow receiveShadow>
+          <sphereGeometry args={[0.11, 10, 8]} />
         </mesh>
       ))}
 

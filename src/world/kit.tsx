@@ -48,9 +48,10 @@ type P = { position?: [number, number, number]; rotation?: [number, number, numb
 /** Height of the grass surface at distance d from the island centre (dome + lip profile). */
 export const topY = (d: number, radius = 3.2) => d > radius * 0.96 ? 0 : 0.04 * Math.max(0, 1 - (d / (radius * 0.96)) ** 1.7)
 
-/** Island geometry: grass cap lathe with an overhanging lip + rocky underside, AO baked into vertex colours. */
+/** Island geometry: grass cap lathe with an overhanging lip + layered strata rock underside, AO baked into vertex colours. */
 function islandGeo(radius: number, ground: string, seed: number) {
   const r = radius
+  const rnd = (n: number) => { const x = Math.sin(n * 12.9898 + seed * 78.233) * 43758.5453; return x - Math.floor(x) }
   const lip = new THREE.CatmullRomCurve3([
     new THREE.Vector3(r * 0.8, -0.5, 0), new THREE.Vector3(r * 0.98, -0.36, 0),
     new THREE.Vector3(r * 1.04, -0.18, 0), new THREE.Vector3(r * 1.0, -0.05, 0),
@@ -63,17 +64,41 @@ function islandGeo(radius: number, ground: string, seed: number) {
     // dark underside of the lip -> soft daylight on top
     c.multiplyScalar(0.58 + 0.46 * smooth(-0.48, 0.01, y))
   }, 0.05)
-  const under = new THREE.ConeGeometry(r * 0.9, r * 1.2, 14, 4)
-  under.rotateX(Math.PI); under.translate(0, -0.48 - r * 0.6, 0)
-  const pos = under.attributes.position as THREE.BufferAttribute
-  const rnd = (n: number) => { const x = Math.sin(n * 12.9898 + seed * 78.233) * 43758.5453; return x - Math.floor(x) }
-  for (let i = 0; i < pos.count; i++) {
-    const y = pos.getY(i); if (y > -0.55) continue
-    const k = 1 + (rnd(i) - 0.5) * 0.3
-    pos.setX(i, pos.getX(i) * k); pos.setZ(i, pos.getZ(i) * k); pos.setY(i, y + (rnd(i + 99) - 0.5) * 0.28)
+  // soften the silhouette: a low-frequency radial wobble on the rim band only, so the top stays flat
+  const tp = top.attributes.position as THREE.BufferAttribute
+  for (let i = 0; i < tp.count; i++) {
+    const x = tp.getX(i), z = tp.getZ(i)
+    const rad = Math.hypot(x, z); if (rad < r * 0.72) continue
+    const a = Math.atan2(z, x)
+    const k = 1 + 0.05 * Math.sin(a * 3 + seed * 2.1) + 0.038 * Math.sin(a * 7 + seed * 5.3)
+    tp.setX(i, x * k); tp.setZ(i, z * k)
+  }
+  top.computeVertexNormals()
+  // rocky underside: a lathe profile that shelves in and out, giving stepped strata ledges
+  const prof: [number, number][] = [
+    [0.84, -0.46], [0.9, -0.58], [0.78, -0.72], [0.83, -0.9],
+    [0.7, -1.05], [0.74, -1.28], [0.6, -1.46], [0.65, -1.72],
+    [0.51, -1.9], [0.55, -2.14], [0.42, -2.38], [0.35, -2.7],
+    [0.23, -3.0], [0.1, -3.34], [0.001, -3.8],
+  ]
+  const under = new THREE.LatheGeometry(prof.map(([px, py]) => new THREE.Vector2(px * r, py)), 48)
+  const up = under.attributes.position as THREE.BufferAttribute
+  for (let i = 0; i < up.count; i++) {
+    const x = up.getX(i), y = up.getY(i), z = up.getZ(i)
+    const rad = Math.hypot(x, z); if (rad < 1e-3) continue
+    const a = Math.atan2(z, x)
+    const k = 1 + 0.09 * Math.sin(a * 4 + y * 2.6 + seed) + 0.08 * (rnd(i) - 0.5)
+    up.setX(i, x * k); up.setZ(i, z * k)
+    up.setY(i, y + (rnd(i + 57) - 0.5) * 0.13)
   }
   under.computeVertexNormals()
-  paint(under, C.earth, (c, _x, y) => c.multiplyScalar(0.66 + 0.44 * smooth(-0.55, -1.2, y) - 0.22 * smooth(-3.4, -4.2, y)), 0.08)
+  // sedimentary bands, darker in the lip shadow and toward the tip
+  const bands = ['#c9b79a', '#b19d82', '#9d8469', '#8c7055']
+  paint(under, bands[0], (c, x, y) => {
+    const b = Math.abs(Math.floor(-y * 2.2 + Math.sin(x * 2.3 + seed) * 0.55)) % bands.length
+    c.set(bands[b])
+    c.multiplyScalar((0.58 + 0.44 * smooth(-4.0, -0.55, y)) * (1 - 0.36 * (1 - smooth(-1.0, -0.44, y))))
+  }, 0.08)
   const g = mergeGeometries([top, under], false)!
   top.dispose(); under.dispose()
   return g
@@ -142,7 +167,7 @@ export function scatterGeo({ radius = 3.2, ground = C.leaf, accent = C.terracott
     (x - stand.x) ** 2 + (z - stand.z) ** 2 > rStand * rStand && !nearPath(x, z, rPath)
   const greens = [C.leafDark, C.leaf, C.moss]
   // trees + big rocks around the rim (diorama keeps centre free)
-  for (let k = 0, placed = 0; k < 30 && placed < 4; k++) {
+  for (let k = 0, placed = 0; k < 40 && placed < 5; k++) {
     const a = rnd(k * 4 + 1) * Math.PI * 2, d = 2.25 + rnd(k * 4 + 2) * 0.62
     const x = Math.cos(a) * d, z = Math.sin(a) * d
     if (!clear(x, z, 1.15, 0.85) || d > radius * 0.94) continue
@@ -152,21 +177,26 @@ export function scatterGeo({ radius = 3.2, ground = C.leaf, accent = C.terracott
       put(new THREE.CylinderGeometry(0.055, 0.08, 0.55, 7), x, y + 0.24 * h, z, 0, h, 0, 0, C.wood, 0.06)
       put(new THREE.SphereGeometry(0.4, 14, 11), x, y + 0.72 * h, z, 0, h, 0, 0, gc, 0.05)
       put(new THREE.SphereGeometry(0.26, 12, 9), x + 0.19 * h, y + 0.57 * h, z + 0.09 * h, 0, h, 0, 0, gc, 0.05)
+      if (rnd(k * 4 + 6) > 0.6) { // a tiny mushroom sheltering at the trunk
+        const ma = rnd(k * 13) * Math.PI * 2
+        put(new THREE.CylinderGeometry(0.022, 0.028, 0.07, 6), x + Math.cos(ma) * 0.2, y + 0.035, z + Math.sin(ma) * 0.2, 0, 1, 0, 0, C.paper, 0.05)
+        put(new THREE.SphereGeometry(0.05, 10, 7), x + Math.cos(ma) * 0.2, y + 0.085, z + Math.sin(ma) * 0.2, 0, 1, 0, 0, C.terracotta, 0.06)
+      }
     } else { // boulder
       put(new THREE.DodecahedronGeometry(0.24, 1), x, y + 0.1 * h, z, rnd(k) * 3, h * 1.1, 0, 0, C.stone, 0.08)
     }
     placed++
   }
   // pebbles hugging the lip
-  for (let k = 0; k < 6; k++) {
-    const a = rnd(60 + k * 3) * Math.PI * 2, d = (2.5 + rnd(60 + k * 3 + 1) * 0.55) * (radius / 3.2)
+  for (let k = 0; k < 10; k++) {
+    const a = rnd(60 + k * 3) * Math.PI * 2, d = (2.45 + rnd(60 + k * 3 + 1) * 0.6) * (radius / 3.2)
     const x = Math.cos(a) * d, z = Math.sin(a) * d
     if (!clear(x, z, 0.7, 0.4)) continue
     put(new THREE.DodecahedronGeometry(0.05 + rnd(60 + k * 3 + 2) * 0.07, 0), x, topY(d, radius) + 0.015, z, rnd(k * 9) * 3, 1, 0, 0, rnd(k) > 0.5 ? C.stone : '#d6cab4', 0.1)
   }
   // grass tufts
   const dark = new THREE.Color(ground).multiplyScalar(0.78)
-  for (let k = 0; k < 15; k++) {
+  for (let k = 0; k < 26; k++) {
     const a = rnd(100 + k * 2) * Math.PI * 2, d = (0.9 + rnd(101 + k * 2) * 2.0) * (radius / 3.2)
     const x = Math.cos(a) * d, z = Math.sin(a) * d
     if (d > radius * 0.93 || !clear(x, z, 0.75, 0.3)) continue
@@ -174,9 +204,22 @@ export function scatterGeo({ radius = 3.2, ground = C.leaf, accent = C.terracott
     put(new THREE.ConeGeometry(0.06 + rnd(k + 5) * 0.05, 0.16 + rnd(k + 9) * 0.12, 5), x, topY(d, radius) + 0.07, z,
       rnd(k * 7) * 3, 1, (rnd(k * 3) - 0.5) * 0.35, (rnd(k * 5) - 0.5) * 0.35, hex, 0.08)
   }
+  // thin blades at the rim leaning outward, so the grass cap reads as an overhang
+  for (let k = 0, placed = 0; k < 40 && placed < 12; k++) {
+    const a = rnd(150 + k * 3) * Math.PI * 2, d = (2.7 + rnd(151 + k * 3) * 0.3) * (radius / 3.2)
+    const x = Math.cos(a) * d, z = Math.sin(a) * d
+    if (!clear(x, z, 0.5, 0.6)) continue
+    const near = Math.min(1, Math.max(0, (d / radius - 0.84) / 0.1)) // leans harder at the edge
+    const lean = 0.3 + near * 0.65 + (rnd(k * 11) - 0.5) * 0.3
+    const hex = '#' + (rnd(k + 3) > 0.4 ? dark : new THREE.Color(ground)).getHexString()
+    const dx = x / d, dz = z / d
+    put(new THREE.ConeGeometry(0.028 + rnd(k + 7) * 0.022, 0.15 + rnd(k + 5) * 0.13, 5), x, topY(d, radius) + 0.04, z,
+      rnd(k * 17) * 3, 1, dz * lean, -dx * lean, hex, 0.08)
+    placed++
+  }
   // flower clusters: a few blossoms on leafy dots, like the reference
   const petals = [C.paper, '#e9b3a5', '#eec978', accent]
-  for (let k = 0, placed = 0; k < 40 && placed < 9; k++) {
+  for (let k = 0, placed = 0; k < 60 && placed < 13; k++) {
     const a = rnd(200 + k * 5) * Math.PI * 2, d = (1.1 + rnd(201 + k * 5) * 1.7) * (radius / 3.2)
     const x = Math.cos(a) * d, z = Math.sin(a) * d
     if (d > radius * 0.92 || !clear(x, z, 0.95, 0.5)) continue
@@ -326,6 +369,108 @@ export function Bridge({ from, to }: { from: THREE.Vector3; to: THREE.Vector3 })
         <RoundedBox key={i} args={[0.9, 0.07, 0.24]} radius={0.03} position={k.p} rotation={[0, k.r, (i % 3 - 1) * 0.03]} material={clay(i % 2 ? C.wood : C.woodLight)} castShadow receiveShadow />
       ))}
       <mesh geometry={rails} material={clayVC()} castShadow />
+    </group>
+  )
+}
+
+/* ---- Small shared set dressing (procedural, warm clay) -------------------- */
+
+/** Posts at each waypoint + two rails between them, all merged into one mesh. */
+export function fenceGeo(pts: THREE.Vector3[], seed = 1) {
+  const rnd = (n: number) => { const x = Math.sin(seed * 57.7 + n * 11.13) * 43758.5453; return x - Math.floor(x) }
+  const geos: THREE.BufferGeometry[] = []
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), s = new THREE.Vector3(1, 1, 1)
+  const put = (g: THREE.BufferGeometry, p: THREE.Vector3, ry: number, hex: string, rx = 0, rz = 0) => {
+    e.set(rx, ry, rz); q.setFromEuler(e)
+    g.applyMatrix4(m.compose(p, q, s)); paint(g, hex, undefined, 0.07); geos.push(g)
+  }
+  pts.forEach((p, i) => {
+    const h = 0.38 + rnd(i * 3) * 0.08
+    put(new THREE.CylinderGeometry(0.032, 0.042, h, 7), new THREE.Vector3(p.x, p.y + h / 2, p.z), rnd(i) * 3,
+      i % 2 ? C.wood : C.woodLight, (rnd(i * 3 + 1) - 0.5) * 0.12, (rnd(i * 3 + 2) - 0.5) * 0.12)
+    put(new THREE.SphereGeometry(0.05, 8, 6), new THREE.Vector3(p.x, p.y + h + 0.014, p.z), 0, C.woodLight)
+  })
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i], b = pts[i + 1]
+    const d = b.clone().sub(a), len = d.length()
+    const mid = a.clone().lerp(b, 0.5)
+    const yaw = Math.atan2(d.x, d.z)
+    for (const hy of [0.16, 0.29]) {
+      const g = new THREE.CylinderGeometry(0.019, 0.019, len, 6)
+      g.rotateX(Math.PI / 2)
+      put(g, new THREE.Vector3(mid.x, mid.y + hy, mid.z), yaw, C.woodLight)
+    }
+  }
+  const g = mergeGeometries(geos, false)
+  geos.forEach((x) => x.dispose())
+  return g
+}
+
+/** A short run of wooden fence along the given island-local points. */
+export function Fence({ pts, seed = 1, ...p }: P & { pts: THREE.Vector3[]; seed?: number }) {
+  const key = pts.map((v) => `${v.x},${v.y},${v.z}`).join('|')
+  const geo = useMemo(() => fenceGeo(pts, seed), [key, seed])
+  if (!geo) return null
+  return <mesh geometry={geo} material={clayVC()} castShadow receiveShadow {...p} />
+}
+
+const lampLitMat = new THREE.MeshStandardMaterial({ color: '#f2c07a', emissive: '#e89b4e', emissiveIntensity: 1.0, roughness: 0.6 })
+/** Small clay lamp for paths and doorways. `lit` gives it a warm head. */
+export function LampPost({ h = 0.66, lit = false, ...p }: P & { h?: number; lit?: boolean }) {
+  return (
+    <group {...p}>
+      <mesh position={[0, 0.03, 0]} material={clay(C.stone)} castShadow><cylinderGeometry args={[0.07, 0.09, 0.06, 8]} /></mesh>
+      <mesh position={[0, h * 0.5, 0]} material={clay(C.wood)} castShadow><cylinderGeometry args={[0.022, 0.03, h * 0.94, 7]} /></mesh>
+      <mesh position={[0, h + 0.045, 0]} scale={[1, 0.9, 1]} material={lit ? lampLitMat : clay('#e2cfa6')} castShadow>
+        <sphereGeometry args={[0.07, 12, 9]} />
+      </mesh>
+      <mesh position={[0, h + 0.115, 0]} material={clay(C.terracotta)} castShadow><coneGeometry args={[0.062, 0.075, 8]} /></mesh>
+    </group>
+  )
+}
+
+/** Terracotta pot with a little leafy plant. */
+export function ClayPot({ s = 1, plant = true, ...p }: P & { s?: number; plant?: boolean }) {
+  return (
+    <group {...p}>
+      <group scale={s}>
+        <mesh position={[0, 0.055, 0]} material={clay(C.terracotta)} castShadow><cylinderGeometry args={[0.085, 0.06, 0.11, 10]} /></mesh>
+        <mesh position={[0, 0.115, 0]} material={clay(C.brick)} castShadow><cylinderGeometry args={[0.096, 0.09, 0.035, 10]} /></mesh>
+        {plant && (
+          <>
+            <mesh position={[0, 0.19, 0]} material={clay(C.leafDark)} castShadow><sphereGeometry args={[0.09, 10, 8]} /></mesh>
+            <mesh position={[0.055, 0.165, 0.03]} material={clay(C.leaf)} castShadow><sphereGeometry args={[0.06, 9, 7]} /></mesh>
+          </>
+        )}
+      </group>
+    </group>
+  )
+}
+
+/** A small two-tone shrub. */
+export function Bush({ s = 1, color = C.leafDark, ...p }: P & { s?: number; color?: string }) {
+  return (
+    <group {...p}>
+      <group scale={s}>
+        <mesh position={[0, 0.15, 0]} material={clay(color)} castShadow><sphereGeometry args={[0.2, 12, 9]} /></mesh>
+        <mesh position={[0.15, 0.1, 0.05]} material={clay(color)} castShadow><sphereGeometry args={[0.12, 10, 8]} /></mesh>
+        <mesh position={[-0.13, 0.1, -0.04]} material={clay(color)} castShadow><sphereGeometry args={[0.1, 10, 8]} /></mesh>
+      </group>
+    </group>
+  )
+}
+
+/** A small folded paper letter with a wax seal. */
+export function Letter({ seal = C.terracotta, ...p }: P & { seal?: string }) {
+  return (
+    <group {...p}>
+      <RoundedBox args={[0.22, 0.016, 0.15]} radius={0.007} material={clay(C.paper)} castShadow receiveShadow />
+      <mesh position={[0, 0.0095, -0.026]} rotation={[-Math.PI / 2, 0, 0]} material={clay('#efe3cd')}>
+        <planeGeometry args={[0.19, 0.1]} />
+      </mesh>
+      <mesh position={[0, 0.013, 0.012]} rotation={[Math.PI / 2, 0, 0]} material={clay(seal)}>
+        <cylinderGeometry args={[0.021, 0.021, 0.008, 9]} />
+      </mesh>
     </group>
   )
 }

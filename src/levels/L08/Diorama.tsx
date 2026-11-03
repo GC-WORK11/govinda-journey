@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import type { DioramaProps } from '../types'
-import { C, Scaffold, clay } from '../../world/kit'
+import { C, Scaffold, clay, Fence, Bush } from '../../world/kit'
 
 const HAND_C = '#d9825b'
 
@@ -101,6 +101,26 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
           </mesh>
         </group>
       </group>
+
+      {/* crate of fresh clay lumps and a couple of shaping tools on the deck */}
+      <group position={[1.5, 0.035, -0.62]} rotation={[0, -0.3, 0]}>
+        <RoundedBox args={[0.34, 0.16, 0.26]} radius={0.025} position={[0, 0.08, 0]} material={clay(C.wood)} castShadow receiveShadow />
+        <mesh position={[-0.07, 0.19, 0.02]} scale={[1, 0.8, 1]} material={clay(HAND_C)} castShadow>
+          <sphereGeometry args={[0.09, 10, 8]} />
+        </mesh>
+        <mesh position={[0.08, 0.18, -0.03]} scale={[1, 0.75, 1]} material={clay(C.earth)} castShadow>
+          <sphereGeometry args={[0.07, 10, 8]} />
+        </mesh>
+      </group>
+      {[0.95, 1.12].map((x, i) => (
+        <mesh key={i} position={[x, 0.075, 0.62 - i * 0.09]} rotation={[0, 0.4 + i * 0.5, Math.PI / 2]} material={clay(C.wood)} castShadow>
+          <cylinderGeometry args={[0.014, 0.019, 0.22, 6]} />
+        </mesh>
+      ))}
+
+      {/* low fence along the back rim, a shrub in the far corner */}
+      <Fence pts={[new THREE.Vector3(-0.4, 0, -2.35), new THREE.Vector3(0.5, 0, -2.55), new THREE.Vector3(1.45, 0, -2.3)]} seed={11} />
+      <Bush position={[-1.85, 0, -0.25]} s={0.9} color={C.moss} />
 
       {/* a stool with clay waiting to be shaped */}
       <group position={[1.5, 0, 0.5]}>

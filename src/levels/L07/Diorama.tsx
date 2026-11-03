@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
 import type { DioramaProps } from '../types'
@@ -7,6 +7,13 @@ import * as THREE from 'three'
 
 export default function Diorama({ unlocked }: DioramaProps) {
   const ribbonRef = useRef<THREE.Group>(null)
+  // the cable on the grass between the phone stand and the laptop — how the words travel
+  const cableGeo = useMemo(() => new THREE.TubeGeometry(new THREE.CatmullRomCurve3([
+    new THREE.Vector3(-0.52, 0.02, 0.3),
+    new THREE.Vector3(-0.18, 0.012, 0.58),
+    new THREE.Vector3(0.32, 0.012, 0.52),
+    new THREE.Vector3(0.66, 0.02, 0.4),
+  ]), 20, 0.013, 6), [])
   
   // Gentle float animation for the ribbon after unlock
   useFrame(({ clock }) => {
@@ -178,7 +185,20 @@ export default function Diorama({ unlocked }: DioramaProps) {
           </mesh>
         </group>
       </group>
-      
+
+      {/* cable on the grass + loose notes and a mug on the desk */}
+      <mesh geometry={cableGeo} material={clay(C.earthDark)} castShadow />
+      <RoundedBox args={[0.16, 0.008, 0.12]} radius={0.004} position={[-1.08, 0.088, 0.14]} rotation={[0, 0.35, 0]} material={clay(C.paper)} castShadow />
+      <RoundedBox args={[0.14, 0.008, 0.1]} radius={0.004} position={[-0.3, 0.012, 0.78]} rotation={[0, -0.6, 0]} material={clay(C.paper)} castShadow />
+      <group position={[-0.44, 0.08, -0.2]}>
+        <mesh position={[0, 0.032, 0]} material={clay(C.water)} castShadow>
+          <cylinderGeometry args={[0.04, 0.034, 0.065, 10]} />
+        </mesh>
+        <mesh position={[0.047, 0.035, 0]} rotation={[Math.PI / 2, 0, 0]} material={clay(C.water)}>
+          <torusGeometry args={[0.024, 0.007, 6, 12, Math.PI]} />
+        </mesh>
+      </group>
+
       {/* Floating paper ribbon after unlock */}
       {unlocked && (
         <group ref={ribbonRef} position={[0.1, 0.58, 0.15]}>
