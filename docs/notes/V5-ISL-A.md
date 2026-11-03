@@ -17,8 +17,10 @@ walkable raycast + blocker push-out + jump, E-prompt HUD). Open
   (stone pillars + swinging wooden double doors, invisible blocker panel while closed),
   `Rock` (pack prop + opacity-0 collider box), `Mound` (walkable rise), `LowWall`
   (blocker + walkable top), `PaperLetter`.
-- `src/levels/L01/campus.v5.tsx` — `CampusBlock` (KayKit `building_a` on a clay plinth, porch
-  light + chimney smoke warm up after solve), `BigTree` (`tree_oak` + trunk collider),
+- `src/levels/L01/campus.v5.tsx` — `CampusBlock` (clay assembly: cream block, terracotta hip
+  roof, arched windows + porch light + chimney smoke warm after solve; real blocker collider.
+  The KayKit `building_*` prop was cut on owner request — read as a city building), `BigTree`
+  (`tree_oak` + trunk collider),
   `LaptopDesk` (`desk` + `laptop` + `chair_desk` + `books`, mug; screen + desk light warm on use).
 - `src/levels/L01/Obstacle.tsx` — courtyard: hop a low wall (blocker, sealed ends) → desk with
   laptop under tree (interactable `l01-laptop`, radius 1.7, label "sit at the laptop") → using it
@@ -73,8 +75,11 @@ pickup) then onto the ledge. Registered only while the obstacle is mounted.
   ending at the rock). Your ExitGate hurdle at z=-4.55 sits inside my L02 ledge volume — also
   buried, harmless. `window.__journey.solve` — I create/merge defensively; solver keys exist
   only while the obstacle is mounted.
-- ART: props swapped in — `building_a`, `tree_oak`, `desk`, `laptop`, `chair_desk`, `books`,
-  `streetlight`, `fence_planks`/`fence_simple`, `plant_bush*`, `rock_small_*`, `quat_rock_*`,
-  `path_stone`, `rock_path_round`, `stone_small_flat_a` (step caps), `<Scatter>` tuft/flower rims.
+- ART: props in — `tree_oak`, `desk`, `laptop`, `chair_desk`, `books`,
+  `streetlight`, `fence_planks`/`fence_simple`, `rock_small_*`, `quat_rock_*`,
+  `path_stone`, `rock_path_round`, `stone_small_flat_a` (step caps), `<Scatter>` flower-only rims.
+  Owner cuts (049a99a): `building_*` pack props out (read as city buildings — L01's landmark is
+  the clay campus block again); all `plant_bush*` + `tuft` scatter (spiky agave/fern) swapped for
+  V4-style round `kit/Bush` and flowers-only scatter in L01 and L02.
   Still clay by design: gate (animated doors), low wall, ledge shelf, mound, letters (no envelope
   prop exists — could swap if ART adds one), step teeth (need exact collider heights).
