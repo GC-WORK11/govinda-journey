@@ -134,9 +134,10 @@ export default function Sky5() {
             'void main(){ float h = normalize(vP).y;' +
             ' vec3 c = mix(bot, mid, smoothstep(-0.75, -0.4, h));' +
             // V5's camera rides lower than V4's — carry the warm mid band up
-            // through eye level so the horizon keeps its soft gradient.
-            ' c = mix(c, top, smoothstep(-0.34, 0.10, h));' +
-            ' c += glow * (gi * exp(-pow((h + 0.16) * 5.0, 2.0)));' +
+            // through eye level so the horizon keeps its soft gradient
+            // (peach/lilac up to ~0.34, zenith colour only well above).
+            ' c = mix(c, top, smoothstep(-0.06, 0.36, h));' +
+            ' c += glow * (gi * exp(-pow((h + 0.10) * 5.0, 2.0)));' +
             ' gl_FragColor = vec4(c, 1.0);' +
             '\n#include <colorspace_fragment>\n}'
           } />
