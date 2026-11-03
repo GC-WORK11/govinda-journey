@@ -229,10 +229,13 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
     targetSm: new THREE.Vector3(), first: true, respawnT: 0,
   })
 
-  // spawn point: island 0 entry (WORLD may also teleport via ?qa goto)
+  // spawn point: island 0 entry — unless WORLD/QA already placed us (e.g. ?at=
+  // fires goto before this lazy chunk mounts). Same convention as FallbackRig:
+  // a non-zero core.player.pos means someone else owns the spawn.
   useEffect(() => {
     const s = S.current
-    s.pos.copy(start ?? _v1.copy(ISLAND_POS[0]).add(ENTRY).add(_v2.set(0, 0.4, 0)))
+    const placed = player.pos.lengthSq() > 0.01
+    s.pos.copy(start ?? (placed ? player.pos : _v1.copy(ISLAND_POS[0]).add(ENTRY).add(_v2.set(0, 0.4, 0))))
     s.lastSafe.copy(s.pos); s.targetSm.copy(s.pos).add(_v2.set(0, 1.05, 0))
     s.hist = Array.from({ length: 40 }, () => s.pos.clone())
   }, [start])
