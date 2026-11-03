@@ -238,16 +238,17 @@ for (const [size, vp] of VIEWPORTS) {
   await page.setViewport(vp)
   page.setDefaultTimeout(120000)
   wire(page)
-  // V4 side-by-side comparison page (same island ids drive both worlds)
-  const v4 = await browser.newPage()
-  await v4.setViewport(vp)
-  v4.setDefaultTimeout(120000)
+  // V4 side-by-side comparison page — created lazily so the V5 page never sits
+  // backgrounded while the world boots (background tabs get rAF ≈ 0 → sim freezes).
+  let v4 = null
   const v4shot = async (id, n) => {
     try {
+      if (!v4) { v4 = await browser.newPage(); await v4.setViewport(vp); v4.setDefaultTimeout(120000) }
       await v4.goto(`${base}?v4&qa&at=${id}`, { waitUntil: 'domcontentloaded', timeout: 60000 })
       await sleep(4600)
       await v4.screenshot({ path: path.join(outdir, `v4-${size}-${pad(n)}-${id}.png`) })
     } catch (e) { console.log(`  v4 shot ${id} failed: ${e.message.slice(0, 120)}`) }
+    try { await page.bringToFront() } catch {}
   }
 
   console.log(`\n=== v5 ${size} ${vp.width}x${vp.height} ===`)
@@ -266,7 +267,7 @@ for (const [size, vp] of VIEWPORTS) {
   if (!ready) {
     rec({ size, id: 'BOOT', ok: false, detail: 'V5 world not mounted (no core.walkables, no __journey.v5) — is ?qa routed to V5?' })
     await shot(page, `${size}-00-nov5.png`)
-    await v4.close().catch(() => {})
+    await v4?.close().catch(() => {})
     await page.close().catch(() => {})
     continue
   }
@@ -300,6 +301,7 @@ for (const [size, vp] of VIEWPORTS) {
     const i0 = Date.now()
     tag = `${size}-${id}`
     const fails = []
+    try { await page.bringToFront() } catch {}
     const C = lay.pos[i]
     const entryW = { x: C.x + lay.entry.x, y: C.y + lay.entry.y, z: C.z + lay.entry.z }
     const exitW = { x: C.x + lay.exit.x, y: C.y + lay.exit.y, z: C.z + lay.exit.z }
@@ -336,9 +338,12 @@ for (const [size, vp] of VIEWPORTS) {
     // -- solve: prefer the island's real-interaction solver
     const hkNow = await hooks(page)
     if (hkNow.solve.includes(id)) {
-      await page.evaluate((lid) => { try { return window.__journey.solve[lid]() } catch (e) { return 'threw: ' + e.message } }, id).catch((e) => fails.push('solve threw ' + e.message))
-      solvedHow = 'solve()'
-      for (let t = 0; t < 30 && !(await v5state(page)).done.includes(id); t++) await sleep(500)
+      for (let attempt = 0; attempt < 2; attempt++) {
+        await page.evaluate((lid) => { try { return window.__journey.solve[lid]() } catch (e) { return 'threw: ' + e.message } }, id).catch((e) => fails.push('solve threw ' + e.message))
+        solvedHow = 'solve()'
+        for (let t = 0; t < 36 && !(await v5state(page)).done.includes(id); t++) await sleep(500)
+        if ((await v5state(page)).done.includes(id)) break
+      }
     } else {
       // fallback: walk to each enabled interactable on this island and use it for real
       const seen = new Set()
@@ -419,15 +424,19 @@ for (const [size, vp] of VIEWPORTS) {
     }
 
     const cerr = errorsFor(tag)
+    const islandFps = await fps(page).catch(() => 0)
     const ok = fails.length === 0
-    rec({ size, i, id, ok, ms: Date.now() - i0, detail: fails.join(' | ') || undefined, solvedHow, walkedFromPrev, console: cerr })
+    rec({ size, i, id, ok, ms: Date.now() - i0, fps: islandFps, detail: fails.join(' | ') || undefined, solvedHow, walkedFromPrev, console: cerr })
+    console.log(`      [fps≈${islandFps}]`)
     if (cerr.length) console.log(`      console: ${cerr.slice(0, 3).join(' ;; ')}`)
   }
-  await v4.close().catch(() => {})
+  const bootErr = errors.filter((e) => !ORDER.some((id) => e.tag.endsWith(id))).map((e) => e.text)
+  if (bootErr.length) console.log(`  boot/console errors: ${[...new Set(bootErr)].slice(0, 5).join(' ;; ')}`)
+  await v4?.close().catch(() => {})
   await page.close().catch(() => {})
   } catch (e) {
     rec({ size, id: 'BOOT', ok: false, detail: 'boot harness: ' + e.message.slice(0, 160) })
-    try { await v4.close() } catch {}
+    try { await v4?.close() } catch {}
     try { await page.close() } catch {}
   }
 }
@@ -440,7 +449,7 @@ console.log('\n==== V5 QA summary ====')
 for (const id of (ORDER || [])) {
   const d = results.find((r) => r.size === '1440' && r.id === id)
   const m = results.find((r) => r.size === '390' && r.id === id)
-  const f = (r) => (r ? (r.ok ? 'PASS' : 'FAIL ' + (r.detail || '').slice(0, 60)) : '-')
+  const f = (r) => (r ? `${r.ok ? 'PASS' : 'FAIL ' + (r.detail || '').slice(0, 54)} [fps≈${r.fps ?? '?'}]` : '-')
   console.log(`${id}  ${f(d).padEnd(64)}  ${f(m)}`)
 }
 const fails = results.filter((r) => !r.ok)
