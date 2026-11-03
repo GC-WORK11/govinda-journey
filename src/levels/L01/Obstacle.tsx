@@ -12,7 +12,7 @@ import { Gate, LowWall, PathStones, PillHint, Prop, Rock, tpLocal, sleep, useLoc
 import { Scatter } from '../../v5/art/Dressing'
 import { BigTree, CampusBlock, LaptopDesk } from './campus.v5'
 
-const DESK = new THREE.Vector3(1.85, 0, -0.9)
+const DESK = new THREE.Vector3(2.35, 0, -0.6)
 const WALL_Z = 0.55
 
 export default function Obstacle({ id, active, complete, done }: core.ObstacleProps) {
@@ -88,7 +88,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
     <group ref={root}>
       {/* courtyard landmark + the desk under the tree */}
       <CampusBlock position={[-2.3, 0, -2.85]} yaw={0.55} warm={warm} />
-      <BigTree position={[2.7, 0, -1.7]} s={1.15} />
+      <BigTree position={[2.9, 0, -1.45]} s={1.1} />
       <LaptopDesk position={[DESK.x, 0, DESK.z]} yaw={-1.05} lit={warm} laptopRef={laptopRef} />
 
       {/* the low wall that teaches the hop — sealed at both ends by boulders */}
@@ -106,7 +106,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
 
       {/* a spur of stones leading off the main path to the desk (the z-corridor
           stones are drawn by WORLD) */}
-      <PathStones pts={[[0.15, -0.4], [1.15, -0.8]]} seed={7} />
+      <PathStones pts={[[0.15, -0.35], [1.6, -0.55]]} seed={7} />
 
       {/* dressing */}
       <Prop name="fence_planks" position={[-4.25, 0, -0.9]} rotation={[0, 1.15, 0]} scale={1.3} />
@@ -117,7 +117,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       <Rock position={[3.4, 0.04, 2.1]} s={0.24} block={false} yaw={1.2} variant={1} />
       {/* seeded rim dressing, kept clear of the courtyard */}
       <Scatter seed={11} density={0.55} kinds={['tuft', 'flower']}
-        avoid={[[-2.3, -2.85, 2.6], [2.0, -1.1, 2.2], [0, -3.9, 2.2], [0, 4.2, 1.4]]} />
+        avoid={[[-2.3, -2.85, 2.6], [2.6, -1.0, 2.0], [0, -3.9, 2.2], [0, 4.2, 1.4]]} />
 
       {/* quiet teaching line */}
       <PillHint text={hint} />

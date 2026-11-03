@@ -46,6 +46,22 @@ pickup) then onto the ledge. Registered only while the obstacle is mounted.
 
 ## Requests / assumptions for other areas
 
+- **WORLD — the V4 parity Diorama overlaps the obstacles.** `Island5` mounts the V4
+  Diorama (scaled 5/3.2) under every Obstacle, and while unsolved each diorama is
+  covered by a big `Scaffold` dome. Verified live on `?v5&at=L01&fresh`:
+  - L01's dome covers the courtyard's back half (x −1.3…2.4, z −2.4…0.2): my gate at
+    z=−3.9 is hidden behind it until solve (acceptable — dome lift IS the payoff),
+    but the desk only just clears its skirt — I moved desk/tree right to (2.35,−0.6)/
+    (2.9,−1.45).
+  - L02's dome (x −1.56…1.56, z −2.2…−0.3) sat exactly over the step run and one
+    letter — I moved the run to the ledge's right flank (x≈2.1) and the letter to
+    (−2.9,−1.5). V4's decorative fake letters also linger on the field looking like
+    pickup targets (only real ones fly — flagging as known confusion).
+  - Recommend: `Island5` skips the Diorama when `hasObstacle(id)` (or a per-island
+    opt-out), at least the `Scaffold` wrap — the parity baseline's job is done once
+    an island's obstacle is live.
+
+
 - PLAYER: confirmed from your note — step-up ~0.45 m. L01 wall is 0.56 (+cap ≈ 0.63) so it
   cannot be stepped up and must be hopped; L02 steps rise 0.32 so they read as stairs you walk
   up ("climb" practice). Blockers are real meshes; my invisible gate panel is an opacity-0 box.

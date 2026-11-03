@@ -18,12 +18,14 @@ const LETTERS = [
   new THREE.Vector3(1.6, 0.03, 2.7),    // out in the open, near the entry
   new THREE.Vector3(-2.5, 0.03, 0.7),   // tucked behind the big rock
   new THREE.Vector3(2.05, 0.42, 0.95),  // on top of the little rise
-  new THREE.Vector3(-1.3, 0.03, -0.7),  // midfield
+  new THREE.Vector3(-2.9, 0.03, -1.5),  // drifted far left, low by the ledge
   new THREE.Vector3(2.5, 0.03, -1.3),   // between the far stones
 ]
-/** Step i top position — a rising run of stone teeth to the ledge (1.6 m). */
+/** Step i top position — a rising run of stone teeth up the ledge's right flank.
+ *  x≈2.1 keeps the run clear of the V4 parity diorama's scaffold dome while it
+ *  is mounted (the dome covers x −1.56…1.56, z −2.2…−0.3 on this island). */
 const STEP_TOPS = [0.32, 0.64, 0.96, 1.28, 1.6]
-const STEP_POS = STEP_TOPS.map((y, i) => new THREE.Vector3(i % 2 ? 0.08 : -0.08, y, -1.0 - i * 0.34))
+const STEP_POS = STEP_TOPS.map((y, i) => new THREE.Vector3(2.1 + (i % 2 ? 0.08 : -0.08), y, -1.0 - i * 0.34))
 const FLY_S = 0.95
 
 type Slot = {
@@ -188,8 +190,8 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       <Rock position={[-2.2, 0.05, 1.35]} s={0.58} yaw={0.9} variant={0} />
       <Rock position={[-2.9, 0.03, 1.6]} s={0.3} yaw={2.4} block={false} variant={1} />
       <Mound position={[2.05, 0, 0.95]} r={0.95} h={0.4} />
-      <Rock position={[2.85, 0.05, -0.65]} s={0.55} yaw={1.4} variant={1} />
-      <Rock position={[2.0, 0.04, -1.95]} s={0.4} yaw={0.2} variant={2} />
+      <Rock position={[3.2, 0.05, -0.45]} s={0.55} yaw={1.4} variant={1} />
+      <Rock position={[-2.45, 0.04, -2.05]} s={0.4} yaw={0.2} variant={2} />
 
       {/* steps appear as the letters land */}
       {STEP_POS.slice(0, placed).map((p, i) => (
