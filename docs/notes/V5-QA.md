@@ -146,6 +146,27 @@ New bugs to file:
   cascades — likely SwiftShader OOM under lazy-loaded islands. Harness rebuilds and
   continues, but the run loses remaining islands each time.
 
+### Run 8 (~22:43, 390×844 `--lite`, HEAD c6cc3e2) — COMPLETE mobile pass
+
+| island | result | fps | detail |
+|--------|--------|-----|--------|
+| L01 | FAIL | 6 | solve set `done`, but the walk to the exit stalled ~45 s pinned at local (1.3,−0.2) — a prop just outside the |x|<1.15 purged corridor walls the natural path; bot couldn't detour. Also a transient HMR 500 on `Caption.tsx` (mid-edit churn). |
+| L02 | **PASS** | 5 | solve + done + `climb` + real bridge walk to L03 |
+| L03 | **PASS** | 5 | solve + `build` + bridge to I01 |
+| I01 | FAIL | 8 | third consecutive failure here: player paced I01's disc (x 5.5→10.5, z −46→−50.6) for 40 s and never reached the deck mouth at (7.9,−52.2). No blockers registered by I01's obstacle/diorama — either an invisible wall near local z≈−2.6 or the deck-mouth catch doesn't cover this entry. **Needs probe.** |
+| L05 | **PASS** | 5 | `fe314e1` done-fallback confirmed working + bridge to L04 |
+| L04 | FAIL | 5 | obstacle now loads (BlinkFx DOM fix confirmed), `done` set — but the walk wandered west and slid off the rim at local (−5.1,−0.6); never reached the I02 deck. |
+| I02 | FAIL | 5 | reached the exit point (z −100.7) then bounced back north; deck not found. Same class as I01. |
+| L06 | **PASS** | 4 | solve + `remote` + bridge to L07 |
+| L07 | **PASS** | 4 | solve + `voice` + bridge to L08 |
+| L08 | FAIL | 5 | mid-crossing the player teleported to **world origin (0,0.42,0)** — concurrent console shows `Failed to reload /src/v5/player/Player.tsx` (HMR remount mid-edit, not a game bug). L08's solve had set `done`. Verify on a clean run. |
+| L09 | **PASS** | 2 | finale reached; screenshot + v4/v5 finale shots saved |
+
+Mobile tally: **6 PASS / 5 FAIL** — of the fails, L08 is an HMR artifact and L01 is a
+corridor-edge prop stall; I01, L04, I02 are the real navigation questions (all three are
+S-curve-bend islands where the bot walked wide and either missed the deck mouth or slid
+off a rim).
+
 ### Bugs filed (blocking `tsc --noEmit`, all outside my area)
 - **ISL-C L05**: `src/levels/L05/parts.v5.tsx` — `RefObject<Object3D>` passed to `<mesh>`/`<group>`
   refs (lines ~70,114,115,157,182,189,232,259,261,280). Type them `useRef<THREE.Mesh>(null)` /
