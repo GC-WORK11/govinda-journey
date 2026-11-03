@@ -166,7 +166,9 @@ const GRAV = 24, JUMP_V = 6.6
 const COYOTE = 0.12, BUFFER = 0.12
 const RADIUS = 0.3, STEP = 0.45
 const TURN = 13
-const PITCH_MIN = 0.06, PITCH_MAX = 1.22, DIST_MIN = 2.1, DIST_MAX = 6.4
+const PITCH_MIN = 0.08, PITCH_MAX = 1.22, DIST_MIN = 3.0, DIST_MAX = 24.0
+// Follow distance that keeps the ~0.95 m student at ~1/8 of the screen height (fov ~38deg).
+const BASE_DIST = 9.5
 
 const _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3(), _v3 = new THREE.Vector3()
 const _n1 = new THREE.Vector3(), _n2 = new THREE.Vector3() // scratch for near()/nearSeg() — never share with _v*
@@ -223,7 +225,7 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
     pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0,
     grounded: false, coyote: 0, groundY: 0, airT: 0, prevVy: 0,
     lastSafe: new THREE.Vector3(), hist: [] as THREE.Vector3[], histT: 0,
-    stepAcc: 0, camYaw: 0, camPitch: 0.34, camDist: 4.6, camDistT: 4.6,
+    stepAcc: 0, camYaw: 0, camPitch: 0.42, camDist: BASE_DIST, camDistT: BASE_DIST, zoomMul: 1.0,
     targetSm: new THREE.Vector3(), first: true, respawnT: 0,
   })
 
@@ -420,7 +422,11 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
     /* ---- camera: orbit + zoom + pull-in, critically damped ---- */
     s.camYaw -= input.camDX * 0.0052
     s.camPitch = THREE.MathUtils.clamp(s.camPitch + input.camDY * 0.0044, PITCH_MIN, PITCH_MAX)
-    s.camDistT = THREE.MathUtils.clamp(s.camDistT * Math.exp(input.zoom * 0.0012), DIST_MIN, DIST_MAX)
+    s.zoomMul = THREE.MathUtils.clamp(s.zoomMul * Math.exp(input.zoom * 0.001), 0.25, 2.5)
+    // Portrait screens pull back further so the island still reads (aspect = w/h).
+    const aspect = (camera as THREE.PerspectiveCamera).aspect || 1.6
+    const baseDist = BASE_DIST * (aspect < 1 ? 1 + (1 - aspect) * 0.9 : 1)
+    s.camDistT = THREE.MathUtils.clamp(baseDist * s.zoomMul, DIST_MIN, DIST_MAX)
     input.camDX = input.camDY = input.zoom = 0
     if (!cine) {
       _v1.copy(s.pos).add(_v2.set(0, 1.05, 0))
