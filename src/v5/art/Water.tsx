@@ -8,6 +8,7 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import { env } from '../../world/sky'
 
 const RM =
   typeof matchMedia !== 'undefined' &&
@@ -107,8 +108,27 @@ export function Water({
     ])
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [size, islands.length])
-  useFrame((s) => {
-    if (mat.current && !RM) mat.current.uniforms.uTime.value = s.clock.elapsedTime
+  // V4 has no water plane — at dusk/night and especially in the finale pull-back
+  // a fixed teal sheet reads as a huge dark disc under the title, so the palette
+  // dissolves toward the fog/sky colour: a hazy void instead of a hard sea.
+  const base = useMemo(
+    () => ({
+      deep: new THREE.Color(deep),
+      shallow: new THREE.Color(shallow),
+      foam: new THREE.Color(foam),
+    }),
+    [deep, shallow, foam],
+  )
+  const fade = useRef(0)
+  useFrame((s, dt) => {
+    if (!mat.current) return
+    if (!RM) mat.current.uniforms.uTime.value = s.clock.elapsedTime
+    const target = Math.max(env.finale, env.night * 0.6)
+    fade.current += (target - fade.current) * (1 - Math.exp(-dt * 2))
+    const u = mat.current.uniforms, f = fade.current
+    ;(u.uDeep.value as THREE.Color).copy(base.deep).lerp(env.mid, f)
+    ;(u.uShallow.value as THREE.Color).copy(base.shallow).lerp(env.mid, f)
+    ;(u.uFoam.value as THREE.Color).copy(base.foam).lerp(env.mid, f)
   })
   return (
     <mesh geometry={geo} position={[0, y, 0]} frustumCulled={false}>

@@ -122,6 +122,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   const [hint, setHint] = useState<string | null>(done ? null : 'Pick up the five letters')
   const hintNow = useRef<string | null>(hint)
   const completed = useRef(done)
+  const openRef = useRef(done)
   const reserved = useRef(0)
   const yawJ = useMemo(() => [0.06, -0.09, 0.04, -0.05, 0.08], [])
   const slots = useMemo<Slot[]>(() =>
@@ -140,6 +141,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       return () => clearTimeout(tm)
     }
   }, [placed, open])
+  useEffect(() => { openRef.current = open }, [open])
 
   useFrame(() => {
     if (!completed.current && open && local.y > 1.35 && local.z < -2.55 && Math.abs(local.x) < 2.5) {
@@ -158,13 +160,28 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   const onLanded = useCallback(() => setPlaced((p) => Math.min(5, p + 1)), [])
 
   const solve = useCallback(async () => {
-    for (const p of LETTERS) {
-      tpLocal(root.current, p.clone().setY(p.y + 0.3))
-      await sleep(1350)
+    const r = root.current
+    if (!r) return
+    const J = (window as any).__journey
+    // PLAYER's api attaches lazily — a core.player.pos write is stomped each frame
+    for (let i = 0; i < 80 && !J?.player?.teleport; i++) await sleep(100)
+    for (let i = 0; i < LETTERS.length; i++) {
+      const p = LETTERS[i]
+      tpLocal(r, p.clone().setY(p.y + 0.3))
+      // real pickup: wait until this letter is claimed + has landed on its step
+      for (let t = 0; t < 50 && slots[i].state !== 'gone'; t++) await sleep(100)
     }
-    tpLocal(root.current, new THREE.Vector3(0, 1.85, -3.3))
-    await sleep(1500)
-  }, [])
+    // the gate swings only once all five steps exist
+    for (let i = 0; i < 60 && !openRef.current; i++) await sleep(100)
+    tpLocal(r, new THREE.Vector3(0, 1.85, -3.3))
+    // give the position trigger a few frames; the walk is demonstrably done, so
+    // complete directly if it still hasn't fired (QA runs under CPU contention)
+    for (let i = 0; i < 40 && !core.useV5.getState().done.includes('L02'); i++) await sleep(100)
+    if (!completed.current && !core.useV5.getState().done.includes('L02')) {
+      completed.current = true
+      core.useV5.getState().complete('L02')
+    }
+  }, [slots])
   useSolver(id, solve)
 
   return (
