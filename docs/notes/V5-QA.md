@@ -34,6 +34,21 @@ Usage: `node scripts/v5/play.mjs [baseUrl] [--lite] [--only=L01,L02] [--size=144
 - `/?qa` and `/?v5&qa` both render V4 (App.tsx not routed). Detection OK, 75 s to give up.
 - proof: `proofs/v5/1440-00-nov5.png` shows the V4 world.
 
+### Run 2 (~19:00) — V5 mounted, all 11 islands FAIL on one root cause
+- `__journey.v5` live, `__journey.player`=[pos teleport press], solve map at boot =
+  [L01 L02 L05 L06 L08 L09]. world: 36 walkables / 43 blockers / 23 interactables. fps≈60 (swiftshader).
+- **ROOT CAUSE — PLAYER**: `pageerror: Dust is not defined`. `src/v5/player/Player.tsx:459`
+  renders `<Dust />` but the component is declared as `DustPool` (line 126). The error hits the
+  boundary, the whole Canvas subtree (islands, obstacles) unmounts → scene is a blank cream
+  gradient (`proofs/v5/1440-01-L01.png`), `player.pos` never integrates, every key-burst walk is
+  `blocked`, and the `__journey.solve` keys registered by obstacle effects disappear when the
+  tree unmounts (boot showed 6 keys; gone by each island's turn; L08/L09 re-registered later
+  and their solvers ran but hit `waitFor` timeouts waiting on a dead player).
+- Secondary: `pageerror: Cannot read properties of undefined (reading 'copy')` early at L01 —
+  likely same crash path (`Player.tsx` spawn/`_v1.copy` or World5 project helper); recheck after
+  the Dust fix.
+- Expected to unblock a lot: re-run as soon as PLAYER lands the fix.
+
 ### Bugs filed (blocking `tsc --noEmit`, all outside my area)
 - **ISL-C L05**: `src/levels/L05/parts.v5.tsx` — `RefObject<Object3D>` passed to `<mesh>`/`<group>`
   refs (lines ~70,114,115,157,182,189,232,259,261,280). Type them `useRef<THREE.Mesh>(null)` /
