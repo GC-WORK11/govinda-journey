@@ -292,7 +292,7 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
        step → at ~10 fps the sim ran at a third of real speed and scripted
        walks fell behind the world) ---- */
     let hSpeed = Math.hypot(s.vel.x, s.vel.z)
-    let rem = Math.min(rawDt, 0.12)
+    let rem = Math.min(rawDt, 0.18) // ~6 substeps — keeps real pace down to ~6 fps
     while (rem > 1e-5) {
       const h = Math.min(rem, 1 / 30); rem -= h
 
@@ -380,11 +380,11 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
          Strip verts are world-space pairs per deck section; faceIndex /2
          locates the section when standing on it, else nearest midpoint. */
       {
-        let bOff = Infinity, bLx = 0, bLz = 0, bDy = 0, bHw = 0, found = false
+        let bOff = Infinity, bLx = 0, bLz = 0, bDy = 0, bHw = 0, bAd = Infinity, found = false
         for (const o of cands) {
           if (!o.name.startsWith('walk-bridge')) continue
           const pa = (o as THREE.Mesh).geometry.getAttribute('position')
-          let bi = -1
+          let bi = -1, ad = Infinity
           if (o === groundObj && groundFace >= 0) bi = Math.min(pa.count - 2, Math.floor(groundFace / 2) * 2)
           else {
             let bd = Infinity
@@ -393,6 +393,7 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
               const d = (mx - s.pos.x) * (mx - s.pos.x) + (mz - s.pos.z) * (mz - s.pos.z)
               if (d < bd) { bd = d; bi = i }
             }
+            ad = bd
           }
           if (bi < 0) continue
           let lx = pa.getX(bi + 1) - pa.getX(bi), lz = pa.getZ(bi + 1) - pa.getZ(bi)
@@ -402,10 +403,14 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
           const cz = (pa.getZ(bi) + pa.getZ(bi + 1)) * 0.5
           const off = (s.pos.x - cx) * lx + (s.pos.z - cz) * lz
           const dy = s.pos.y - cy
-          if (!found || Math.abs(off) < Math.abs(bOff)) { bOff = off; bLx = lx; bLz = lz; bDy = dy; bHw = ll * 0.5; found = true }
+          if (o === groundObj && groundFace >= 0) ad = (cx - s.pos.x) * (cx - s.pos.x) + (cz - s.pos.z) * (cz - s.pos.z)
+          if (!found || Math.abs(off) < Math.abs(bOff)) { bOff = off; bLx = lx; bLz = lz; bDy = dy; bHw = ll * 0.5; bAd = ad; found = true }
         }
         const onStrip = grounded && !!groundObj && groundObj.name.startsWith('walk-bridge')
-        if (found && (onStrip || (Math.abs(bOff) < 1.7 && bDy < 2.6 && bDy > -1.0))) {
+        // corridor catch: flares widen the reach at the mouths; far out it tapers
+        // to a modest rail so wandering past mid-deck can't vacuum you sideways.
+        const reach = onStrip ? Infinity : Math.min(2.6, bHw * 1.5 + 0.8)
+        if (found && (onStrip || (Math.abs(bOff) < reach && bAd < 16 && bDy < 2.6 && bDy > -1.0))) {
           if (onStrip && Math.abs(bOff) > bHw * 0.82) {
             // hard rail: never let a grounded walk slide off the deck side
             const cl = Math.sign(bOff) * bHw * 0.82 - bOff
@@ -414,7 +419,7 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
             s.vel.x -= bLx * vLat; s.vel.z -= bLz * vLat
             bOff += cl
           }
-          const corr = THREE.MathUtils.clamp(bOff * (onStrip ? 6 : 4), -(onStrip ? 1.4 : 1.5), onStrip ? 1.4 : 1.5) * h
+          const corr = THREE.MathUtils.clamp(bOff * (onStrip ? 6 : 5), -(onStrip ? 1.4 : 2.4), onStrip ? 1.4 : 2.4) * h
           s.pos.x -= bLx * corr; s.pos.z -= bLz * corr
           const vLat = s.vel.x * bLx + s.vel.z * bLz
           const bleed = Math.min(1, 3 * h)
