@@ -24,7 +24,7 @@ const STREAM_Z0 = 0.55, STREAM_Z1 = 2.0
 const STONES: [number, number][] = [[-0.15, 1.72], [0.32, 1.33], [-0.08, 0.96], [0.3, 0.62]]
 const DOCK = new THREE.Vector3(-4.55, 0.06, -1.55) // deck centre; extends −x
 const DOCK_END = new THREE.Vector3(-5.85, 0.08, -1.55)
-const PHONE_POS = new THREE.Vector3(1.25, 0.09, 3.1) // front, beside the entry path — V4 placement
+const PHONE_POS = new THREE.Vector3(1.5, 0.09, 3.1) // front, beside the entry path — V4 placement
 const PAD_POS = new THREE.Vector3(2.05, 0.1, 3.7)
 const ROCK_POS = new THREE.Vector3(-8.25, -0.12, -2.95)
 const SWITCH_TOP = ROCK_POS.clone().add(new THREE.Vector3(0, 1.02, 0.08))
@@ -327,7 +327,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
         <Pergola w={1.8} d={1.5} h={1.5} />
         <Desk w={1.2} position={[0, 0, -0.1]} />
         <group position={[0, 0.49, -0.12]} rotation={[0, -Math.PI / 2 - 0.25, 0]}>
-          <Laptop s={1.25} open={0.34}>
+          <Laptop s={2.0} open={0.34}>
             <mesh ref={term.ref} position={[0, 0, 0.001]}>
               <planeGeometry args={[0.5, 0.32]} />
               <meshBasicMaterial map={term.tex} toneMapped={false} />
@@ -354,9 +354,10 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       {/* dock deck is a floor out over the rim; the far end is fenced until the bridge is out */}
       <BlockBox position={DOCK.clone().add(new THREE.Vector3(0, -0.04, 0)).toArray() as [number, number, number]} args={[1.7, 0.1, 1.0]} kind="walk" />
       <BlockBox position={DOCK_END.clone().add(new THREE.Vector3(-0.1, 0.45, 0)).toArray() as [number, number, number]} args={[0.18, 0.9, 1.05]} on={!hit && !done} />
-      <group position={PHONE_POS} rotation={[0, -0.5, 0]} scale={1.3}>
+      <group position={PHONE_POS} rotation={[0, -0.5, 0]} scale={2.5}>
         <PhoneOnStand glow={phase === 'phone'} />
       </group>
+      <BlockBox position={[PHONE_POS.x, 0.5, PHONE_POS.z]} args={[0.62, 1.0, 0.36]} kind="block" />
       <object3D ref={phoneMarker} position={PHONE_POS.clone().add(new THREE.Vector3(0, 0.25, 0))} />
       <group position={PAD_POS}><Pad /></group>
       <group ref={drone} position={PAD_POS.clone().add(new THREE.Vector3(0, 0.02, 0))}>

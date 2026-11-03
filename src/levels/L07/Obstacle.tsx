@@ -408,7 +408,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       {/* V4's word chips — soft speech pebbles drifting in the open front of the island */}
       <WordChips
         words={['hello', 'from', 'my', 'phone']}
-        pos={[[-1.15, 1.05, 2.5], [-0.3, 1.25, 2.75], [0.55, 1.05, 2.95], [1.45, 1.2, 2.8]]}
+        pos={[[-0.9, 0.72, 3.5], [-0.15, 0.95, 3.7], [0.65, 0.75, 3.55], [1.35, 0.95, 3.35]]}
       />
 
       {/* letters flying */}

@@ -262,7 +262,7 @@ function chipTexture(word: string) {
   const cv = document.createElement('canvas'); cv.width = 128; cv.height = 72
   const ctx = cv.getContext('2d')!
   ctx.fillStyle = '#f6ecd9'; ctx.fillRect(0, 0, 128, 72)
-  ctx.fillStyle = '#3b3330'; ctx.font = '600 38px Fraunces, Georgia, serif'
+  ctx.fillStyle = '#3b3330'; ctx.font = '600 44px Fraunces, Georgia, serif'
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
   ctx.fillText(word, 64, 38)
   const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace
@@ -285,12 +285,12 @@ export function WordChips({ words, pos, ...p }: P & { words: string[]; pos: [num
     <group ref={g} {...p}>
       {words.map((w, i) => (
         <group key={i} position={pos[i]} rotation={[-0.24, 0.55, 0]}>
-          <RoundedBox args={[0.78, 0.46, 0.15]} radius={0.12} smoothness={3} material={clay('#f6ecd9')} castShadow />
-          <mesh position={[-0.19, -0.25, 0]} rotation={[0, 0, Math.PI]} material={clay('#f6ecd9')}>
-            <coneGeometry args={[0.09, 0.15, 4]} />
+          <RoundedBox args={[0.95, 0.56, 0.17]} radius={0.14} smoothness={3} material={clay('#f6ecd9')} castShadow />
+          <mesh position={[-0.24, -0.3, 0]} rotation={[0, 0, Math.PI]} material={clay('#f6ecd9')}>
+            <coneGeometry args={[0.11, 0.18, 4]} />
           </mesh>
-          <mesh position={[0, 0.01, 0.078]}>
-            <planeGeometry args={[0.7, 0.39]} />
+          <mesh position={[0, 0.01, 0.088]}>
+            <planeGeometry args={[0.85, 0.47]} />
             <meshBasicMaterial map={texs[i]} />
           </mesh>
         </group>
