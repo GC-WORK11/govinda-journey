@@ -138,7 +138,7 @@ export default function Game({ onWin }: GameProps) {
       <div className="l04-foot">
         <div className="l04-pills">
           <span className="l04-pill">{sensors.length} / 3 sensors</span>
-          <span className="l04-pill dim">240k places</span>
+          <span className="l04-pill dim">street map</span>
           {sensors.length === 3 && <span className="l04-pill dim">every 15 min</span>}
         </div>
         <p className="l04-hint">
