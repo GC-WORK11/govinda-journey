@@ -169,6 +169,7 @@ const TURN = 13
 const PITCH_MIN = 0.06, PITCH_MAX = 1.22, DIST_MIN = 2.1, DIST_MAX = 6.4
 
 const _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3(), _v3 = new THREE.Vector3()
+const _n1 = new THREE.Vector3(), _n2 = new THREE.Vector3() // scratch for near()/nearSeg() — never share with _v*
 const _ray = new THREE.Raycaster()
 const _down = new THREE.Vector3(0, -1, 0)
 const boxCache = new WeakMap<THREE.Object3D, { box: THREE.Box3; frame: number }>()
@@ -187,8 +188,8 @@ function near(set: Set<THREE.Object3D>, p: THREE.Vector3, d: number, out: THREE.
   for (const o of set) {
     const b = boxOf(o)
     if (b.isEmpty()) continue
-    _v1.set(Math.max(b.min.x, Math.min(p.x, b.max.x)), Math.max(b.min.y, Math.min(p.y, b.max.y)), Math.max(b.min.z, Math.min(p.z, b.max.z)))
-    if (_v1.distanceToSquared(p) <= d * d) out.push(o)
+    _n1.set(Math.max(b.min.x, Math.min(p.x, b.max.x)), Math.max(b.min.y, Math.min(p.y, b.max.y)), Math.max(b.min.z, Math.min(p.z, b.max.z)))
+    if (_n1.distanceToSquared(p) <= d * d) out.push(o)
   }
   return out
 }
@@ -196,11 +197,11 @@ function near(set: Set<THREE.Object3D>, p: THREE.Vector3, d: number, out: THREE.
 function nearSeg(set: Set<THREE.Object3D>, a: THREE.Vector3, b: THREE.Vector3, pad: number, out: THREE.Object3D[]) {
   out.length = 0
   const half = a.distanceTo(b) * 0.5
-  _v1.copy(a).add(b).multiplyScalar(0.5)
+  _n1.copy(a).add(b).multiplyScalar(0.5)
   for (const o of set) {
     const bx = boxOf(o)
     if (bx.isEmpty()) continue
-    if (bx.distanceToPoint(_v1) < half + bx.getSize(_v2).length() * 0.5 + pad) out.push(o)
+    if (bx.distanceToPoint(_n1) < half + bx.getSize(_n2).length() * 0.5 + pad) out.push(o)
   }
   return out
 }
@@ -222,7 +223,7 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
     pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0,
     grounded: false, coyote: 0, groundY: 0, airT: 0, prevVy: 0,
     lastSafe: new THREE.Vector3(), hist: [] as THREE.Vector3[], histT: 0,
-    stepAcc: 0, camYaw: 0, camPitch: 0.5, camDist: 4.4, camDistT: 4.4,
+    stepAcc: 0, camYaw: 0, camPitch: 0.34, camDist: 4.6, camDistT: 4.6,
     targetSm: new THREE.Vector3(), first: true, respawnT: 0,
   })
 
@@ -441,6 +442,12 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
       s.camDist = THREE.MathUtils.damp(s.camDist, eff, eff < s.camDist ? 26 : 6, dt)
       camera.position.copy(s.targetSm).addScaledVector(dir, s.camDist)
       camera.lookAt(s.targetSm)
+    }
+    ;(window as any).__pldbg = {
+      pos: [+s.pos.x.toFixed(2), +s.pos.y.toFixed(2), +s.pos.z.toFixed(2)],
+      cam: [+camera.position.x.toFixed(2), +camera.position.y.toFixed(2), +camera.position.z.toFixed(2)],
+      pitch: +s.camPitch.toFixed(2), dist: +s.camDist.toFixed(2), grounded: s.grounded,
+      anim, scale: body.current ? +body.current.scale.x.toFixed(3) : -1,
     }
   })
 

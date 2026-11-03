@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
@@ -110,16 +110,27 @@ function Scene() {
 
       <Crate />
       <Lamp />
+      {/* 1 m reference column to eyeball character scale */}
+      <mesh position={[0.9, 0.5, 3.4]} material={clay(C.terracotta)}><boxGeometry args={[0.12, 1, 0.12]} /></mesh>
       <Player />
     </>
   )
+}
+
+function DebugLine() {
+  const [t, setT] = useState('')
+  useEffect(() => {
+    const id = setInterval(() => setT(JSON.stringify((window as any).__pldbg || {})), 300)
+    return () => clearInterval(id)
+  }, [])
+  return <div style={{ position: 'fixed', right: 10, bottom: 10, font: '10px monospace', color: 'rgba(43,32,22,.7)' }}>{t}</div>
 }
 
 export default function Sandbox() {
   return (
     <div style={{ position: 'fixed', inset: 0, background: HORIZON }}>
       <Canvas shadows={LITE ? false : 'soft'} dpr={LITE ? 1 : Math.min(1.5, window.devicePixelRatio || 1)}
-        camera={{ fov: 32, near: 0.3, far: 140, position: [0, 4, 9] }}
+        camera={{ fov: 38, near: 0.3, far: 140, position: [0, 4, 9] }}
         gl={{ antialias: true, powerPreference: 'high-performance' }}
         onCreated={({ gl }) => { gl.toneMapping = THREE.ACESFilmicToneMapping; gl.toneMappingExposure = 1.08 }}>
         <Scene />
@@ -128,6 +139,7 @@ export default function Sandbox() {
       <div className="gjv5-sb-hint" style={{ position: 'fixed', left: 14, bottom: 12, font: '11px Inter, system-ui', color: 'rgba(43,32,22,.6)', letterSpacing: '.03em' }}>
         WASD move · Shift run · Space jump · drag to orbit · E use
       </div>
+      <DebugLine />
     </div>
   )
 }
