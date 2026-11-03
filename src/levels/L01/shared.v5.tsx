@@ -1,7 +1,7 @@
 /**
  * Shared pieces for the L01/L02 obstacles (ISL-A). Island-local coords, top y=0.
- * Look: placeholder V4 clay palette (src/world/kit) until ART's src/v5/art lands —
- * then swap clay()/C for the toon material + <Prop> dressing (see docs/notes/V5-ISL-A.md).
+ * Look: ART pack props via <Prop> (src/v5/art/Dressing) + V4 clay for gameplay
+ * geometry that needs exact collider sizes (walls, ledge, gate, mound, letter).
  */
 import { useEffect, useMemo, useRef, type RefObject } from 'react'
 import { useFrame } from '@react-three/fiber'
@@ -9,8 +9,9 @@ import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import * as core from '../../v5/core'
 import { C, clay } from '../../world/kit'
+import { Prop } from '../../v5/art/Dressing'
 
-export { C, clay }
+export { C, clay, Prop }
 
 export const REDUCED =
   typeof window !== 'undefined' &&
@@ -134,10 +135,9 @@ export function PathStones({ pts, seed = 1 }: { pts: [number, number][]; seed?: 
   return (
     <group>
       {items.map((p, i) => (
-        <mesh key={i} position={[p.x, 0.015, p.z]} rotation={[0, p.r, 0]} scale={[p.s, 1, p.s * 0.8]}
-          material={clay(i % 2 ? '#d6cab4' : '#c9bfb0')} receiveShadow castShadow>
-          <cylinderGeometry args={[0.19, 0.21, 0.05, 7]} />
-        </mesh>
+        <Prop key={i} name={i % 2 ? 'path_stone' : 'rock_path_round'}
+          position={[p.x, 0.02, p.z]} rotation={[0, p.r, 0]}
+          scale={i % 2 ? p.s * 0.34 : p.s * 0.26} />
       ))}
     </group>
   )
@@ -213,20 +213,31 @@ function GateLeaf({ w, h, side }: { w: number; h: number; side: 1 | -1 }) {
 
 /* ---------- rock ---------- */
 
-export function Rock({ position, s = 0.5, yaw = 0, block = true, color = C.stone }: {
+const ROCKS_SMALL = ['rock_small_a', 'rock_small_c', 'rock_small_e']
+const ROCKS_BIG = ['quat_rock', 'quat_rock_2', 'quat_rock_3']
+
+export function Rock({ position, s = 0.5, yaw = 0, block = true, variant }: {
   position: [number, number, number]
   s?: number
   yaw?: number
   block?: boolean
-  color?: string
+  variant?: number
 }) {
   const ref = useRef<THREE.Mesh>(null)
   core.useBlocker(ref, block)
+  // small rocks come from the Kenney set (0.36 wide), big ones from Quaternius (~3.1 wide)
+  const big = s > 0.55
+  const set = big ? ROCKS_BIG : ROCKS_SMALL
+  const name = set[(variant ?? 0) % set.length]
+  const scale = big ? (s * 2) / 3.1 : (s * 2) / 0.36
   return (
-    <mesh ref={ref} position={position} rotation={[0, yaw, 0]} scale={[s, s * 0.72, s]}
-      material={clay(color)} castShadow receiveShadow>
-      <dodecahedronGeometry args={[1, 1]} />
-    </mesh>
+    <group position={position} rotation={[0, yaw, 0]}>
+      <Prop name={name} scale={scale} />
+      <mesh ref={ref} position={[0, s * 0.62, 0]}>
+        <boxGeometry args={[s * 1.5, s * 1.24, s * 1.4]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+    </group>
   )
 }
 

@@ -10,8 +10,8 @@ import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import * as core from '../../v5/core'
-import { C, clay, Gate, Hint, Mound, PaperLetter, PathStones, REDUCED, Rock, tpLocal, sleep, useLocalPlayer, useSolver } from '../L01/shared.v5'
-import { Bush, Fence } from '../../world/kit'
+import { C, clay, Gate, Hint, Mound, PaperLetter, PathStones, Prop, REDUCED, Rock, tpLocal, sleep, useLocalPlayer, useSolver } from '../L01/shared.v5'
+import { Scatter } from '../../v5/art/Dressing'
 
 /** Where the five letters lie (island-local). */
 const LETTERS = [
@@ -49,7 +49,10 @@ function StoneStep({ pos, yaw, instant }: { pos: THREE.Vector3; yaw: number; ins
   const h = pos.y + 0.08
   return (
     <RoundedBox ref={ref} args={[1.08, h, 0.58]} radius={0.07} position={[pos.x, h / 2 - 0.04, pos.z]}
-      rotation={[0, yaw, 0]} material={clay(C.stone)} castShadow receiveShadow />
+      rotation={[0, yaw, 0]} material={clay(C.stone)} castShadow receiveShadow>
+      {/* a real flat stone cap grows in on each tooth */}
+      <Prop name="stone_small_flat_a" position={[0, h / 2 + 0.02, 0]} scale={[2.0, 1.2, 1.3]} />
+    </RoundedBox>
   )
 }
 
@@ -162,9 +165,9 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
         material={clay('#b1a58f')} castShadow receiveShadow />
       <RoundedBox ref={capRef} args={[5.45, 0.18, 2.3]} radius={0.08} position={[0, 1.53, -3.55]}
         material={clay(C.moss)} castShadow receiveShadow />
-      <Rock position={[-2.5, 1.62, -4.15]} s={0.45} yaw={0.4} />
-      <Rock position={[2.55, 1.62, -4.3]} s={0.34} yaw={1.9} color={C.stoneLight} />
-      <Bush position={[-2.2, 1.62, -3.4]} s={1.0} />
+      <Rock position={[-2.5, 1.62, -4.15]} s={0.45} yaw={0.4} variant={1} />
+      <Rock position={[2.55, 1.62, -4.3]} s={0.34} yaw={1.9} variant={2} />
+      <Prop name="plant_bush" position={[-2.2, 1.62, -3.4]} scale={1.6} />
 
       {/* the closed gate on the ledge */}
       <Gate position={[0, 1.62, -3.78]} open={open} instant={done} width={1.85} height={1.5} />
@@ -174,11 +177,11 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       {slots.map((s, i) => (
         <LetterRunner key={i} slot={s} player={local} onPickup={onPickup} onLanded={onLanded} />
       ))}
-      <Rock position={[-2.2, 0.05, 1.35]} s={0.58} yaw={0.9} />
-      <Rock position={[-2.9, 0.03, 1.6]} s={0.3} yaw={2.4} color={C.stoneLight} block={false} />
+      <Rock position={[-2.2, 0.05, 1.35]} s={0.58} yaw={0.9} variant={0} />
+      <Rock position={[-2.9, 0.03, 1.6]} s={0.3} yaw={2.4} block={false} variant={1} />
       <Mound position={[2.05, 0, 0.95]} r={0.95} h={0.4} />
-      <Rock position={[2.85, 0.05, -0.65]} s={0.55} yaw={1.4} />
-      <Rock position={[2.0, 0.04, -1.95]} s={0.4} yaw={0.2} color={C.stoneLight} />
+      <Rock position={[2.85, 0.05, -0.65]} s={0.55} yaw={1.4} variant={1} />
+      <Rock position={[2.0, 0.04, -1.95]} s={0.4} yaw={0.2} variant={2} />
 
       {/* steps appear as the letters land */}
       {STEP_POS.slice(0, placed).map((p, i) => (
@@ -187,9 +190,13 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
 
       {/* dressing + a stones spur pointing at the rise (WORLD draws the corridor stones) */}
       <PathStones pts={[[0.7, 1.95], [1.6, 1.25]]} seed={11} />
-      <Fence pts={[new THREE.Vector3(-3.9, 0, 0.2), new THREE.Vector3(-4.2, 0, -0.8), new THREE.Vector3(-3.8, 0, -1.8)]} seed={8} />
-      <Bush position={[-3.5, 0, 2.4]} s={1.1} color={C.moss} />
-      <Bush position={[3.6, 0, 1.9]} s={0.9} />
+      <Prop name="fence_simple" position={[-4.15, 0, -0.4]} rotation={[0, 1.35, 0]} scale={1.35} />
+      <Prop name="fence_simple" position={[-4.05, 0, -1.65]} rotation={[0, 1.85, 0]} scale={1.35} />
+      <Prop name="plant_bush_detailed" position={[-3.5, 0, 2.4]} scale={1.5} />
+      <Prop name="plant_bush" position={[3.6, 0, 1.9]} rotation={[0, 2.2, 0]} scale={1.7} />
+      {/* seeded rim dressing, kept clear of letters, steps and the ledge */}
+      <Scatter seed={12} density={0.5} kinds={['tuft', 'flower']}
+        avoid={[[1.6, 2.7, 1.1], [-2.5, 0.9, 1.6], [2.05, 0.95, 1.4], [-1.3, -0.7, 1.0], [2.5, -1.3, 1.2], [0, -2.0, 2.6], [0, 4.2, 1.4]]} />
 
       <Hint text="five letters" position={[0, 1.0, 2.2]} show={() => active && placed === 0 && local.z > 1.6} />
       <Hint text={`${placed} of 5`} position={[0, 2.35, -1.7]} show={() => active && placed > 0 && placed < 5} />

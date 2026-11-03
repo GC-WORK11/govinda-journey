@@ -8,8 +8,8 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import * as core from '../../v5/core'
-import { C, Gate, Hint, LowWall, PathStones, Rock, tpLocal, sleep, useLocalPlayer, useSolver } from './shared.v5'
-import { Bush, Fence, LampPost } from '../../world/kit'
+import { Gate, Hint, LowWall, PathStones, Prop, Rock, tpLocal, sleep, useLocalPlayer, useSolver } from './shared.v5'
+import { Scatter } from '../../v5/art/Dressing'
 import { BigTree, CampusBlock, LaptopDesk } from './campus.v5'
 
 const DESK = new THREE.Vector3(1.85, 0, -0.9)
@@ -84,15 +84,15 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
 
       {/* the low wall that teaches the hop — sealed at both ends by boulders */}
       <LowWall position={[0, 0, WALL_Z]} len={9} h={0.56} />
-      <Rock position={[-4.25, 0.05, WALL_Z]} s={0.62} yaw={0.7} />
-      <Rock position={[4.25, 0.05, WALL_Z]} s={0.58} yaw={2.1} />
-      <Bush position={[-3.9, 0, WALL_Z + 0.45]} s={1.15} />
-      <Bush position={[3.95, 0, WALL_Z + 0.4]} s={1.05} color={C.leaf} />
+      <Rock position={[-4.25, 0.05, WALL_Z]} s={0.62} yaw={0.7} variant={1} />
+      <Rock position={[4.25, 0.05, WALL_Z]} s={0.58} yaw={2.1} variant={2} />
+      <Prop name="plant_bush_detailed" position={[-3.9, 0, WALL_Z + 0.45]} scale={1.5} />
+      <Prop name="plant_bush_detailed" position={[3.95, 0, WALL_Z + 0.4]} rotation={[0, 1.8, 0]} scale={1.4} />
 
       {/* the way out */}
       <Gate position={[0, 0, -3.9]} open={open} instant={done} width={2.0} height={1.42} />
-      <LampPost position={[-1.55, 0, -3.62]} lit={warm} />
-      <LampPost position={[1.55, 0, -3.62]} lit={warm} />
+      <Prop name="streetlight" position={[-1.55, 0, -3.62]} scale={1.55} />
+      <Prop name="streetlight" position={[1.55, 0, -3.62]} rotation={[0, Math.PI, 0]} scale={1.55} />
       {warm && <pointLight position={[0, 1.3, -3.6]} color="#ffc27e" intensity={2.4} distance={4.5} decay={2} />}
 
       {/* a spur of stones leading off the main path to the desk (the z-corridor
@@ -100,11 +100,15 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       <PathStones pts={[[0.15, -0.4], [1.15, -0.8]]} seed={7} />
 
       {/* dressing */}
-      <Fence pts={[new THREE.Vector3(-4.15, 0, -0.7), new THREE.Vector3(-4.4, 0, -1.7), new THREE.Vector3(-4.2, 0, -2.7)]} seed={4} />
-      <Bush position={[-3.4, 0, -0.6]} s={1.1} />
-      <Bush position={[3.55, 0, -2.7]} s={1.2} color={C.leaf} />
-      <Rock position={[-3.3, 0.04, 1.9]} s={0.3} block={false} />
-      <Rock position={[3.4, 0.04, 2.1]} s={0.24} block={false} yaw={1.2} />
+      <Prop name="fence_planks" position={[-4.25, 0, -0.9]} rotation={[0, 1.15, 0]} scale={1.3} />
+      <Prop name="fence_planks" position={[-4.45, 0, -2.0]} rotation={[0, 1.62, 0]} scale={1.3} />
+      <Prop name="plant_bush" position={[-3.4, 0, -0.6]} rotation={[0, 0.9, 0]} scale={2.0} />
+      <Prop name="plant_bush_detailed" position={[3.55, 0, -2.7]} scale={1.6} />
+      <Rock position={[-3.3, 0.04, 1.9]} s={0.3} block={false} variant={2} />
+      <Rock position={[3.4, 0.04, 2.1]} s={0.24} block={false} yaw={1.2} variant={1} />
+      {/* seeded rim dressing, kept clear of the courtyard */}
+      <Scatter seed={11} density={0.55} kinds={['tuft', 'flower']}
+        avoid={[[-2.3, -2.85, 2.6], [2.0, -1.1, 2.2], [0, -3.9, 2.2], [0, 4.2, 1.4]]} />
 
       {/* quiet teaching hints */}
       <Hint text="walk" position={[0, 1.0, 3.5]} show={() => active && !moved.current} />
