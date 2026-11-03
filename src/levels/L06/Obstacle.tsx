@@ -24,8 +24,8 @@ const STREAM_Z0 = 0.55, STREAM_Z1 = 2.0
 const STONES: [number, number][] = [[-0.15, 1.72], [0.32, 1.33], [-0.08, 0.96], [0.3, 0.62]]
 const DOCK = new THREE.Vector3(-4.55, 0.06, -1.55) // deck centre; extends −x
 const DOCK_END = new THREE.Vector3(-5.85, 0.08, -1.55)
-const PHONE_POS = new THREE.Vector3(-5.28, 0.09, -1.15)
-const PAD_POS = new THREE.Vector3(-5.55, 0.1, -1.9)
+const PHONE_POS = new THREE.Vector3(1.25, 0.09, 3.1) // front, beside the entry path — V4 placement
+const PAD_POS = new THREE.Vector3(2.05, 0.1, 3.7)
 const ROCK_POS = new THREE.Vector3(-8.25, -0.12, -2.95)
 const SWITCH_TOP = ROCK_POS.clone().add(new THREE.Vector3(0, 1.02, 0.08))
 const BRIDGE_A = new THREE.Vector3(-5.9, 0.1, -1.7)
@@ -134,7 +134,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       [id]: async () => {
         if (core.useV5.getState().done.includes(id)) return
         if (!core.has('sense')) core.useV5.getState().grant('sense')
-        await tp(DOCK, -0.35, 0.35)
+        await tp(PHONE_POS, -0.15, 0.6)
         await sleep(500)
         core.interactables.get('L06-phone')?.use()
         await sleep(900)
@@ -232,8 +232,8 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       smog.current.children.forEach((p, i) => {
         p.userData.y0 ??= p.position.y
         p.userData.k = THREE.MathUtils.lerp(p.userData.k ?? 1, revealing ? 0.16 : 1, Math.min(1, dt * 2.4))
-        p.scale.set(p.userData.k, p.userData.k * 0.3, p.userData.k)
-        p.position.y = p.userData.y0 * p.userData.k + Math.sin(t * 0.7 + i * 1.7) * 0.04
+        p.scale.set(p.userData.k, p.userData.k * 0.2, p.userData.k)
+        p.position.y = p.userData.y0 * p.userData.k + Math.sin(t * 0.7 + i * 1.7) * 0.03
         p.position.x += Math.sin(t * 0.23 + i) * dt * 0.05
       })
     }
@@ -268,29 +268,29 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   return (
     <group ref={root}>
       {/* ------- the ford: shallow water, stepping stones, a bank of smog ------- */}
-      {/* sandy bed: two overlapping flattened ellipses so the edge is not a hard rectangle */}
-      <mesh position={[-0.6, 0.014, 1.32]} scale={[4.3, 1, 1.06]} material={clay(C.sand)} receiveShadow>
+      {/* sandy bed: two small overlapping ellipses — a modest pond, not a boulder field */}
+      <mesh position={[-0.9, 0.014, 1.32]} scale={[2.7, 1, 0.95]} material={clay(C.sand)} receiveShadow>
         <cylinderGeometry args={[1, 1, 0.028, 40]} />
       </mesh>
-      <mesh position={[2.6, 0.016, 1.18]} scale={[2.2, 1, 0.8]} material={clay(C.sand)} receiveShadow>
+      <mesh position={[1.6, 0.016, 1.2]} scale={[1.5, 1, 0.72]} material={clay(C.sand)} receiveShadow>
         <cylinderGeometry args={[1, 1, 0.028, 32]} />
       </mesh>
       {/* shallow water on top — opaque clay, same as V4's ponds */}
-      <mesh position={[-0.5, 0.036, 1.3]} scale={[3.9, 1, 0.86]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh position={[-0.9, 0.036, 1.3]} scale={[2.5, 1, 0.8]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[1, 44]} />
         <meshStandardMaterial color={C.water} roughness={0.5} />
       </mesh>
-      <mesh position={[2.7, 0.038, 1.16]} scale={[1.9, 1, 0.62]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh position={[1.7, 0.038, 1.18]} scale={[1.35, 1, 0.6]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[1, 32]} />
         <meshStandardMaterial color={C.water} roughness={0.5} />
       </mesh>
       {/* pebbles + reeds along the banks */}
-      {[[-3.6, 0.6], [-2.9, 2.0], [-1.2, 2.14], [0.6, 2.1], [1.8, 0.5], [3.6, 1.9], [4.1, 0.8], [-4.0, 1.5]].map(([x, z], i) => (
+      {[[-2.3, 0.62], [-1.9, 2.0], [-0.9, 2.14], [0.6, 2.1], [1.7, 0.5], [2.4, 1.85]].map(([x, z], i) => (
         <mesh key={i} position={[x, 0.045, z]} material={clay(i % 2 ? C.stoneLight : C.stone)} castShadow>
           <dodecahedronGeometry args={[0.09 + (i % 3) * 0.03, 0]} />
         </mesh>
       ))}
-      {[[-3.2, 1.9], [1.1, 2.05], [3.9, 1.6], [-1.9, 0.62]].map(([x, z], i) => (
+      {[[-1.9, 1.95], [1.0, 2.05], [-1.4, 0.6]].map(([x, z], i) => (
         <group key={i} position={[x, 0, z]}>
           <mesh position={[0, 0.14, 0]} material={clay(C.leafDark)} castShadow><coneGeometry args={[0.03, 0.28, 5]} /></mesh>
           <mesh position={[0.06, 0.11, 0.02]} rotation={[0, 0, -0.16]} material={clay(C.moss)} castShadow><coneGeometry args={[0.025, 0.22, 5]} /></mesh>
@@ -312,18 +312,18 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
         </group>
       ))}
       <object3D ref={pulseMarker} position={[0, 0.2, (STREAM_Z0 + STREAM_Z1) / 2]} />
-      {/* smog bank — low soft puffs hugging the ford */}
+      {/* a thin smog skin over the ford — the pulse peels it back */}
       <group ref={smog}>
-        {[[-2.9, 0.3, 1.52], [-1.9, 0.25, 1.05], [-1.0, 0.33, 1.68], [-0.1, 0.24, 0.9], [0.8, 0.3, 1.55], [1.8, 0.26, 1.0], [2.9, 0.3, 1.45], [0.4, 0.38, 1.8], [-2.2, 0.36, 1.75], [2.2, 0.37, 1.7]].map(([x, y, s], i) => (
-          <mesh key={i} position={[x, y, (STREAM_Z0 + STREAM_Z1) / 2 + Math.sin(i * 2.4) * 0.4]} scale={[1, 0.3, 1]}>
-            <sphereGeometry args={[s * 0.52, 14, 10]} />
+        {[[-1.8, 0.16, 1.5], [-1.0, 0.14, 0.98], [-0.1, 0.13, 1.6], [0.8, 0.15, 1.05], [1.7, 0.14, 1.55], [0.3, 0.2, 1.85]].map(([x, y, s], i) => (
+          <mesh key={i} position={[x, y, (STREAM_Z0 + STREAM_Z1) / 2 + Math.sin(i * 2.4) * 0.3]} scale={[1, 0.2, 1]}>
+            <sphereGeometry args={[s * 0.5, 14, 10]} />
             <meshStandardMaterial color="#ccd6c0" roughness={1} />
           </mesh>
         ))}
       </group>
 
-      {/* ------- pergola workspace: desk, laptop, stool ------- */}
-      <group position={[-3.15, 0, -0.85]} rotation={[0, Math.PI / 2, 0]}>
+      {/* ------- pergola workspace: desk, laptop, stool — beside the entry path ------- */}
+      <group position={[2.9, 0, 2.55]} rotation={[0, Math.PI / 2, 0]}>
         <Pergola w={1.8} d={1.5} h={1.5} />
         <Desk w={1.2} position={[0, 0, -0.1]} />
         <group position={[0, 0.49, -0.12]} rotation={[0, -Math.PI / 2 - 0.25, 0]}>
