@@ -81,11 +81,14 @@ const hooks = (page) => page.evaluate(() => {
   return { v5: !!j.v5, goto: !!(j.v5 && j.v5.goto), complete: !!(j.v5 && j.v5.complete),
     solve: j.solve ? Object.keys(j.solve) : [], player: j.player ? Object.keys(j.player) : [] }
 })
-const fps = (page) => page.evaluate(() => new Promise((r) => {
-  let n = 0; const t0 = performance.now()
-  const f = () => { n++; if (performance.now() - t0 < 3000) requestAnimationFrame(f); else r(Math.round(n / 3)) }
-  requestAnimationFrame(f)
-}))
+const fps = (page) => Promise.race([
+  page.evaluate(() => new Promise((r) => {
+    let n = 0; const t0 = performance.now()
+    const f = () => { n++; if (performance.now() - t0 < 3000) requestAnimationFrame(f); else r(Math.round(n / 3)) }
+    requestAnimationFrame(f)
+  })),
+  sleep(12000).then(() => 0),
+])
 
 // ---- input drivers ----------------------------------------------------------
 // Movement is camera-relative, so we never guess key->world mapping: probe the 4
@@ -149,10 +152,11 @@ async function tapButton(page, re, half) {
 const d2 = (p, t) => Math.hypot(p.x - t.x, p.z - t.z)
 
 // Walk toward world target {x,z} using real inputs. Returns {ok, blocked, frozen, pos}.
-async function walkTo(page, drv, target, { timeout = 14000, arrive = 0.9, hop = true } = {}) {
+async function walkTo(page, drv, target, { timeout = 14000, arrive = 0.9, hop = true, burst } = {}) {
   const t0 = Date.now()
   let lastD = Infinity, lastImprove = Date.now(), probes = 0, held = null, stuckHops = 0
   const trail = []
+  const burstMs = burst ?? (drv.kind === 'keys' ? 230 : 260)
   while (Date.now() - t0 < timeout) {
     const p = await v5pos(page)
     const d = d2(p, target)
@@ -167,7 +171,7 @@ async function walkTo(page, drv, target, { timeout = 14000, arrive = 0.9, hop = 
       for (const dir of drv.dirs) {
         const a = await v5pos(page); const da = d2(a, target)
         if (da < arrive) { await drv.release(); return { ok: true, pos: a } }
-        await drv.burst(dir, drv.kind === 'keys' ? 230 : 260)
+        await drv.burst(dir, burstMs)
         const b = await v5pos(page)
         const gain = da - d2(b, target)
         if (p.frozen || b.frozen) { await drv.release(); return { ok: false, frozen: true, pos: b } }
@@ -241,7 +245,7 @@ for (const [size, vp] of VIEWPORTS) {
   const v4shot = async (id, n) => {
     try {
       await v4.goto(`${base}?v4&qa&at=${id}`, { waitUntil: 'domcontentloaded', timeout: 60000 })
-      await sleep(3200)
+      await sleep(4600)
       await v4.screenshot({ path: path.join(outdir, `v4-${size}-${pad(n)}-${id}.png`) })
     } catch (e) { console.log(`  v4 shot ${id} failed: ${e.message.slice(0, 120)}`) }
   }
@@ -262,10 +266,13 @@ for (const [size, vp] of VIEWPORTS) {
   if (!ready) {
     rec({ size, id: 'BOOT', ok: false, detail: 'V5 world not mounted (no core.walkables, no __journey.v5) — is ?qa routed to V5?' })
     await shot(page, `${size}-00-nov5.png`)
+    await v4.close().catch(() => {})
     await page.close().catch(() => {})
     continue
   }
-
+  // __journey.v5 attaches before the scene fills; don't start until islands exist
+  for (let t = 0; t < 40; t++) { const w = await v5world(page).catch(() => null); if (w && w.walkables > 0) break; await sleep(750) }
+  try {
   ORDER = await core(page, (c) => [...c.V5_ORDER])
   GRANTS = await core(page, (c) => ({ ...c.GRANTS }))
   const lay = await v5layout(page)
@@ -303,10 +310,15 @@ for (const [size, vp] of VIEWPORTS) {
     //    previous island's crossing failed; the walk itself is still measured)
     let pos = await v5pos(page)
     if (pos.island !== id || d2(pos, C) > lay.R + 2.5) {
-      // Prefer WORLD's goto hook; verify it landed us; else write player.pos directly.
+      // __journey.v5.goto(id) → __journey.player.teleport(x,y,z) → player.pos write.
       await page.evaluate((lid) => { try { window.__journey?.v5?.goto?.(lid) } catch {} }, id).catch(() => {})
-      await sleep(300)
-      const p2 = await v5pos(page)
+      await sleep(350)
+      let p2 = await v5pos(page)
+      if (p2.island !== id || d2(p2, C) > lay.R + 2.5) {
+        await page.evaluate((e) => { try { window.__journey?.player?.teleport?.(e.x, e.y, e.z) } catch {} }, entryW).catch(() => {})
+        await sleep(350)
+        p2 = await v5pos(page)
+      }
       if (p2.island !== id || d2(p2, C) > lay.R + 2.5) {
         await core(page, (c, e) => { const p = c.player; p.pos.set(e.x, e.y + 0.4, e.z); p.vel.set(0, 0, 0); p.frozen = false }, entryW)
       }
@@ -376,8 +388,8 @@ for (const [size, vp] of VIEWPORTS) {
       const sampler = setInterval(async () => { try { const p = await v5pos(page); trace.push([Math.round((Date.now() - i0) / 100) / 10, +p.x.toFixed(2), +p.y.toFixed(2), +p.z.toFixed(2), p.grounded ? 1 : 0]) } catch {} }, 150)
       let c1, c2, p3
       try {
-        c1 = await walkTo(page, drv, { x: mid.x, z: mid.z }, { timeout: 16000, arrive: 1.4 })
-        c2 = c1.ok || c1.blocked || !c1.frozen ? await walkTo(page, drv, entryN, { timeout: 20000, arrive: 1.6 }) : c1
+        c1 = await walkTo(page, drv, { x: mid.x, z: mid.z }, { timeout: 16000, arrive: 1.4, burst: 150 })
+        c2 = c1.ok || c1.blocked || !c1.frozen ? await walkTo(page, drv, entryN, { timeout: 20000, arrive: 1.6, burst: 150 }) : c1
         p3 = await v5pos(page)
       } finally { clearInterval(sampler) }
       const arrived = p3.island === ORDER[i + 1] || d2(p3, N) < lay.R
@@ -413,6 +425,11 @@ for (const [size, vp] of VIEWPORTS) {
   }
   await v4.close().catch(() => {})
   await page.close().catch(() => {})
+  } catch (e) {
+    rec({ size, id: 'BOOT', ok: false, detail: 'boot harness: ' + e.message.slice(0, 160) })
+    try { await v4.close() } catch {}
+    try { await page.close() } catch {}
+  }
 }
 }) // withChrome
 

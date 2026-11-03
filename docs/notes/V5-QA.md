@@ -49,6 +49,30 @@ Usage: `node scripts/v5/play.mjs [baseUrl] [--lite] [--only=L01,L02] [--size=144
   the Dust fix.
 - Expected to unblock a lot: re-run as soon as PLAYER lands the fix.
 
+### Run 3 (~19:05) — solvers work; crossing fails on narrow bridge strip + L05 crash
+- **PLAYER fix confirmed**: `<DustPool/>` landed; scene renders (beautiful clay: schoolhouse,
+  desk, gates, ribbon, caption, glyph row). L01/L02/L03 solved via `__journey.solve.*`.
+- **WORLD (Bridge5) — probable bug**: cross-trace shows the player walks to the exit
+  (z≈-4.1, grounded), steps toward the bridge… and reappears at island ENTRY (fell to
+  y<-16 → respawn). Deck stand-test (teleport onto t=0.05/0.5/0.9) is fine, so the strip
+  itself raycasts — but it is only **0.62 m wide while the visible planks are ~0.95 m**:
+  stepping toward plank edge = stepping onto air. Widen the walk strip to ≥ plank width,
+  or add low rail blockers so feet can't leave the deck. File under WORLD `Bridge5.tsx:59-70`.
+- **ISL-C L05 — page crash**: `THREE.BufferGeometryUtils: .mergeGeometries() failed
+  (geometry at index 34)` then `pageerror: Cannot read properties of null (reading
+  'boundingSphere')`, then the renderer's execution context died. Guard the merge —
+  a null merged geometry propagates and can kill the canvas. Harness now rebuilds the
+  page on context-death and continues.
+- Harness upgrades: crash-resilient (rebuild page, progress persists via localStorage),
+  crossing position trace on fail, `__journey.player.teleport` real-teleport recovery,
+  converted to shared `withChrome`, adds `v4-<size>-<n>-<ID>.png` comparison shots,
+  mobile `<canvas>` presence check, rAF-fps race.
+- `player.pos` writes are **overwritten every frame** by the controller (S.pos → player.pos);
+  do NOT use them for teleports — use `__journey.player.teleport` / `v5.goto` (learned the
+  hard way: pos.set() is a no-op).
+- Churn caveat: runs during agent edits hit transient module breaks (L01 `Hint`→`PillHint`
+  rename mid-run; PillHint `<span>` crash in L02). Real signal resumes once edits settle.
+
 ### Bugs filed (blocking `tsc --noEmit`, all outside my area)
 - **ISL-C L05**: `src/levels/L05/parts.v5.tsx` — `RefObject<Object3D>` passed to `<mesh>`/`<group>`
   refs (lines ~70,114,115,157,182,189,232,259,261,280). Type them `useRef<THREE.Mesh>(null)` /
