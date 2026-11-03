@@ -35,8 +35,14 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
     at: () => (laptopRef.current ? laptopRef.current.getWorldPosition(at) : at),
     radius: 1.7,
     label: 'sit at the laptop',
-    use: () => { if (!used.current) { used.current = true; setOpen(true) } },
-    enabled: () => !completed.current,
+    use: () => {
+      if (used.current) return
+      used.current = true
+      core.playerEmote.name = 'use'
+      setTimeout(() => { if (core.playerEmote.name === 'use') core.playerEmote.name = null }, 1100)
+      setOpen(true)
+    },
+    enabled: () => !used.current,
   }), [id, at])
   core.useInteractable(inter)
 
@@ -68,7 +74,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       <LaptopDesk position={[DESK.x, 0, DESK.z]} yaw={-1.05} lit={warm} laptopRef={laptopRef} />
 
       {/* the low wall that teaches the hop — sealed at both ends by boulders */}
-      <LowWall position={[0, 0, WALL_Z]} len={9} h={0.36} />
+      <LowWall position={[0, 0, WALL_Z]} len={9} h={0.56} />
       <Rock position={[-4.25, 0.05, WALL_Z]} s={0.62} yaw={0.7} />
       <Rock position={[4.25, 0.05, WALL_Z]} s={0.58} yaw={2.1} />
       <Bush position={[-3.9, 0, WALL_Z + 0.45]} s={1.15} />
@@ -80,10 +86,9 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       <LampPost position={[1.55, 0, -3.62]} lit={warm} />
       {warm && <pointLight position={[0, 1.3, -3.6]} color="#ffc27e" intensity={2.4} distance={4.5} decay={2} />}
 
-      {/* stones underfoot */}
-      <PathStones pts={[[0, 4.1], [0, 1.1]]} seed={3} />
-      <PathStones pts={[[0, -0.15], [0, -3.4]]} seed={5} />
-      <PathStones pts={[[0.2, -0.5], [1.15, -0.8]]} seed={7} />
+      {/* a spur of stones leading off the main path to the desk (the z-corridor
+          stones are drawn by WORLD) */}
+      <PathStones pts={[[0.15, -0.4], [1.15, -0.8]]} seed={7} />
 
       {/* dressing */}
       <Fence pts={[new THREE.Vector3(-3.7, 0, -1.4), new THREE.Vector3(-4.05, 0, -2.3), new THREE.Vector3(-3.7, 0, -3.3)]} seed={4} />

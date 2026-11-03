@@ -33,8 +33,12 @@ export function tpLocal(root: THREE.Group | null, local: THREE.Vector3) {
   if (!root) return
   const w = local.clone()
   root.localToWorld(w)
-  core.player.pos.copy(w)
-  core.player.vel.set(0, 0, 0)
+  const tp = (window as any).__journey?.player?.teleport
+  if (tp) tp(w.x, w.y, w.z)
+  else {
+    core.player.pos.copy(w)
+    core.player.vel.set(0, 0, 0)
+  }
 }
 
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -245,7 +249,7 @@ export function Mound({ position, r = 0.85, h = 0.42, color = C.moss }: {
 
 /* ---------- low hop wall ---------- */
 
-export function LowWall({ position, len = 9, h = 0.36 }: {
+export function LowWall({ position, len = 9, h = 0.56 }: {
   position: [number, number, number]
   len?: number
   h?: number

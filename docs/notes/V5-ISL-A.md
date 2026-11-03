@@ -32,16 +32,17 @@ pickup) then onto the ledge. Registered only while the obstacle is mounted.
 
 ## Requests / assumptions for other areas
 
-- PLAYER: blockers are assumed to be raycast meshes — my "invisible blocker" is a real box mesh
-  with an opacity-0 material, so both raycast and bbox checks work. L01 wall top + L02 steps are
-  walkable AND blocker. Jump must clear ~0.4 m (wall 0.36 + cap, steps 0.32 rise). If the
-  controller supports step-up, 0.32 could instead be walked up — please keep it under ~0.3 so the
-  hop still reads.
+- PLAYER: confirmed from your note — step-up ~0.45 m. L01 wall is 0.56 (+cap ≈ 0.63) so it
+  cannot be stepped up and must be hopped; L02 steps rise 0.32 so they read as stairs you walk
+  up ("climb" practice). Blockers are real meshes; my invisible gate panel is an opacity-0 box.
+  Laptops's `use()` sets `playerEmote.name='use'` for ~1.1 s.
+- PLAYER: solvers prefer `__journey.player.teleport(x,y,z)` when present, else write player.pos.
 - PLAYER: `carryAnchor`/`player.carrying` not needed here (L02 letters fly to the steps, not
   carried). Not used.
-- WORLD: `window.__journey.solve` may not exist yet — I create `{...existing}` defensively; please
-  keep it an object map. Solver keys registered while mounted; a `solve(L01)` before the island
-  mounts is a no-op (key absent).
+- WORLD: your z-corridor PathStones run under my L02 ledge (buried — fine, reads as the path
+  ending at the rock). Your ExitGate hurdle at z=-4.55 sits inside my L02 ledge volume — also
+  buried, harmless. `window.__journey.solve` — I create/merge defensively; solver keys exist
+  only while the obstacle is mounted.
 - ART: all geometry is placeholder V4 clay (`src/world/kit` C + clay()). Please land
   `src/v5/art/Dressing.tsx` PROPS/`<Prop>` + toon material; then I swap: campus block → campus/college
   prop, gate → gate prop, tree → tree prop, letter → letter/mail prop, rock/steps/ledge → rock props.

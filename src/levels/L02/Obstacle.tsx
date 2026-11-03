@@ -17,7 +17,7 @@ import { Bush, Fence } from '../../world/kit'
 const LETTERS = [
   new THREE.Vector3(1.6, 0.03, 2.7),    // out in the open, near the entry
   new THREE.Vector3(-2.5, 0.03, 0.7),   // tucked behind the big rock
-  new THREE.Vector3(2.05, 0.46, 0.95),  // on top of the little rise
+  new THREE.Vector3(2.05, 0.42, 0.95),  // on top of the little rise
   new THREE.Vector3(-1.3, 0.03, -0.7),  // midfield
   new THREE.Vector3(2.5, 0.03, -1.3),   // between the far stones
 ]
@@ -175,7 +175,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       ))}
       <Rock position={[-2.2, 0.05, 1.35]} s={0.58} yaw={0.9} />
       <Rock position={[-2.9, 0.03, 1.6]} s={0.3} yaw={2.4} color={C.stoneLight} block={false} />
-      <Mound position={[2.05, 0, 0.95]} r={0.95} h={0.46} />
+      <Mound position={[2.05, 0, 0.95]} r={0.95} h={0.4} />
       <Rock position={[2.85, 0.05, -0.65]} s={0.55} yaw={1.4} />
       <Rock position={[2.0, 0.04, -1.95]} s={0.4} yaw={0.2} color={C.stoneLight} />
 
@@ -184,8 +184,8 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
         <StoneStep key={i} pos={p} yaw={yawJ[i]} instant={done} />
       ))}
 
-      {/* dressing + stones underfoot */}
-      <PathStones pts={[[0, 4.1], [0, 1.4]]} seed={11} />
+      {/* dressing + a stones spur pointing at the rise (WORLD draws the corridor stones) */}
+      <PathStones pts={[[0.7, 1.95], [1.6, 1.25]]} seed={11} />
       <Fence pts={[new THREE.Vector3(-3.9, 0, 0.2), new THREE.Vector3(-4.2, 0, -0.8), new THREE.Vector3(-3.8, 0, -1.8)]} seed={8} />
       <Bush position={[-3.5, 0, 2.4]} s={1.1} color={C.moss} />
       <Bush position={[3.6, 0, 1.9]} s={0.9} />
