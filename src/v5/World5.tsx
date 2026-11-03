@@ -258,7 +258,7 @@ export default function World5() {
   return (
     <>
       <Canvas shadows={LITE ? false : 'soft'} dpr={dpr}
-        camera={{ fov: 38, near: 0.1, far: 340, position: [10, 7, 12] }}
+        camera={{ fov: 38, near: 0.1, far: 620, position: [10, 7, 12] }}
         gl={{ antialias: true, powerPreference: 'high-performance' }}
         onCreated={({ gl }) => { gl.toneMapping = THREE.ACESFilmicToneMapping; gl.toneMappingExposure = 1.08 }}>
         {!LITE && <PerfGuard onDpr={setDpr} slow={slow} />}
