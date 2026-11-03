@@ -425,7 +425,7 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
     s.zoomMul = THREE.MathUtils.clamp(s.zoomMul * Math.exp(input.zoom * 0.001), 0.25, 2.5)
     // Portrait screens pull back further so the island still reads (aspect = w/h).
     const aspect = (camera as THREE.PerspectiveCamera).aspect || 1.6
-    const baseDist = BASE_DIST * (aspect < 1 ? 1 + (1 - aspect) * 0.9 : 1)
+    const baseDist = BASE_DIST * (aspect < 1 ? 1 + (1 - aspect) * 0.45 : 1)
     s.camDistT = THREE.MathUtils.clamp(baseDist * s.zoomMul, DIST_MIN, DIST_MAX)
     input.camDX = input.camDY = input.zoom = 0
     if (!cine) {
