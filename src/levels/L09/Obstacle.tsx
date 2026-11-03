@@ -10,7 +10,7 @@ import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
 import {
-  C, M, ghostMat, useIslandFrame, useLocalInteractable, useCarryAnchor, carryAnchor,
+  C, M, ghostMat, useIslandFrame, useLocalInteractable, useCarryAnchor, carryAnchor, useDomOverlay,
   damp, caption, isQa, installSolve, teleportTo, waitFor, sleep, tracePad,
 } from '../L08/v5kit.v5'
 import { Schoolhouse } from './school.v5'
@@ -349,6 +349,14 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
     },
   })
 
+  useDomOverlay(
+    signPad ? (
+      <SignPad template={SIGN_C} title="Trace the sign on the stone" sub="One slow stroke, like chalk on slate."
+        onClose={() => setSignPad(false)}
+        onResult={(ok) => { if (ok) { setSignPad(false); setSigned(true); caption('The last light comes on.') } }} />
+    ) : null,
+  )
+
   /* ?qa solver — real interactions: teleport, use, draw the C. */
   useEffect(() => {
     if (!isQa()) return
@@ -423,11 +431,6 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
         </group>
       ))}
 
-      {signPad && (
-        <SignPad template={SIGN_C} title="Trace the sign on the stone" sub="One slow stroke, like chalk on slate."
-          onClose={() => setSignPad(false)}
-          onResult={(ok) => { if (ok) { setSignPad(false); setSigned(true); caption('The last light comes on.') } }} />
-      )}
     </group>
   )
 }

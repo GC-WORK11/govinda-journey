@@ -9,7 +9,7 @@ import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
 import {
-  C, M, ghostMat, useIslandFrame, useLocalInteractable, useCarryAnchor,
+  C, M, useIslandFrame, useLocalInteractable, useCarryAnchor, useDomOverlay,
   damp, caption, isQa, installSolve, teleportTo, waitFor, sleep, fillInput, tracePad,
 } from './v5kit.v5'
 import { Guardian } from './guardian.v5'
@@ -159,6 +159,23 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
     },
   })
 
+  useDomOverlay(
+    overlay === 'speak' ? (
+      <SpeakPrompt word="hello" onClose={() => setOverlay('none')}
+        onResult={() => {
+          setStage('shown')
+          caption('The guardian shows you a sign.')
+          // a beat to watch the tablet rise, then the pad opens on its own
+          setTimeout(() => setOverlay('sign'), 950)
+          setOverlay('none')
+        }} />
+    ) : overlay === 'sign' ? (
+      <SignPad template={SIGN_V} title="Trace the guardian’s sign" sub="One stroke — the shape on the tablet."
+        onClose={() => setOverlay('none')}
+        onResult={(ok) => { if (ok) { setOverlay('none'); setStage('aside') } }} />
+    ) : null,
+  )
+
   /* ?qa solver — plays it for real: teleport, use, type the word, draw the V. */
   useEffect(() => {
     if (!isQa()) return
@@ -172,6 +189,9 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
       const input = await waitFor(() => document.querySelector<HTMLInputElement>('[data-qa="speak-input"]'))
       fillInput(input, 'hello')
       input.closest('form')!.requestSubmit()
+      await sleep(900)
+      // the guardian now shows its sign — ask it again to open the pad
+      ;(await waitFor(() => interactables.get('l08-guardian'))).use()
       const cv = await waitFor(() => document.querySelector<HTMLCanvasElement>('[data-qa="sign-canvas"]'))
       await sleep(350)
       await tracePad(cv)
@@ -203,16 +223,7 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
         <meshStandardMaterial color={C.sand} roughness={1} />
       </mesh>
 
-      {/* DOM overlays */}
-      {overlay === 'speak' && (
-        <SpeakPrompt word="hello" onClose={() => setOverlay('none')}
-          onResult={() => { setOverlay('none'); setStage('shown'); caption('The guardian shows you a sign.') }} />
-      )}
-      {overlay === 'sign' && (
-        <SignPad template={SIGN_V} title="Trace the guardian’s sign" sub="One stroke — the shape on the tablet."
-          onClose={() => setOverlay('none')}
-          onResult={(ok) => { if (ok) { setOverlay('none'); setStage('aside') } }} />
-      )}
+      {/* DOM overlays live on their own react root (see useDomOverlay) */}
     </group>
   )
 }

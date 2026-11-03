@@ -5,7 +5,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
-import { createPortal } from 'react-dom'
+import { createRoot, type Root } from 'react-dom/client'
 import { C, clay } from '../../world/kit'
 import { player, useInteractable, useV5, type Interactable } from '../../v5/core'
 
@@ -180,16 +180,40 @@ function ensureCss() {
   document.head.appendChild(el)
 }
 
-/** Soft full-screen veil with a rounded paper card. Click outside / × closes. */
+/**
+ * Render DOM overlay JSX from inside an R3F component. ReactDOM.createPortal can't cross
+ * reconcilers (the div would be created in the THREE namespace), so overlays mount on
+ * their own react-dom root attached to <body> — same trick as drei's <Html>.
+ */
+export function useDomOverlay(node: React.ReactNode) {
+  const host = useRef<{ el: HTMLDivElement; root: Root } | null>(null)
+  useEffect(() => {
+    const el = document.createElement('div')
+    document.body.appendChild(el)
+    const root = createRoot(el)
+    host.current = { el, root }
+    return () => {
+      host.current = null
+      setTimeout(() => { try { root.unmount() } catch {} el.remove() })
+    }
+  }, [])
+  useEffect(() => { host.current?.root.render(<>{node}</>) })
+}
+
+/** Soft full-screen veil with a rounded paper card. Click outside / × / Esc closes. */
 export function Veil({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   ensureCss()
-  return createPortal(
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    addEventListener('keydown', k)
+    return () => removeEventListener('keydown', k)
+  }, [onClose])
+  return (
     <div className="jov5-veil" onPointerDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className="jov5-card" role="dialog" aria-modal="true">
         <button className="jov5-x" aria-label="Close" onClick={onClose}>×</button>
         {children}
       </div>
-    </div>,
-    document.body,
+    </div>
   )
 }
