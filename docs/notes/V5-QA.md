@@ -256,6 +256,13 @@ Remaining open items (not launch-blocking but filed):
   Résumé block, Fraunces title. One nit seen earlier — dark cloud blobs pre-dissolve;
   ART's finale-dissolve commits landed after, re-verify on the next shot pass.
 
+### Run 14 (~00:20, 390×844 `--lite`, HEAD ec4e3de — PARTIAL, stopped for stale code)
+
+First six islands all green before the coordinator halt — **L01, L02, L03, I01, L05, L04
+PASS** (fps 4–6). L04 still logs the `BlinkFx` cross-renderer crash (`:757`) and passes
+via Guard fallback only. I02–L09 untested this run. Same code as run 10 which swept
+11/11, so no new signal expected — but go-7 will confirm on the settled HEAD.
+
 ### Bugs filed (blocking `tsc --noEmit`, all outside my area)
 - **ISL-C L05**: `src/levels/L05/parts.v5.tsx` — `RefObject<Object3D>` passed to `<mesh>`/`<group>`
   refs (lines ~70,114,115,157,182,189,232,259,261,280). Type them `useRef<THREE.Mesh>(null)` /
