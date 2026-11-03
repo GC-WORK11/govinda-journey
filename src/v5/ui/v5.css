@@ -75,8 +75,32 @@
 .v5-fin .btn { background: #fbf6ee; color: var(--ink); }
 .v5-fin .keep { font-size: 13.5px; color: #efe0c8; opacity: .85; border-bottom: 1px solid transparent; }
 .v5-fin .keep:hover { opacity: 1; border-color: rgba(239,224,200,.5); }
+/* the portfolio summary — the projects you just walked through */
+.v5-fin .card { max-height: 86vh; overflow-y: auto; }
+.v5-fin .projs { margin-top: 18px; }
+.v5-fin .proj { margin: 9px 0 0; font: 400 13.5px var(--sans); color: #efe0c8; }
+.v5-fin .proj .pt { font-family: var(--serif); font-size: 15px; letter-spacing: -.005em; }
+.v5-fin .proj .pp { opacity: .6; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; margin-left: 9px; }
+.v5-fin .proj .pk { display: block; opacity: .75; font-size: 12.5px; margin-top: 2px; }
+.v5-fin .proj .pl { margin-left: 10px; }
+.v5-fin .proj .pl a { color: #efe0c8; font-size: 12px; text-decoration: none; border-bottom: 1px solid rgba(239,224,200,.35); margin: 0 5px; padding-bottom: 1px; transition: border-color .2s, color .2s; }
+.v5-fin .proj .pl a:hover { color: #fff; border-color: #fff; }
+.v5-fin .stack { margin-top: 16px; font: 500 11.5px var(--sans); letter-spacing: .1em; color: #efe0c8; opacity: .8; }
+
+/* ---- how to play (before the walk begins) ---- */
+.v5-how { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; pointer-events: none; z-index: 9;
+  background: color-mix(in srgb, var(--paper) 60%, transparent);
+  opacity: 0; transition: opacity .8s ease; }
+.v5-how.on { opacity: 1; }
+.v5-how .words { max-width: 410px; padding: 0 28px; }
+.v5-how .eyebrow { font: 500 11px var(--sans); letter-spacing: .16em; text-transform: uppercase; color: var(--ink2); opacity: .9; }
+.v5-how .line { font: 400 19px/1.55 var(--serif); letter-spacing: -.01em; margin-top: 12px; text-wrap: balance; }
+.v5-how .keys { font: 500 12px/1.7 var(--sans); letter-spacing: .04em; color: var(--ink2); margin-top: 24px; }
+.v5-how .begin { font: 500 11px var(--sans); letter-spacing: .13em; text-transform: uppercase; color: var(--ink2); margin-top: 34px;
+  animation: v5how 2.8s ease-in-out infinite; }
+@keyframes v5how { 0%, 100% { opacity: .55; } 50% { opacity: .95; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .v5-ribbon .dot, .v5-cap, .v5-fin { transition: none; }
-  .v5-glyph.earned .art { animation: none; }
+  .v5-ribbon .dot, .v5-cap, .v5-fin, .v5-how { transition: none; }
+  .v5-glyph.earned .art, .v5-how .begin { animation: none; }
 }

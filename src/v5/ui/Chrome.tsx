@@ -13,6 +13,7 @@ import { Ribbon } from './Ribbon'
 import { Caption } from './Caption'
 import { Glyphs } from './Glyphs'
 import { Finale } from './Finale'
+import { HowTo } from './HowTo'
 
 const TECH_MS = 6000
 
@@ -61,6 +62,7 @@ export default function Chrome() {
           <Controls />
         </Suspense>
       )}
+      <HowTo />
     </div>
   )
 }
