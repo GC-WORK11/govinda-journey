@@ -396,7 +396,8 @@ for (const [size, vp] of VIEWPORTS) {
       try {
         // leg0: enter through the deck mouth — steering straight at mid can cut the
         // corner and step off the rim beside the strip (I01 desktop fail, run 11).
-        c0 = await walkTo(page, drv, { x: exitW.x, z: exitW.z }, { timeout: 12000, arrive: 0.8, burst: 150 })
+        // Loose 1.4 m arrival: tighter targets drag the bot along the rim at low fps.
+        c0 = await walkTo(page, drv, { x: exitW.x, z: exitW.z }, { timeout: 9000, arrive: 1.4, burst: 150 })
         c1 = c0.frozen ? c0 : await walkTo(page, drv, { x: mid.x, z: mid.z }, { timeout: 16000, arrive: 1.4, burst: 150 })
         c2 = c1.ok || c1.blocked || !c1.frozen ? await walkTo(page, drv, entryN, { timeout: 20000, arrive: 1.6, burst: 150 }) : c1
         p3 = await v5pos(page)
