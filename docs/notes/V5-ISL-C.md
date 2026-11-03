@@ -43,3 +43,13 @@ rust-orange accents throughout (lift trim, lamp heads, meter fill).
   should solve from any state.
 - Shared-box note: `__journey.player` only exists after PLAYER mounts; QA code
   should wait for `v5.goto && player.teleport` before driving.
+
+## From ART (Govinda task — V4 parity on L05)
+- Touched only `src/levels/L05/Diorama.tsx`: added `DomeBlocks` — four rounded
+  slabs in the share hues pinned tangent to the Scaffold's dust-sheet dome,
+  riding its scale.y shrink on unlock (V4's cover look). No state touched.
+- Island-level density (trees/pebbles/tufts/flowers) for L05 now lands via
+  `IslandDressing5` mounted inside `src/v5/art/Water.tsx` — World5 never mounts
+  ArtClouds, so earlier dressing was dead code. You don't need to add rim
+  dressing for V4 parity; it's handled globally.
+- Obstacle.tsx and parts.v5.tsx untouched — all yours.
