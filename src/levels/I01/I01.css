@@ -1,0 +1,60 @@
+.i01 {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  width: min(100%, 452px);
+  padding: 2px 0 4px;
+}
+.i01-wash {
+  position: absolute;
+  inset: -44px -34px -22px;
+  border-radius: 60px;
+  background: radial-gradient(circle at 50% 46%, rgba(255, 250, 238, .95), rgba(255, 250, 238, 0) 72%);
+  pointer-events: none;
+}
+.i01-guide {
+  position: relative;
+  font: 500 21px/1.25 var(--serif);
+  color: var(--ink);
+  letter-spacing: .012em;
+  min-height: 27px;
+  transition: opacity .3s;
+}
+.i01-stage {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
+.i01-stage:focus-visible { outline: 2px solid rgba(47, 41, 37, .35); outline-offset: 4px; border-radius: 30px; }
+.i01-stage svg { display: block; width: 100%; height: auto; }
+.i01-foot { position: relative; display: grid; justify-items: center; gap: 7px; margin-top: 2px; }
+.i01-pebbles { display: flex; gap: 9px; align-items: center; }
+.i01-pebble {
+  width: 11px; height: 9px;
+  border-radius: 54% 46% 58% 42% / 58% 62% 38% 42%;
+  background: #ddd0bd;
+  box-shadow: inset 0 -1px 0 rgba(60, 40, 20, .14);
+  transition: background .55s ease, transform .55s ease;
+}
+.i01-pebble.on { background: #d9825b; transform: translateY(-1px); }
+.i01-hint {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ink2);
+  min-height: 18px;
+  text-align: center;
+  text-wrap: balance;
+}
+.i01-hint.note { color: #b5654a; }
+@media (prefers-reduced-motion: reduce) {
+  .i01-pebble, .i01-guide { transition: none; }
+}

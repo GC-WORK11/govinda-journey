@@ -21,3 +21,12 @@ export function walkCurve(i: number) {
   const mid = p1.clone().lerp(p2, 0.5); mid.y = Math.min(p1.y, p2.y) - 0.3
   return new THREE.CatmullRomCurve3([p0, p1, mid, p2, p3], false, 'centripetal')
 }
+
+/** Island-local waypoints for the stepping-stone path: incoming bridge edge -> stand -> outgoing edge. */
+export function pathLocal(i: number) {
+  const c = CENTERS[i], pts: THREE.Vector3[] = []
+  if (i > 0) pts.push(edge(i, i - 1).sub(c))
+  pts.push(standPoint(i).sub(c))
+  if (i < CENTERS.length - 1) pts.push(edge(i, i + 1).sub(c))
+  return pts.map((p) => p.setY(0))
+}

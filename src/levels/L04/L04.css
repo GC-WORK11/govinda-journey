@@ -1,0 +1,96 @@
+.l04 {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  width: min(100%, 420px);
+  padding: 4px 0 6px;
+}
+.l04-wash {
+  position: absolute;
+  inset: -20px -18px -12px;
+  border-radius: 36px;
+  background: radial-gradient(circle at 50% 40%, rgba(252, 248, 240, .88), rgba(252, 248, 240, 0) 72%);
+  pointer-events: none;
+}
+.l04-title {
+  position: relative;
+  font: 500 22px/1.2 var(--serif);
+  color: var(--ink);
+  letter-spacing: .01em;
+  margin: 0 0 -2px;
+}
+.l04-stage {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  background: #fbf6ee;
+  border-radius: 18px;
+  padding: 18px 16px;
+  box-shadow: 0 2px 8px rgba(60, 50, 40, .08), 0 1px 2px rgba(60, 50, 40, .12);
+}
+.l04-stage svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.l04-spot {
+  animation: l04-glow 2.2s ease-in-out infinite;
+}
+.l04-pulse {
+  animation: l04-pulse 2.2s ease-in-out infinite;
+}
+@keyframes l04-glow {
+  0%, 100% { opacity: .85; }
+  50% { opacity: .55; }
+}
+@keyframes l04-pulse {
+  0%, 100% { opacity: .6; transform: scale(1); }
+  50% { opacity: .2; transform: scale(1.18); }
+}
+.l04-hotspot {
+  cursor: pointer;
+}
+.l04-hotspot:hover {
+  fill: rgba(217, 130, 91, .08);
+}
+.l04-foot {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 9px;
+  margin-top: 4px;
+}
+.l04-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.l04-pill {
+  font-size: 11.5px;
+  line-height: 1;
+  color: var(--ink);
+  background: #e8ddd0;
+  padding: 6px 11px;
+  border-radius: 18px;
+  white-space: nowrap;
+}
+.l04-pill.dim {
+  color: var(--ink2);
+  background: #eee8dc;
+}
+.l04-hint {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ink2);
+  min-height: 18px;
+  text-align: center;
+  text-wrap: balance;
+  margin: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .l04-spot, .l04-pulse {
+    animation: none;
+  }
+}

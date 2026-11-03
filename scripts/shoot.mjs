@@ -5,6 +5,19 @@ const require = createRequire(import.meta.url)
 let puppeteer
 try { puppeteer = require('puppeteer-core') } catch { puppeteer = require('/tmp/pp/node_modules/puppeteer-core') }
 const [url = 'http://localhost:5191/', out = 'proofs/shot'] = process.argv.slice(2)
+// One headless Chrome at a time on this shared box: wait for the lock (stale after 6 min).
+import { mkdirSync, rmSync, statSync } from 'fs'
+const LOCK = '/tmp/gj-chrome.lock'
+for (let i = 0; ; i++) {
+  try { mkdirSync(LOCK); break } catch {
+    try { if (Date.now() - statSync(LOCK).mtimeMs > 360000) rmSync(LOCK, { recursive: true, force: true }) } catch {}
+    if (i % 12 === 0) console.log('waiting for the shared browser slot…')
+    await new Promise((r) => setTimeout(r, 5000))
+  }
+}
+const unlock = () => { try { rmSync(LOCK, { recursive: true, force: true }) } catch {} }
+process.on('exit', unlock); process.on('SIGINT', () => process.exit(130)); process.on('SIGTERM', () => process.exit(143))
+setTimeout(() => { console.log('level-check hard timeout'); process.exit(3) }, 330000).unref()
 const browser = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', headless: 'new',
   args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] })
 const errors = []
@@ -24,3 +37,4 @@ for (const [name, vp] of [['desktop', { width: 1440, height: 900 }], ['mobile', 
 }
 await browser.close()
 console.log(errors.length ? 'ERRORS:\n' + errors.join('\n') : 'no console errors')
+unlock()

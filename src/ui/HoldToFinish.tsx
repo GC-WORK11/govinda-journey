@@ -16,7 +16,7 @@ export function HoldToFinish({ onWin, label = 'Press and hold' }: { onWin: () =>
   const on = () => (holding.current = true), off = () => (holding.current = false)
   return (
     <div className="hold">
-      <button className="btn" onPointerDown={on} onPointerUp={off} onPointerLeave={off}
+      <button className="btn" onPointerDown={on} onPointerUp={off} onPointerLeave={off} onContextMenu={(e) => e.preventDefault()}
         onKeyDown={(e) => e.key === ' ' && on()} onKeyUp={off}>{label}</button>
       <div className="hold-line"><span style={{ transform: `scaleX(${p})` }} /></div>
     </div>

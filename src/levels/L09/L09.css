@@ -1,0 +1,157 @@
+.l09 {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(to bottom, #e8d6b8 0%, #d9c8a8 100%);
+  padding: 1.2rem;
+  box-sizing: border-box;
+}
+
+.l09-scene {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.l09-board {
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.15));
+}
+
+.l09-card-appear {
+  animation: l09-card-in 0.5s ease-out;
+}
+
+@keyframes l09-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.l09-option {
+  transition: all 0.2s ease;
+}
+
+.l09-option:hover {
+  opacity: 0.8 !important;
+}
+
+.l09-tick-draw {
+  animation: l09-tick 0.4s ease-out;
+}
+
+@keyframes l09-tick {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.l09-bubble {
+  position: absolute;
+  bottom: -0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--cream);
+  border-radius: 1rem;
+  padding: 0.9rem 1.1rem;
+  box-shadow: 0 4px 12px rgba(59, 51, 48, 0.12);
+  min-width: 280px;
+  max-width: 380px;
+  animation: l09-bubble-in 0.4s ease-out;
+}
+
+@keyframes l09-bubble-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.l09-bubble-inner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  margin-bottom: 0.7rem;
+}
+
+.l09-avatar {
+  font-size: 1.8rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.l09-msg {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: var(--ink);
+  font-weight: 450;
+}
+
+.l09-send {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 1rem;
+  background: var(--terracotta);
+  color: var(--paper);
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 550;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: Inter, sans-serif;
+}
+
+.l09-send:hover {
+  background: #c97550;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(217, 130, 91, 0.3);
+}
+
+.l09-send:active {
+  transform: translateY(0);
+}
+
+.l09-hint {
+  margin: 1rem 0 0;
+  font-size: 0.85rem;
+  color: var(--ink2);
+  text-align: center;
+  font-weight: 450;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .l09-card-appear,
+  .l09-tick-draw,
+  .l09-bubble {
+    animation: none;
+  }
+  
+  .l09-option,
+  .l09-send {
+    transition: none;
+  }
+}

@@ -48,3 +48,7 @@ off the building, gives a badge and opens the project story. Read src/levels/reg
   them honestly against the look rules. Iterate until it looks hand-made and premium. Max ~6 screenshot rounds.
 - Do NOT run git commands. The coordinator commits.
 - When done, write docs/notes/<LEVELID>.md: what the mini-game is (2 lines), what you verified, anything rough.
+
+## Shared box etiquette (added by coordinator)
+- Headless Chrome is serialized: scripts/level-check.mjs waits for a shared slot ("waiting for the shared browser slot…"). That is normal; just wait. Do NOT write your own puppeteer scripts or launch Chrome directly — use level-check.mjs only, and at most once or twice per agent.
+- Run `npx tsc -p . --noEmit` at most a few times; filter output for your folder.
