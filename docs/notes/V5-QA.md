@@ -188,6 +188,54 @@ fps 4–14. Visual (L09 finale mobile shot): dusk sky + lantern-lit island chain
 lovely; contact/resume footer clean; one nit — dark cloud blobs visible pre-dissolve
 during the pull-back (ART c6cc3e2/6610f6d may have addressed; verify on go-4 shots).
 
+### Run 10 (~23:21, 390×844 `--lite`, HEAD a2cbc56) — **11/11 PASS**
+
+PLAYER's `dfed8ea` bridge auto-guide (spline drive across `walk-bridge-*` strips) cleared
+every crossing, including the I01→L05 and L04→I02 mouths the bot missed three runs in a
+row. Full journey verified end-to-end on mobile: real joystick walks, `__journey.solve`,
+`useV5.done`, all seven ability grants (climb/build/power/sense/remote/voice/sign), all
+ten bridge walks, L09 finale reached.
+
+| island | result | fps | island | result | fps |
+|--------|--------|-----|--------|--------|-----|
+| L01 | PASS | 5 | I02 | PASS | 6 |
+| L02 | PASS | 5 | L06 | PASS | 4 |
+| L03 | PASS | 7 | L07 | PASS | 4 |
+| I01 | PASS | 5 | L08 | PASS | 5 |
+| L05 | PASS | 5 | L09 | PASS | 2 |
+| L04 | PASS | 7 | | | |
+
+Caveats on an otherwise clean board:
+- **ISL-D L04 still crashes at mount** (`BlinkFx` emits `<style>`/`<div>` inside the R3F
+  tree, `Obstacle.tsx:757`) → Guard marks broken → gate auto-opens → the PASS rides the
+  crash-fallback path, not a real mini-game solve. File stands until ISL-D moves the
+  DOM to an overlay/`<Html>`.
+- fps drifts 5→2 as the world fills; L09 at 2 fps is slideshow-slow on SwiftShader
+  (real GPUs will differ, but watch finale weight).
+- Boot fps≈11 mobile-lite.
+
+### Run 11 (~23:35, 1440×900 full-effects, HEAD a2cbc56) — **10/11 PASS**
+
+| island | result | fps | island | result | fps |
+|--------|--------|-----|--------|--------|-----|
+| L01 | PASS | 5 | I02 | PASS | 8 |
+| L02 | PASS | 4 | L06 | PASS | 4 |
+| L03 | PASS | 7 | L07 | PASS | 6 |
+| I01 | FAIL | 6 | L08 | PASS | 7 |
+| L05 | PASS | 6 | L09 | FAIL | 3 |
+| L04 | PASS | 6 | | | |
+
+- **I01 fail is bot-pathing, not a bridge bug**: trace shows the player steers straight
+  at the mid-point target, cuts inside the mouth corner and steps off I01's rim ~2.2 m
+  west of the strip centreline (mouth catch ≈2.2 m — right at the edge). leg1 reached
+  `mid` ok; the falls all happen at the mouth lip. A human aims down the planks.
+  Harness improvement queued: route through the exit mouth before the mid-point.
+- **L09 renderer crash**: `page crash: Page crashed!` during the finale pull-back at
+  fps≈3 — third SwiftShader death of the day, all under full effects. Mobile-lite
+  survived the same sequence at 2 fps. Flagging finale weight to ART/WORLD (the
+  `0be8c14` dome-wall disc may already be the mitigation).
+- L04 again passed via the crash-fallback (BlinkFx DOM crash still live at `:757`).
+
 ### Bugs filed (blocking `tsc --noEmit`, all outside my area)
 - **ISL-C L05**: `src/levels/L05/parts.v5.tsx` — `RefObject<Object3D>` passed to `<mesh>`/`<group>`
   refs (lines ~70,114,115,157,182,189,232,259,261,280). Type them `useRef<THREE.Mesh>(null)` /
