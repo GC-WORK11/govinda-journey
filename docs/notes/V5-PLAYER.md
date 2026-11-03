@@ -61,6 +61,12 @@ Status: complete and integrated — all requests below were delivered by WORLD.
 - Release: pushing past `s<=0` or `s>=len` hands back to free physics (the
   strip underlaps both island discs, so stepping off is seamless); teleport
   and respawn also clear the mode. Grounded on anything non-bridge releases.
+- **Airborne catch (since this commit):** engage also fires while airborne
+  near a strip — `s in [-0.8, len+0.8]`, `|lat| < hw*1.2 + 1.2`,
+  `pos.y - deckY in [-1.6, +1.8]` — so stepping off the rim *beside* the
+  mouth (the straight line to the next island can miss the mouth laterally,
+  e.g. I01→L05) lands on the deck instead of falling through the
+  rim↔strip gap; below-deck catches snap up (rail catch).
 - Legacy note: the pre-drive rail guide still runs for the airborne catch
   (ledge-lip drops onto the deck before the drive engages).
 - Mesh requirement: position attribute = WORLD-SPACE vertex PAIRS per

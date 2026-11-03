@@ -382,11 +382,26 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
        REAL TIME — fully frame-rate independent. Spline = section midpoints of
        the strip's world-space vertex pairs (41 sections). ---- */
     const bd = s.bridge
-    if (!bd.on && s.grounded && s.groundObj && s.groundObj.name.startsWith('walk-bridge')) {
-      const L = bridgeLine(s.groundObj)
-      if (L) {
+    if (!bd.on) {
+      let obj: THREE.Object3D | null = null
+      if (s.grounded && s.groundObj && s.groundObj.name.startsWith('walk-bridge')) obj = s.groundObj
+      else {
+        // airborne near a strip: stepped off the rim BESIDE the mouth (the
+        // straight line to the next island misses the mouth laterally) or a
+        // ledge drop past the flare — the deck catches them instead of falling
+        // through the rim↔strip gap. Within ~hw*1.2+1.2 lateral, ±deck height.
+        for (const o of near(walkables, s.pos, 4, nearA)) {
+          if (!o.name.startsWith('walk-bridge')) continue
+          const L = bridgeLine(o); if (!L) continue
+          const c = bridgeNearest(L, s.pos.x, s.pos.z)
+          const q = bridgeAt(L, c.s)
+          if (c.s > -0.8 && c.s < L.len + 0.8 && Math.abs(c.lat) < q.hw * 1.2 + 1.2 && s.pos.y - q.y > -1.6 && s.pos.y - q.y < 1.8) { obj = o; break }
+        }
+      }
+      if (obj) {
+        const L = bridgeLine(obj)!
         const np = bridgeNearest(L, s.pos.x, s.pos.z)
-        bd.on = true; bd.line = L; bd.obj = s.groundObj; bd.s = np.s; bd.lat = np.lat; bd.t = t
+        bd.on = true; bd.line = L; bd.obj = obj; bd.s = np.s; bd.lat = np.lat; bd.t = t
       }
     }
     // stepped onto land (only possible at the ends) → hand back to free physics
