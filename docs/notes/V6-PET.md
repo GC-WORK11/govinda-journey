@@ -1,6 +1,6 @@
 # V6-PET status
 
-Status: committed as [unverified] (306cc18). One desktop browser check ran (below). Partially verified: follow logic works on the bench with a stand-in model. Sit, hop, teleport, reveal, mobile and a real dog are not verified. tsc was not run at this commit.
+Status: committed as [unverified] (306cc18). One desktop browser check ran at about 04:58 IST (below). Partially verified: follow logic works on the bench with a stand-in model. Sit, hop, teleport, reveal, mobile and a real dog are not verified. tsc was not run at this commit. Since 05:12 IST agents run no browsers or Chrome. The checks below are for QA or Govinda to run.
 
 ## Files (src/v5/pet/**)
 - `Pet.tsx`: the dog. Default export `Pet`, plus `PET_MODEL` (null until ART lands the model).
@@ -47,8 +47,46 @@ Setup: bench with `?qa&model=/models/student.glb&upto=I01` (L01 to L03 done, so 
 - 390x844: not run.
 - No dog model exists yet, so there is nothing visual to judge.
 
-## To finish
-1. Tune the start swing: the dog reached 0.7 m off the player while the player turned.
-2. WORLD adds the mount line.
-3. ART lands the GLB; PET flips `PET_MODEL`.
-4. Then the rest of the check with the real dog: sit, teleports, reveal, bridges and touch, at 1440x900 and 390x844. Only then drop `[unverified]`.
+## Handoff: ready to verify (QA or Govinda runs these; agents run no browsers)
+Needs the dev server on :5190. The bench is dev-only and not in the build.
+
+Desktop 1440x900, bench with the stand-in human model (logic only):
+`http://localhost:5190/src/v5/pet/bench.html?qa&model=/models/student.glb&upto=I01`
+Run `__journey.pet.state()` in the DevTools console. Fields: pos, dist, behind, sit, moving, hop, rv, clip.
+1. Standing: dist about 1.48, behind about 1.25 (wanted 1.2 to 2.0).
+2. Hold W for 3 s: dist stays between 0.6 and 2.5 after the first second.
+3. Stand still for 4 s after the dog arrives: sit true, clip `Sit_Floor_Idle`. Then hold W: sit false within about 1 s.
+4. Clips: `Idle` while still, `Walking_A` while moving.
+5. Teleport (a jump of about 4 m from spawn): run `__journey.player.teleport(0, 0.5, 0)`. Within about 1 s: dist at most 2.0 and behind above 0.
+6. Respawn (real input): from spawn, hold S for 3 s. The player walks off the L01 rim, fades, and respawns on the island. The dog should be placed behind within about 2 s (dist at most 2.0). Do not use `teleport` for this: it resets the safe point, so no fall happens.
+
+Mobile 390x844: same URL, device emulation with touch on. Joystick visible. Repeat 2 to 6 with the joystick.
+
+Live reveal, desktop:
+`http://localhost:5190/src/v5/pet/bench.html?qa&model=/models/student.glb&upto=L03`
+1. Before: `__journey.pet` is undefined (no dog).
+2. Run `(await import('/src/v5/core.ts')).useV5.getState().complete('L03')`.
+3. Expect the dog to scale in beside the player over about 1 s with a small hop, then settle at dist about 1.5.
+
+Locked check: `http://localhost:5190/src/v5/pet/bench.html?qa&model=/models/student.glb&upto=L02`. Expect `__journey.pet` undefined.
+
+World5 (only after WORLD mounts `<Pet />`):
+- `http://localhost:5190/?qa&at=I01&unlock` at 1440x900 and 390x844: same numbers as above, on the real map and bridges.
+- `http://localhost:5190/` with no qa, fresh profile: no dog before L03 is done.
+
+Pass: the checks above hold, no PAGEERR, no console errors from src/v5/pet. Visually: the dog is behind and to the right, not in the walking line, about half the player's height, with a shadow under it, and not clipping into island edges.
+Fail: the dog stands in the path in front of the player for more than about 1 s, falls off an island, appears before L03 is done, or throws a PAGEERR.
+Pre-existing noise, not pet: one 404 (source not identified) and two createRoot warnings (likely `src/levels/L01/shared.v5.tsx:101`).
+
+Commit gate, not run by me: `timeout 120 ./node_modules/.bin/tsc --noEmit -p .`
+
+## Known issues
+- Start swing: the dog reaches 0.7 m off the player as the player turns away from the spawn facing. Not blocking, but too close.
+- Stopping fast: the dog can drift to 1.1 m, just under the 1.2 m band.
+- Timers use real time capped at 0.25 s per frame, so sit is slower on a slow machine.
+- No dog model yet. The stand-in is a human at 0.5 m, so shape, facing and clips are not judged.
+
+## Still open
+1. WORLD adds the mount line.
+2. ART lands the GLB; PET flips `PET_MODEL`.
+3. When the real dog passes the handoff checks, drop `[unverified]`.
