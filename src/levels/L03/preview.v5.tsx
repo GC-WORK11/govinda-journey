@@ -61,8 +61,13 @@ function StubPlayer() {
 
   useEffect(() => {
     const off = installInput()
-    core.player.pos.set(0, 0.3, 4.2)
+    const q = new URLSearchParams(location.search)
+    const [px, py, pz] = (q.get('pos') || '0,0.3,4.2').split(',').map(Number)
+    core.player.pos.set(px, py, pz)
     core.player.island = ISLAND
+    if (q.get('yaw')) st.current.yaw = Number(q.get('yaw'))
+    if (q.get('pitch')) st.current.pitch = Number(q.get('pitch'))
+    if (q.get('dist')) st.current.dist = Number(q.get('dist'))
     promptEl.current = document.getElementById('prompt')
     const cv = document.querySelector('canvas')!
     let drag = false, lx = 0, ly = 0
