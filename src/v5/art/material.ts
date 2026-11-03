@@ -30,6 +30,8 @@ export type ToonOpts = {
   rim?: number
   /** Rim exponent (higher = tighter edge). */
   rimPow?: number
+  /** Brightness multiplier applied to the diffuse colour (>1 lightens). */
+  lift?: number
 }
 
 const cache = new Map<string, THREE.MeshStandardMaterial>()
@@ -89,7 +91,7 @@ const DEFAULTS: Required<ToonOpts> = {
 export function toon(
   params: THREE.MeshStandardMaterialParameters & ToonOpts = {},
 ): THREE.MeshStandardMaterial {
-  const { wrap, steps, bandMix, rimColor, rim, rimPow, ...std } = params
+  const { wrap, steps, bandMix, rimColor, rim, rimPow, lift, ...std } = params
   const o: Required<ToonOpts> = {
     wrap: wrap ?? DEFAULTS.wrap,
     steps: steps ?? DEFAULTS.steps,
@@ -97,6 +99,7 @@ export function toon(
     rimColor: rimColor ?? DEFAULTS.rimColor,
     rim: rim ?? DEFAULTS.rim,
     rimPow: rimPow ?? DEFAULTS.rimPow,
+    lift: lift ?? 1,
   }
   const rimHex = new THREE.Color(o.rimColor).getHexString()
   const key = JSON.stringify([
@@ -134,7 +137,7 @@ const MAT_KEYS = [
  * the handmade look. Name match wins; colour match catches unnamed variants.
  */
 const RETINT_NAME: Record<string, string> = {
-  grass: '#8fb36b', leafsGreen: '#8fb36b', leafsDark: '#6f9a55', leafsYellow: '#a7bd80',
+  grass: '#8fb36b', leafsGreen: '#8fb36b', leafsDark: '#7ba461', leafsYellow: '#a7bd80',
   leafsOrange: '#d9825b', leafsRed: '#b5654a',
   stone: '#c9bfb0', stoneDark: '#a89e90',
   wood: '#c99c6e', woodDark: '#a87a52',
@@ -145,7 +148,7 @@ const RETINT_NAME: Record<string, string> = {
   colorGreen: '#8fb36b', colorBlue: '#8fc1c9',
 }
 const RETINT_HEX: Record<string, string> = {
-  '2cd8b8': '#8fb36b', '29c9ab': '#8fb36b', '2ba6aa': '#6f9a55',
+  '2cd8b8': '#8fb36b', '29c9ab': '#8fb36b', '2ba6aa': '#7ba461',
   'b8e2e8': '#c9bfb0', '9ab5ba': '#a89e90',
   'ff8e62': '#c99c6e', 'c46d4b': '#a87a52',
   'e28357': '#b48a63', 'cc765e': '#74513a', 'f5d7bb': '#e8d6b8',
@@ -165,7 +168,9 @@ function convertMaterial(src: THREE.Material, opts: ToonOpts): THREE.MeshStandar
   const named = RETINT_NAME[s.name]
   const hexed = s.color ? RETINT_HEX[s.color.getHexString()] : undefined
   const tint = named ?? hexed
-  if (tint) params.color = new THREE.Color(tint)
+  const c = tint ? new THREE.Color(tint) : (s.color?.clone() ?? new THREE.Color('#ffffff'))
+  if (opts.lift && opts.lift !== 1) c.multiplyScalar(opts.lift)
+  params.color = c
   const m = toon({ ...params, ...opts })
   return m
 }

@@ -196,6 +196,19 @@ export const SCATTER_SETS: Record<string, string[]> = {
 
 type Vec3 = [number, number, number]
 
+/** Dark props get a colour lift so their foliage reads in V4's soft greens. */
+const PROP_LIFT: Record<string, number> = {
+  pine_1: 1.3, pine_2: 1.3, pine_3: 1.35, pine_4: 1.35,
+  quat_plant: 1.2, quat_plant_2: 1.2, quat_plant_big: 1.2, quat_plant_big_2: 1.2,
+  quat_rock: 1.15, quat_rock_2: 1.15, quat_rock_3: 1.15,
+  rock_path_round: 1.15, rock_path_round_2: 1.15, rock_path_wide: 1.15,
+  twisted_tree_1: 1.15, twisted_tree_2: 1.15, twisted_tree_3: 1.15,
+  twisted_tree_4: 1.15, twisted_tree_5: 1.15,
+  tree_pine_a: 1.1, tree_pine_b: 1.1, tree_pine_tall: 1.1,
+  plant_bush: 1.12, plant_bush_detailed: 1.12, plant_bush_small: 1.12,
+  plant_flat_short: 1.15, plant_flat_tall: 1.15, hanging_moss: 1.15,
+}
+
 /** Natural footprint of each GLB, measured once per URL (shared across clones). */
 const sizeCache = new Map<string, { minY: number; h: number } | null>()
 function naturalSize(url: string, scene: THREE.Object3D) {
@@ -236,7 +249,8 @@ function PropInner({
   const { scene } = useGLTF(url)
   const obj = useMemo(() => {
     const c = scene.clone(true)
-    applyToon(c, toonOpts)
+    const lift = PROP_LIFT[name as string]
+    applyToon(c, lift ? { ...toonOpts, lift: lift * (toonOpts?.lift ?? 1) } : toonOpts)
     const nat = naturalSize(url, scene)
     if (!nat) return c
     // outer group takes the caller's transform; inner carries fit-normalization
