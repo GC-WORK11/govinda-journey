@@ -1,12 +1,12 @@
 /**
- * L06 Remote — local art helpers (placeholders until src/v5/art lands, then swap to PROPS/toon).
- * Self-contained clay styling matching src/world/kit.tsx conventions.
+ * L06 Remote — local art helpers on ART's shared toon material (src/v5/art/material).
  */
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import * as core from '../../v5/core'
+import { toon } from '../../v5/art/material'
 
 export const C = {
   cream: '#f3e9da', paper: '#fbf6ee', sand: '#e8d6b8', terracotta: '#d9825b', brick: '#b5654a',
@@ -16,12 +16,9 @@ export const C = {
   warm: '#f0c98a',
 }
 
-const cache = new Map<string, THREE.MeshStandardMaterial>()
-/** Cached matte clay material. Do NOT animate — shared. */
+/** Shared stylized clay material (ART's toon: wrap diffuse + soft ramp + warm rim). */
 export function clay(color: string) {
-  let m = cache.get(color)
-  if (!m) { m = new THREE.MeshStandardMaterial({ color, roughness: 0.92, metalness: 0 }); cache.set(color, m) }
-  return m
+  return toon({ color })
 }
 
 type V3 = [number, number, number]

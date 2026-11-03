@@ -13,6 +13,7 @@ import { useFrame } from '@react-three/fiber'
 import { RoundedBox, Html } from '@react-three/drei'
 import * as THREE from 'three'
 import * as core from '../../v5/core'
+import { Scatter } from '../../v5/art/Dressing'
 import PhoneUI, { type Stick } from './PhoneUI.v5'
 import { C, clay, Desk, Stool, Pergola, Dock, Laptop, PhoneOnStand, SwitchRock, SwitchPost, Drone, Pad, BlockBox, useTerminalScreen } from './kit.v5'
 
@@ -59,20 +60,27 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
 
   /* ---------- interactables ---------- */
   const phoneInteract = useMemo<core.Interactable>(() => ({
-    id: 'l06-phone',
+    id: 'L06-phone',
     at: () => (phoneMarker.current ? phoneMarker.current.getWorldPosition(phoneAt.current) : phoneAt.current),
     radius: 1.5,
     label: 'Use the phone',
     enabled: () => phase === 'walk' || phase === 'return',
-    use: () => { setPhase('phone') },
+    use: () => {
+      core.playerEmote.name = 'use'
+      setPhase('phone')
+    },
   }), [phase])
   const pulseInteract = useMemo<core.Interactable>(() => ({
-    id: 'l06-pulse',
+    id: 'L06-pulse',
     at: () => (pulseMarker.current ? pulseMarker.current.getWorldPosition(pulseAt.current) : pulseAt.current),
     radius: 3.0,
     label: 'Pulse',
     enabled: () => core.has('sense') && phase === 'walk',
-    use: () => { revealUntil.current = performance.now() / 1000 + 5 },
+    use: () => {
+      core.playerEmote.name = 'interact'
+      setTimeout(() => { if (core.playerEmote.name === 'interact') core.playerEmote.name = null }, 1100)
+      revealUntil.current = performance.now() / 1000 + 5
+    },
   }), [phase])
   core.useInteractable(phase !== 'walk' && phase !== 'return' ? null : phoneInteract)
   core.useInteractable(pulseInteract)
@@ -81,10 +89,23 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   core.useWalkable(bridgeWalk, bridgeT.current > 0.35 || done)
 
   /* ---------- phone lifecycle ---------- */
+  // while the phone is out this component owns the camera — PLAYER yields on
+  // cinematic.on, which also freezes walking. Released after the return blend.
+  const myCine = useRef(false)
   useEffect(() => {
     core.player.frozen = phase !== 'walk'
+    if (phase === 'phone' && !core.cinematic.on) { core.cinematic.on = true; myCine.current = true }
+    if (phase === 'walk') core.playerEmote.name = null
+    if (phase === 'return') { // safety: never leave the traveller frozen if the drone misses home
+      const t = setTimeout(() => setPhase((p) => (p === 'return' ? 'walk' : p)), 4500)
+      return () => clearTimeout(t)
+    }
   }, [phase])
-  useEffect(() => () => { core.player.frozen = false }, [])
+  useEffect(() => () => {
+    core.player.frozen = false
+    core.playerEmote.name = null
+    if (myCine.current) { core.cinematic.on = false; myCine.current = false }
+  }, [])
 
   const closePhone = () => {
     setPhase(hit || solved.current ? 'walk' : 'return')
@@ -93,23 +114,26 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   const closePhoneRef = useRef(closePhone)
   closePhoneRef.current = closePhone
 
-  /* ---------- solve hook (?qa) ---------- */
+  /* ---------- solve hook (?qa): teleport + real interactables ---------- */
   useEffect(() => {
-    if (!location.search.includes('qa')) return
     const w = window as any
     const J = (w.__journey ??= {})
     const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
     const tp = (l: THREE.Vector3, dx = 0, dz = 0) => {
       const v = l.clone().add(new THREE.Vector3(dx, 0, dz))
       root.current?.localToWorld(v)
-      core.player.pos.copy(v); core.player.vel.set(0, 0, 0)
+      const api = J.player?.teleport
+      if (api) api(v.x, v.y, v.z)
+      else { core.player.pos.copy(v); core.player.vel.set(0, 0, 0) }
     }
     J.solve = {
       ...(J.solve || {}),
       [id]: async () => {
+        if (core.useV5.getState().done.includes(id)) return
+        if (!core.has('sense')) core.useV5.getState().grant('sense')
         tp(DOCK_END, 0.5, 0.4)
         await sleep(500)
-        core.interactables.get('l06-phone')?.use()
+        core.interactables.get('L06-phone')?.use()
         await sleep(900)
         // steer the same stick the phone UI drives, toward the switch knob
         const d = new THREE.Vector3()
@@ -215,20 +239,21 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
     })
     if (waterMat.current) waterMat.current.opacity = 0.66 + Math.sin(t * 1.3) * 0.05
 
-    /* camera follows the drone while the phone is out */
-    if (phase === 'phone' && drone.current && root.current) {
+    /* camera follows the drone while the phone is out (PLAYER yields on cinematic.on) */
+    if (phase === 'phone' && drone.current && root.current && myCine.current) {
       camHold.current = 0.9
       const cam = state.camera
       a.copy(drone.current.position).add(b.set(0, 1.5, 2.6))
       root.current.localToWorld(a)
       cam.position.lerp(a, Math.min(1, dt * 3.2))
       cam.lookAt(drone.current.getWorldPosition(tmp.current.c).add(tmp.current.b.set(0, -0.55, 0)))
-    } else if (camHold.current > 0) {
+    } else if (camHold.current > 0 && myCine.current) {
       camHold.current -= dt
       const cam = state.camera
       a.copy(core.player.pos).add(b.set(0, 2.6, 3.9))
       cam.position.lerp(a, Math.min(1, dt * 2.6))
       cam.lookAt(core.player.pos.x, core.player.pos.y + 0.9, core.player.pos.z)
+      if (camHold.current <= 0) { core.cinematic.on = false; myCine.current = false }
     }
   })
 
@@ -276,6 +301,8 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
             <ringGeometry args={[0.3, 0.36, 24]} />
             <meshBasicMaterial ref={(m) => { if (m) ringMats.current[i] = m }} color={C.paper} transparent opacity={0} depthWrite={false} />
           </mesh>
+          {/* the stones are real footing across the ford */}
+          <BlockBox position={[0, 0.06, 0]} args={[0.52, 0.14, 0.52]} kind="walk" />
         </group>
       ))}
       <object3D ref={pulseMarker} position={[0, 0.2, (STREAM_Z0 + STREAM_Z1) / 2]} />
@@ -368,13 +395,16 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
         <boxGeometry args={[0.8, 0.08, BRIDGE_A.distanceTo(BRIDGE_B)]} />
       </mesh>
 
-      {/* a little grass + a tree so the island does not feel bare (ART will re-dress) */}
+      {/* a little grass + a tree so the island does not feel bare */}
       <mesh position={[2.8, 0.3, -2.4]} material={clay(C.wood)} castShadow><cylinderGeometry args={[0.06, 0.09, 0.6, 7]} /></mesh>
       <mesh position={[2.8, 0.82, -2.4]} material={clay(C.leafDark)} castShadow><sphereGeometry args={[0.44, 14, 11]} /></mesh>
       <mesh position={[3.0, 0.66, -2.25]} material={clay(C.leaf)} castShadow><sphereGeometry args={[0.28, 12, 9]} /></mesh>
       {[[2.2, 3.4], [-3.6, 3.2], [3.9, 0.6]].map(([x, z], i) => (
         <mesh key={i} position={[x, 0.05, z]} material={clay(i ? C.stone : C.moss)} castShadow><dodecahedronGeometry args={[0.14, 0]} /></mesh>
       ))}
+      {/* ART's seeded rim dressing, kept clear of the ford, workspace and dock */}
+      <Scatter seed={106} density={0.8} kinds={['tuft', 'flower', 'bush', 'rock']}
+        avoid={[[0, 1.3, 2.8], [-3.15, -0.85, 1.9], [-4.5, -1.6, 1.5]]} />
 
     </group>
   )

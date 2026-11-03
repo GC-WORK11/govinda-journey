@@ -13,6 +13,7 @@ import { useFrame } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import * as THREE from 'three'
 import * as core from '../../v5/core'
+import { Scatter } from '../../v5/art/Dressing'
 import VoiceUI from './VoiceUI.v5'
 import { C, clay, DoorWall, Robot, Console, SideTable, Laptop, BlockBox, letterTexture, makeCanvasTexture } from './kit.v5'
 
@@ -165,20 +166,27 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
 
   /* ---------- interactables ---------- */
   const consoleInteract = useMemo<core.Interactable>(() => ({
-    id: 'l07-console',
+    id: 'L07-console',
     at: () => (consoleMarker.current ? consoleMarker.current.getWorldPosition(consoleAt.current) : consoleAt.current),
     radius: 1.5,
     label: 'Call the robot',
     enabled: () => core.has('remote') && phaseRef.current === 'wait',
-    use: () => setPhase('calling'),
+    use: () => {
+      core.playerEmote.name = 'interact'
+      setTimeout(() => { if (core.playerEmote.name === 'interact') core.playerEmote.name = null }, 1100)
+      setPhase('calling')
+    },
   }), [])
   const speakInteract = useMemo<core.Interactable>(() => ({
-    id: 'l07-speak',
+    id: 'L07-speak',
     at: () => (phoneRef.current ? phoneRef.current.getWorldPosition(phoneAt.current) : phoneAt.current),
     radius: 1.6,
     label: 'Say the word',
     enabled: () => phaseRef.current === 'ready',
-    use: () => setPhase('listen'),
+    use: () => {
+      core.playerEmote.name = 'use'
+      setPhase('listen')
+    },
   }), [])
   core.useInteractable(consoleInteract)
   core.useInteractable(speakInteract)
@@ -186,6 +194,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   /* ---------- submit → letters fly → door ---------- */
   const pendingText = useRef('')
   submitRef.current = (t: string) => {
+    if (phaseRef.current !== 'listen') return
     const text = t.trim().toLowerCase() || WORD
     setPhase('send')
     if (!root.current || !phoneRef.current) return
@@ -207,31 +216,34 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   /* ---------- freeze while the sheet is up ---------- */
   useEffect(() => {
     core.player.frozen = phase === 'listen'
+    if (phase !== 'listen' && core.playerEmote.name === 'use') core.playerEmote.name = null
   }, [phase])
-  useEffect(() => () => { core.player.frozen = false }, [])
+  useEffect(() => () => { core.player.frozen = false; core.playerEmote.name = null }, [])
 
-  /* ---------- solve hook (?qa) ---------- */
+  /* ---------- solve hook (?qa): teleport + real interactables ---------- */
   useEffect(() => {
-    if (!location.search.includes('qa')) return
     const w = window as any
     const J = (w.__journey ??= {})
     const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
     const tp = (l: THREE.Vector3, dx = 0, dz = 0) => {
       const v = l.clone().add(new THREE.Vector3(dx, 0, dz))
       root.current?.localToWorld(v)
-      core.player.pos.copy(v); core.player.vel.set(0, 0, 0)
+      const api = J.player?.teleport
+      if (api) api(v.x, v.y, v.z)
+      else { core.player.pos.copy(v); core.player.vel.set(0, 0, 0) }
     }
     J.solve = {
       ...(J.solve || {}),
       [id]: async () => {
+        if (core.useV5.getState().done.includes(id)) return
         if (!core.has('remote')) core.useV5.getState().grant('remote') // QA shortcut: pretend L06 was played
         tp(CONSOLE_POS, -0.8, 0.3)
         await sleep(500)
-        core.interactables.get('l07-console')?.use()
+        core.interactables.get('L07-console')?.use()
         for (let i = 0; i < 100 && phaseRef.current !== 'ready'; i++) await sleep(100)
         tp(SHELF_NEAR, -1.1, 0.2)
         await sleep(400)
-        core.interactables.get('l07-speak')?.use()
+        core.interactables.get('L07-speak')?.use()
         await sleep(600)
         submitRef.current(WORD) // the same call the sheet's Send runs
         for (let i = 0; i < 120 && phaseRef.current !== 'open'; i++) await sleep(100)
@@ -297,13 +309,13 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
           <mesh position={[s * 3.75, 0.28, DOOR_Z + 0.15]} material={clay(C.stone)} castShadow><dodecahedronGeometry args={[0.5, 1]} /></mesh>
           <mesh position={[s * 4.25, 0.2, DOOR_Z + 0.55]} material={clay(C.stoneLight)} castShadow><dodecahedronGeometry args={[0.36, 1]} /></mesh>
           <mesh position={[s * 3.5, 0.5, DOOR_Z - 0.1]} material={clay(C.leafDark)} castShadow><sphereGeometry args={[0.42, 12, 9]} /></mesh>
-          <BlockBox position={[s * 3.9, 0.8, DOOR_Z]} args={[1.6, 1.7, 1.2]} />
+          <BlockBox position={[s * 3.9, 1.1, DOOR_Z]} args={[1.6, 2.4, 1.2]} />
         </group>
       ))}
-      <BlockBox position={[-2.4, 0.75, DOOR_Z]} args={[2.4, 1.6, 0.5]} />
-      <BlockBox position={[2.4, 0.75, DOOR_Z]} args={[2.4, 1.6, 0.5]} />
+      <BlockBox position={[-2.4, 1.05, DOOR_Z]} args={[2.4, 2.2, 0.5]} />
+      <BlockBox position={[2.4, 1.05, DOOR_Z]} args={[2.4, 2.2, 0.5]} />
       {/* the door itself blocks until it swings */}
-      <BlockBox position={[0, 0.9, DOOR_Z]} args={[1.7, 1.9, 0.45]} on={doorT.current < 0.5 && phase !== 'open'} />
+      <BlockBox position={[0, 1.0, DOOR_Z]} args={[1.7, 2.1, 0.45]} on={doorT.current < 0.5 && phase !== 'open'} />
 
       {/* lantern post by the door */}
       <group position={[1.25, 0, DOOR_Z + 0.55]}>
@@ -381,6 +393,9 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
           <mesh position={[0, 0.14, 0]} material={clay(C.violet)}><sphereGeometry args={[0.045, 8, 6]} /></mesh>
         </group>
       ))}
+      {/* ART's seeded rim dressing, kept clear of the wall, console, shelf and table */}
+      <Scatter seed={107} density={0.75} kinds={['tuft', 'flower', 'bush', 'rock']}
+        avoid={[[0, -3.3, 2.4], [3.15, -0.7, 1.3], [4.85, -0.7, 1.4], [-1.75, -2.68, 1.2]]} />
 
       {/* letters flying */}
       {flight && (
