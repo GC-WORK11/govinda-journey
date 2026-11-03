@@ -206,7 +206,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       <Prop name="plant_bush" position={[3.6, 0, 1.9]} rotation={[0, 2.2, 0]} scale={1.7} />
       {/* seeded rim dressing, kept clear of letters, steps and the ledge */}
       <Scatter seed={12} density={0.5} kinds={['tuft', 'flower']}
-        avoid={[[1.6, 2.7, 1.1], [-2.5, 0.9, 1.6], [2.05, 0.95, 1.4], [-1.3, -0.7, 1.0], [2.5, -1.3, 1.2], [0, -2.0, 2.6], [0, 4.2, 1.4]]} />
+        avoid={[[1.6, 2.7, 1.1], [-2.5, 0.9, 1.6], [2.05, 0.95, 1.4], [-2.9, -1.5, 1.1], [2.5, -1.3, 1.2], [2.1, -1.7, 1.5], [0, -3.55, 2.4], [0, 4.2, 1.4]]} />
 
       <PillHint text={hint} />
     </group>
