@@ -99,6 +99,27 @@ Usage: `node scripts/v5/play.mjs [baseUrl] [--lite] [--only=L01,L02] [--size=144
 - **PASS/FAIL so far: 0 islands recorded this run.** Standing by for 'QA go' to rerun
   the full 1440→390 playthrough.
 
+### Run 6 (~22:08, 390×844 only, stopped on coordinator hold — stale code)
+Mobile boot under `?lite` was healthy: world populated, `__journey.player` + solve keys live,
+**fps≈27** at boot (mobile lite is far lighter than desktop-full ≈2-4).
+
+| island | result | detail |
+|--------|--------|--------|
+| L01 | FAIL | solve set `done` ✓ but crossing failed: trace shows the player DID step onto the bridge deck (z past −5.1→−7.2, y≈0.33 on the sag) then could not climb the uphill half to L02's entry — leg1/leg2 both timeout, end y=0.3 vs isle 1.6. fps≈5 at that point. |
+| L02 | FAIL | `useV5.done` missing after solve (letter-landing timing solver again — ISL-A), then the player entered a **fall↔respawn loop at world origin** — pos pinned at (0,−0.3,0)→falls to y≈−15→respawn→fall again (respawning over void — PLAYER safe-point issue). Browser then **died entirely** (`Connection closed`) → BOOT fail for L03 onward. fps≈19. |
+| L03–L09 | — | never reached (browser crash + coordinator stop for stale code) |
+
+New bugs to file:
+- **PLAYER**: fall-respawn loop — after respawn the player can land over void and fall
+  forever (trace: pos (0,−0.3,0) cycling y → −15, ~10 cycles until Chrome died). Likely
+  interaction with "clear safe-point history on teleport" (06b0aaf) — the respawn target
+  had no walkable under it.
+- **ISL-A L02**: `__journey.solve.L02` still doesn't reliably set `done` — the fixed
+  1.35 s sleeps between letter teleports race the landing detection; second solve
+  attempt also failed this run. Consider setting `placed` directly or waiting on state.
+- **WORLD**: bridge uphill half — player reached mid-deck but couldn't climb to the
+  next island's entry at fps≈5; may just be low-fps steering, verify at real fps.
+
 ### Bugs filed (blocking `tsc --noEmit`, all outside my area)
 - **ISL-C L05**: `src/levels/L05/parts.v5.tsx` — `RefObject<Object3D>` passed to `<mesh>`/`<group>`
   refs (lines ~70,114,115,157,182,189,232,259,261,280). Type them `useRef<THREE.Mesh>(null)` /
