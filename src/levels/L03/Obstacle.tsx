@@ -15,7 +15,7 @@ import * as THREE from 'three'
 import * as core from '../../v5/core'
 import {
   C, clay, REDUCED, useLocalPlayer, tpLocal, tpWorld, useSolver, useAt, Hint,
-  PathStones, Rock, Mound, RopeFence, StoneLantern, FloatRock, carryWorld, sleep,
+  PathStones, Rock, Mound, RopeFence, StoneLantern, Prop, carryWorld, sleep,
 } from './shared.v5'
 
 /* --------------------------------- layout --------------------------------- */
@@ -521,7 +521,7 @@ function Platform({ p, i }: { p: THREE.Vector3; i: number }) {
   const yawOut = Math.atan2(toNext.x - p.x, toNext.z - p.z)
   return (
     <group position={p}>
-      <FloatRock r={0.98 - i * 0.04} seed={i * 3 + 5} top="#a3b884" />
+      <Prop name="platform_stone" position={[0, -1.5, 0]} fit={1.58} />
       <mesh ref={pad} position={[0, -0.02, 0]} material={clay('#cfc4ae')} receiveShadow castShadow>
         <cylinderGeometry args={[0.8, 0.84, 0.08, 18]} />
       </mesh>
@@ -677,6 +677,9 @@ function Studio({ position, yaw = 0 }: { position: [number, number, number]; yaw
         <RoundedBox args={[0.34, 0.05, 0.26]} radius={0.015} position={[-0.38, 0.65, -0.05]} rotation={[0, 0.2, 0]} material={clay(C.paper)} castShadow />
         <RoundedBox args={[0.3, 0.04, 0.24]} radius={0.012} position={[-0.36, 0.7, -0.04]} rotation={[0, 0.12, 0]} material={clay('#efe4cd')} castShadow />
         <mesh position={[0.05, 0.66, 0.08]} rotation={[-Math.PI / 2, 0, 0.3]} material={clay('#e8d6b8')}><planeGeometry args={[0.4, 0.3]} /></mesh>
+        {/* a small laptop + book stack — the weekend shipping rig */}
+        <Prop name="laptop" position={[0.16, 0.615, -0.08]} rotation={[0, -0.4, 0]} fit={0.14} />
+        <Prop name="book_set" position={[-0.6, 0.615, 0.12]} rotation={[0, 0.5, 0]} fit={0.1} />
         {/* mug + tool pot */}
         <mesh position={[0.5, 0.67, -0.14]} material={clay(C.terracotta)} castShadow><cylinderGeometry args={[0.045, 0.038, 0.09, 10]} /></mesh>
         <mesh position={[0.62, 0.66, 0.12]} material={clay(C.brick)} castShadow><cylinderGeometry args={[0.05, 0.042, 0.1, 8]} /></mesh>
@@ -698,13 +701,7 @@ function Studio({ position, yaw = 0 }: { position: [number, number, number]; yaw
         </group>
       </group>
       {/* stool + crates */}
-      <group position={[0.1, 0, 0.85]}>
-        <mesh position={[0, 0.3, 0]} material={clay(C.woodLight)} castShadow><cylinderGeometry args={[0.17, 0.15, 0.055, 10]} /></mesh>
-        {[0, 1, 2].map((i) => {
-          const a = (i / 3) * Math.PI * 2 + 0.4
-          return <mesh key={i} position={[Math.cos(a) * 0.1, 0.15, Math.sin(a) * 0.1]} rotation={[Math.sin(a) * 0.18, 0, -Math.cos(a) * 0.18]} material={clay(C.wood)} castShadow><cylinderGeometry args={[0.018, 0.024, 0.32, 6]} /></mesh>
-        })}
-      </group>
+      <Prop name="stool" position={[0.1, 0, 0.85]} rotation={[0, 0.5, 0]} fit={0.42} />
       <RoundedBox args={[0.3, 0.24, 0.3]} radius={0.03} position={[-1.05, 0.12, 0.55]} rotation={[0, 0.4, 0]} material={clay(C.earth)} castShadow />
       <RoundedBox args={[0.24, 0.18, 0.24]} radius={0.025} position={[-1.0, 0.33, 0.5]} rotation={[0, 0.9, 0]} material={clay(C.earthDark)} castShadow />
     </group>
@@ -716,22 +713,19 @@ function Studio({ position, yaw = 0 }: { position: [number, number, number]; yaw
 function Tufts() {
   const items = useMemo(() => {
     const rnd = (n: number) => { const x = Math.sin(n * 12.9898 + 7.3) * 43758.5453; return x - Math.floor(x) }
-    const out: { x: number; z: number; s: number; r: number; c: string }[] = []
+    const out: { x: number; z: number; s: number; r: number; n: string }[] = []
+    const kinds = ['grass', 'grass', 'plant_flat_short', 'flower_yellow_a', 'flower_red_b']
     for (let i = 0; i < 26; i++) {
       const a = rnd(i * 3) * Math.PI * 2, d = 1.2 + rnd(i * 3 + 1) * 3.3
       const x = Math.cos(a) * d, z = Math.sin(a) * d
       if (z < -2.4 || (x > 1.8 && z > 1.4) || Math.hypot(x - 0.5, z - 3.2) < 1.6) continue
-      out.push({ x, z, s: 0.7 + rnd(i) * 0.6, r: rnd(i * 7) * 3, c: rnd(i * 5) > 0.5 ? C.leafDark : C.moss })
+      out.push({ x, z, s: 0.16 + rnd(i) * 0.14, r: rnd(i * 7) * 3, n: kinds[i % kinds.length] })
     }
     return out
   }, [])
   return (
     <group>
-      {items.map((t, i) => (
-        <mesh key={i} position={[t.x, 0.07 * t.s, t.z]} rotation={[0.1, t.r, 0.08]} scale={t.s} material={clay(t.c)} castShadow>
-          <coneGeometry args={[0.07, 0.15, 5]} />
-        </mesh>
-      ))}
+      {items.map((t, i) => <Prop key={i} name={t.n} position={[t.x, 0, t.z]} rotation={[0, t.r, 0]} fit={t.s} />)}
     </group>
   )
 }

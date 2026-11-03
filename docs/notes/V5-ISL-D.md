@@ -1,6 +1,9 @@
 # V5-ISL-D — L04 Alive + I02 On the road
 
-Status: both obstacles built against `src/v5/core.ts` (contract), committed. `tsc` clean for my files.
+Status: **done + verified integrated**. Both solvers complete their islands in the real
+V5 world (`?qa&at=<ID>&unlock&fresh`, desktop 1440x900): L04 → `done` gains L04 +
+`sense`; I02 → `done` gains I02, no ability (correct). Console clean — no merge or
+boundingSphere errors. Mobile shot of I02 taken. `tsc` clean for my files.
 
 ## What was built
 
@@ -42,14 +45,38 @@ Status: both obstacles built against `src/v5/core.ts` (contract), committed. `ts
   (marked swap points). If `src/v5/art/Dressing` lands with good prop coverage I'll swap
   houses/tree/lamp/train for `PROPS` entries. L04's smog planes use `MeshBasicMaterial`
   (unlit haze) — fine as-is; feel free to critique.
-- **ART/WORLD**: if `IslandBase` ever supports a trench/hole variant, L04's street could
-  become a real pit; for now it's an enclosed-looking bed + crumble logic so nothing is
-  needed. Not a request — current approach is self-sufficient.
+- **ART/WORLD**: `IslandBase`'s grass cap is DOMED (topY, up to +0.06 at centre) — my
+  `domeY` in `shared.v5.tsx` replicates it so PathStones and the L04 street slab
+  (STREET_Y = 0.075, registered walkable — the player walks ON the asphalt) sit on/above
+  the grass instead of sinking into it. If ART's cap curve ever changes, update `domeY`.
+  L04's crumble zone (local.y < 0.12) still triggers on the 0.075 pad.
+- **PLAYER** (`__journey.player.teleport` exists in Player.tsx — used; `core.player.pos`
+  fallback kept for solo previews). `player.island` drives `active` via WORLD's idx.
 - Carry/anchor not needed by either island.
+
+## Verified (integrated world, withChrome shared slot)
+
+- `L04` solve end-to-end: teleport to post → `post.use()` (powered) → `pulse.use()` →
+  6 stone teleports → `tower.use()` → smog clears ~4.2 s → `complete()` → `sense` granted.
+- `I02` solve end-to-end: teleport past z=-1.15 → lamp warms → `complete()`; no ability.
+- Screenshots reviewed at 1440x900: L04 street + smog + rooftops + AQI posts + sensor
+  hardware read clearly; I02 platform/board/bench/luggage/rails/train corridor read
+  clearly, lamp warm after completion. One mobile (390x844) I02 shot.
 
 ## Rough edges / TODO
 
-- Visual pass pending — `?v5` route doesn't exist yet (WORLD in flight). Will liveshot both
-  islands at 1440×900 + 390×844 once it lands and iterate.
+- **Root cause of the earlier "solver ran but island never completed" run**: I02's
+  `useTrack` merged geometries with mismatched attributes — my custom stone ribbon had
+  no `uv` and DodecahedronGeometry pylons are non-indexed while tubes/boxes are indexed —
+  so `mergeGeometries()` returned `null` and the null-geometry mesh threw
+  `boundingSphere` errors every frame, poisoning the shared R3F loop (every island's
+  useFrame stalled → L04's `clearT` never advanced → `complete()` never fired).
+  Fixed in `station.v5.tsx`: `push()` helper adds `uv` where missing and de-indexes
+  with `toNonIndexed()` before merge. Commit `b6f650c`.
+- `?qa&at=L04&unlock` grants `power` (L05 completes first in order) — verified by reading
+  World5: `unlock` marks every island before `at` complete, so the power gate is satisfied.
+  Solvers wait for `player.island === id` before teleporting (lazy mount + goto race).
 - The pulse interactable is `at=player.pos` (radius 1.0) so E anywhere on the island pulses;
   it's disabled within 2.1 of the tower so the tower prompt wins there.
+- Solo dev previews at src/levels/L04/dev.html (`?auto`, `?qa`, `?done`, `?power`) and
+  src/levels/I02/dev.html — useful while iterating without the full world.

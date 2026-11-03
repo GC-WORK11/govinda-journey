@@ -8,12 +8,11 @@
  */
 import { useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import * as core from '../../v5/core'
 import {
   C, clay, REDUCED, useLocalPlayer, tpLocal, tpWorld, useSolver, useAt, Hint,
-  PathStones, Rock, Mound, StoneLantern, sleep,
+  PathStones, Rock, Mound, StoneLantern, Prop, sleep,
 } from '../L03/shared.v5'
 
 /* --------------------------------- layout --------------------------------- */
@@ -126,7 +125,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
 
       {/* stepping stones into the shallows */}
       {[[-0.4, 0.85], [0.35, 1.15], [1.1, 1.1]].map(([x, z], i) => (
-        <SteppingStone key={i} position={[POND.x + x - 1.0, 0, POND.z + z - 0.6]} s={0.38 - i * 0.05} />
+        <SteppingStone key={i} i={i} position={[POND.x + x - 1.0, 0, POND.z + z - 0.6]} s={0.38 - i * 0.05} />
       ))}
 
       <Bench pos={BENCH} yaw={BENCH_YAW} />
@@ -156,27 +155,7 @@ function Bench({ pos, yaw }: { pos: THREE.Vector3; yaw: number }) {
   core.useWalkable(seat) // lets the sit pose rest on the seat
   return (
     <group position={pos} rotation={[0, yaw, 0]}>
-      {/* seat planks */}
-      {[-0.14, 0.0, 0.14].map((z, i) => (
-        <RoundedBox key={i} args={[1.1, 0.05, 0.12]} radius={0.015} position={[0, 0.32, z]}
-          material={clay(i === 1 ? C.woodLight : C.wood)} castShadow receiveShadow />
-      ))}
-      {/* back planks */}
-      {[0.56, 0.7].map((y, i) => (
-        <RoundedBox key={i} args={[1.1, 0.09, 0.05]} radius={0.015} position={[0, y, 0.26]} rotation={[-0.16, 0, 0]}
-          material={clay(C.wood)} castShadow />
-      ))}
-      {/* legs + back posts */}
-      {[[-0.44, -0.1], [0.44, -0.1], [-0.44, 0.16], [0.44, 0.16]].map(([x, z], i) => (
-        <mesh key={i} position={[x, 0.16, z]} material={clay(C.earthDark)} castShadow>
-          <boxGeometry args={[0.06, 0.32, 0.08]} />
-        </mesh>
-      ))}
-      {[-0.44, 0.44].map((x) => (
-        <mesh key={x} position={[x, 0.5, 0.27]} rotation={[-0.16, 0, 0]} material={clay(C.earthDark)} castShadow>
-          <boxGeometry args={[0.06, 0.52, 0.07]} />
-        </mesh>
-      ))}
+      <Prop name="bench" fit={0.78} />
       {/* invisible flat seat for the sit */}
       <mesh ref={seat} position={[0, 0.3, 0]} visible={false}>
         <boxGeometry args={[1.0, 0.1, 0.42]} />
@@ -271,18 +250,23 @@ function LilyPads() {
       <mesh position={[POND.x - 0.68, 0.11, POND.z - 0.52]} material={clay(C.leafDark)}>
         <sphereGeometry args={[0.035, 8, 6]} />
       </mesh>
+      {/* real little lilies among the pads */}
+      <Prop name="lily_small" position={[POND.x + 0.62, 0.09, POND.z - 0.7]} scale={0.5} />
+      <Prop name="lily_small" position={[POND.x - 1.1, 0.09, POND.z + 0.3]} rotation={[0, 2.1, 0]} scale={0.42} />
     </group>
   )
 }
 
-function SteppingStone({ position, s }: { position: [number, number, number]; s: number }) {
+function SteppingStone({ position, s, i }: { position: [number, number, number]; s: number; i: number }) {
   const ref = useRef<THREE.Mesh>(null)
   core.useWalkable(ref)
   return (
-    <mesh ref={ref} position={[position[0], 0.045, position[2]]} scale={[s, s * 0.42, s * 0.85]}
-      material={clay(C.stone)} castShadow receiveShadow>
-      <sphereGeometry args={[1, 14, 10]} />
-    </mesh>
+    <group position={position}>
+      <Prop name={i % 2 ? 'rock_path_round_2' : 'rock_path_round'} scale={s * 0.95} />
+      <mesh ref={ref} position={[0, 0.045, 0]} visible={false}>
+        <cylinderGeometry args={[s * 0.9, s * 0.9, 0.09, 10]} />
+      </mesh>
+    </group>
   )
 }
 
@@ -349,24 +333,21 @@ function Fireflies({ active }: { active: boolean }) {
 function Tufts() {
   const items = useMemo(() => {
     const rnd = (n: number) => { const x = Math.sin(n * 12.9898 + 3.1) * 43758.5453; return x - Math.floor(x) }
-    const out: { x: number; z: number; s: number; r: number; c: string }[] = []
+    const out: { x: number; z: number; s: number; r: number; n: string }[] = []
+    const kinds = ['grass', 'grass', 'plant_flat_short', 'flower_purple_a', 'flower_yellow_b']
     for (let i = 0; i < 30; i++) {
       const a = rnd(i * 3) * Math.PI * 2, d = 1.4 + rnd(i * 3 + 1) * 3.2
       const x = Math.cos(a) * d, z = Math.sin(a) * d
       const inPond = ((x - POND.x) / (POND_RX + 0.5)) ** 2 + ((z - POND.z) / (POND_RZ + 0.5)) ** 2 < 1
       const onPath = Math.abs(x + 1.2) < 0.7 && z > -3.8 && z < 3.4
       if (inPond || onPath) continue
-      out.push({ x, z, s: 0.7 + rnd(i) * 0.6, r: rnd(i * 7) * 3, c: rnd(i * 5) > 0.5 ? C.leafDark : C.moss })
+      out.push({ x, z, s: 0.14 + rnd(i) * 0.13, r: rnd(i * 7) * 3, n: kinds[i % kinds.length] })
     }
     return out
   }, [])
   return (
     <group>
-      {items.map((t, i) => (
-        <mesh key={i} position={[t.x, 0.07 * t.s, t.z]} rotation={[0.1, t.r, 0.08]} scale={t.s} material={clay(t.c)} castShadow>
-          <coneGeometry args={[0.07, 0.15, 5]} />
-        </mesh>
-      ))}
+      {items.map((t, i) => <Prop key={i} name={t.n} position={[t.x, 0, t.z]} rotation={[0, t.r, 0]} fit={t.s} />)}
     </group>
   )
 }
