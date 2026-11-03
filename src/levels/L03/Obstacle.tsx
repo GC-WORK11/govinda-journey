@@ -15,7 +15,7 @@ import * as THREE from 'three'
 import * as core from '../../v5/core'
 import {
   C, clay, REDUCED, useLocalPlayer, tpLocal, tpWorld, useSolver, useAt, Hint,
-  PathStones, Rock, Mound, RopeFence, StoneLantern, Prop, carryWorld, sleep,
+  PathStones, Rock, Mound, RopeFence, StoneLantern, Prop, carryWorld, sleep, waitTp,
 } from './shared.v5'
 
 /* --------------------------------- layout --------------------------------- */
@@ -257,6 +257,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   useSolver(id, async () => {
     const r = root.current
     if (!r) return
+    await waitTp()
     // up the wall via the real climb interaction when climb is granted (?qa&unlock)
     tpLocal(r, new THREE.Vector3(WALL_AT.x - 0.2, 0.1, WALL_AT.z - 0.2))
     await sleep(150)

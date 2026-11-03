@@ -53,6 +53,12 @@ export function tpLocal(root: THREE.Group | null, local: THREE.Vector3, yaw?: nu
 
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
+/** Await PLAYER's teleport api before a solver moves the player — the api attaches
+ *  lazily and core.player.pos writes are overwritten by the controller each frame. */
+export async function waitTp() {
+  for (let i = 0; i < 80 && !(window as any).__journey?.player?.teleport; i++) await sleep(100)
+}
+
 /** Merge this island's ?qa solver into window.__journey.solve without clobbering others. */
 export function useSolver(id: string, fn: () => Promise<void>) {
   useEffect(() => {

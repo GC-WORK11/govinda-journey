@@ -12,7 +12,7 @@ import * as THREE from 'three'
 import * as core from '../../v5/core'
 import {
   C, clay, REDUCED, useLocalPlayer, tpLocal, tpWorld, useSolver, useAt, Hint,
-  PathStones, Rock, Mound, StoneLantern, Prop, sleep,
+  PathStones, Rock, Mound, StoneLantern, Prop, sleep, waitTp,
 } from '../L03/shared.v5'
 
 /* --------------------------------- layout --------------------------------- */
@@ -97,6 +97,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   useSolver(id, async () => {
     const r = root.current
     if (!r) return
+    await waitTp()
     tpLocal(r, new THREE.Vector3(BENCH.x - 0.7, 0.1, BENCH.z))
     await sleep(150)
     core.interactables.get('i01-bench')?.use()
