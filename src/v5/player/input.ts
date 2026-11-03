@@ -73,7 +73,10 @@ const KEY_ALIAS: Record<string, string> = {
 }
 export function pressKey(key: string, ms = 300) {
   const code = KEY_ALIAS[key.toLowerCase()] ?? key
-  input.synth.set(code, now() + ms)
-  if (code === 'Space') input.jumpAt = now()
-  if (code === 'KeyE' || code === 'Enter') input.useAt = now()
+  const deadline = now() + ms
+  input.synth.set(code, deadline)
+  // A synthetic press stays "pressed" for ms — let the jump/use buffers cover
+  // the whole hold so slow frames can't let them expire before being seen.
+  if (code === 'Space') input.jumpAt = deadline
+  if (code === 'KeyE' || code === 'Enter') input.useAt = deadline
 }
