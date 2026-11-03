@@ -171,7 +171,7 @@ function PerfGuard({ onDpr, slow }: { onDpr: (n: number) => void; slow: () => vo
   const gl = useThree((s) => s.gl)
   const declined = useRef(false)
   return (
-    <PerformanceMonitor
+    <PerformanceMonitor iterations={5}
       onDecline={() => {
         if (declined.current) return
         declined.current = true
@@ -187,7 +187,7 @@ export default function World5() {
   const [dpr, setDpr] = useState(LITE ? 1 : Math.min(1.5, window.devicePixelRatio || 1))
   const [fx, setFx] = useState(!LITE)
   const [water, setWater] = useState(!LITE)
-  const slow = useCallback(() => { setDpr(0.8); setFx(false); setWater(false) }, [])
+  const slow = useCallback(() => { setDpr(0.6); setFx(false); setWater(false) }, [])
 
   // ?qa: the V5 side of the test hook. project/find are attached by QaProbe.
   useEffect(() => {

@@ -59,13 +59,18 @@ function bridgeGeo(from: THREE.Vector3, to: THREE.Vector3) {
   // (planks are 0.95 across; a hair over for forgiveness at the edges).
   // The strip runs a touch past both ends so it always overlaps the island
   // walk discs — no seam to catch a foot on.
-  const w = 0.98, strip: number[] = []
+  const strip: number[] = []
   const idx: number[] = []
   const T0 = -0.05, T1 = 1.05
   for (let i = 0; i <= 40; i++) {
     const t = T0 + (i / 40) * (T1 - T0), p = from.clone().lerp(to, t)
     const tc = Math.min(1, Math.max(0, t))
     const y = deckY(from, to, tc) + 0.045
+    // Plank width mid-deck; flares to corridor width at both mouths — players
+    // who drop off a high exit (L02's ledge lip) or wander the curved start
+    // still land on the strip instead of slipping past its edge.
+    const mouth = Math.min(tc, 1 - tc)
+    const w = 0.98 + 0.95 * Math.max(0, 1 - mouth / 0.16)
     strip.push(p.x - lat.x * (w / 0.44) * 0.5, y, p.z - lat.z * (w / 0.44) * 0.5, p.x + lat.x * (w / 0.44) * 0.5, y, p.z + lat.z * (w / 0.44) * 0.5)
     if (i < 40) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2) }
   }
