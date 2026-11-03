@@ -88,23 +88,27 @@ export default function Obstacle({ id, complete, done }: core.ObstacleProps) {
   useEffect(() => { if (done) { setPhase('done'); setPassed(RINGS.length) } }, [done])
 
   /* ------------------------------- interactable ------------------------------- */
-  core.useInteractable({
-    id: `${id}-heli`,
-    at: () => boardMarker.current ? (boardMarker.current as THREE.Object3D).getWorldPosition(new V3()) : new V3(),
-    radius: 1.5,
-    label: 'Board the helicopter',
-    enabled: () => phaseRef.current === 'walk' && !solved.current,
-    use: () => {
-      if (phaseRef.current !== 'walk') return
-      setPhase('fly')
-      setHint(true)
-      sim.current.boardT = sim.current.t
-      core.player.frozen = true
-      core.playerEmote.name = 'sit'
-      if (!core.cinematic.on) { core.cinematic.on = true; cineOwned.current = true }
-      window.setTimeout(() => setHint(false), 6000)
-    },
-  })
+  const board = useMemo<core.Interactable>(() => {
+    const at = new V3()
+    return {
+      id: `${id}-heli`,
+      at: () => (boardMarker.current ? (boardMarker.current as THREE.Object3D).getWorldPosition(at) : at.set(0, -99, 0)),
+      radius: 1.5,
+      label: 'Board the helicopter',
+      enabled: () => phaseRef.current === 'walk' && !solved.current,
+      use: () => {
+        if (phaseRef.current !== 'walk') return
+        setPhase('fly')
+        setHint(true)
+        sim.current.boardT = sim.current.t
+        core.player.frozen = true
+        core.playerEmote.name = 'sit'
+        if (!core.cinematic.on) { core.cinematic.on = true; cineOwned.current = true }
+        window.setTimeout(() => setHint(false), 6000)
+      },
+    }
+  }, [id])
+  core.useInteractable(board)
 
   /* --------------------------------- flight --------------------------------- */
   useFrame((st, rawDt) => {
