@@ -8,7 +8,7 @@
  * Clouds5 / Effects5), PLAYER (Player / Controls), and each island's Obstacle —
  * until they land, quiet fallbacks keep the world whole.
  */
-import { Suspense, lazy, useEffect, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { PerformanceMonitor } from '@react-three/drei'
 import * as THREE from 'three'
@@ -160,9 +160,34 @@ function QaProbe() {
   return null
 }
 
+/**
+ * Perf ladder: on sustained low fps, drop pixel ratio hard and kill the shadow
+ * pass + post FX entirely. Sticky for shadows (recompiling them back per
+ * incline would thrash); incline only restores a bit of pixel ratio.
+ * Software-GL runs (QA, old laptops) reach the floor quickly — that's the
+ * difference between 2 fps and playable.
+ */
+function PerfGuard({ onDpr, slow }: { onDpr: (n: number) => void; slow: () => void }) {
+  const gl = useThree((s) => s.gl)
+  const declined = useRef(false)
+  return (
+    <PerformanceMonitor
+      onDecline={() => {
+        if (declined.current) return
+        declined.current = true
+        gl.shadowMap.enabled = false
+        gl.shadowMap.autoUpdate = false
+        slow()
+      }}
+      onIncline={() => onDpr(Math.min(1.5, window.devicePixelRatio || 1))} />
+  )
+}
+
 export default function World5() {
   const [dpr, setDpr] = useState(LITE ? 1 : Math.min(1.5, window.devicePixelRatio || 1))
   const [fx, setFx] = useState(!LITE)
+  const [water, setWater] = useState(!LITE)
+  const slow = useCallback(() => { setDpr(0.8); setFx(false); setWater(false) }, [])
 
   // ?qa: the V5 side of the test hook. project/find are attached by QaProbe.
   useEffect(() => {
@@ -205,16 +230,12 @@ export default function World5() {
         camera={{ fov: 38, near: 0.1, far: 340, position: [10, 7, 12] }}
         gl={{ antialias: true, powerPreference: 'high-performance' }}
         onCreated={({ gl }) => { gl.toneMapping = THREE.ACESFilmicToneMapping; gl.toneMappingExposure = 1.08 }}>
-        {!LITE && (
-          <PerformanceMonitor
-            onDecline={() => { setDpr(1); setFx(false) }}
-            onIncline={() => setDpr(Math.min(1.75, window.devicePixelRatio || 1))} />
-        )}
+        {!LITE && <PerfGuard onDpr={setDpr} slow={slow} />}
         <color attach="background" args={['#efe2cb']} />
         <fog attach="fog" args={['#efe2cb', 30, 85]} />
         <Sky5 />
         <Clouds />
-        {ArtWater && (
+        {ArtWater && water && (
           <Suspense fallback={null}>
             <Guard><ArtWater y={-14} islands={WATER_ISLANDS} /></Guard>
           </Suspense>

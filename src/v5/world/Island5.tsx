@@ -147,8 +147,20 @@ function ObstaclePlaceholder({ seed }: { seed: number }) {
  * gate via interactables, not corridor blockers). `walk-`/`gate-` names are
  * ours and always kept. A blocker whose box crosses the corridor is dropped.
  */
-const _pb = new THREE.Box3(), _pc = new THREE.Box3()
+const _pb = new THREE.Box3(), _pc = new THREE.Box3(), _wb = new THREE.Box3()
 const own = (o: THREE.Object3D) => /^(walk|gate)-/.test(o.name)
+
+/** A blocker crowned by a walkable surface is a climbing route, not a wall —
+ *  the path goes over it (L02's ledge). Only true walls get purged. */
+function walkableOnTop(b: THREE.Box3) {
+  for (const w of walkables) {
+    _wb.setFromObject(w)
+    if (_wb.isEmpty()) continue
+    if (_wb.min.y < b.max.y - 0.45 || _wb.min.y > b.max.y + 0.6) continue
+    if (_wb.min.x <= b.max.x && _wb.max.x >= b.min.x && _wb.min.z <= b.max.z && _wb.max.z >= b.min.z) return true
+  }
+  return false
+}
 
 export function purgeCorridors() {
   for (const c of ISLAND_POS) {
@@ -156,7 +168,8 @@ export function purgeCorridors() {
     for (const o of [...blockers]) {
       if (own(o)) continue
       _pb.setFromObject(o)
-      if (!_pb.isEmpty() && _pb.intersectsBox(_pc)) blockers.delete(o)
+      if (_pb.isEmpty() || !_pb.intersectsBox(_pc)) continue
+      if (!walkableOnTop(_pb)) blockers.delete(o)
     }
   }
 }
