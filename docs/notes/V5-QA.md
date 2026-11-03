@@ -120,6 +120,32 @@ New bugs to file:
 - **WORLD**: bridge uphill half — player reached mid-deck but couldn't climb to the
   next island's entry at fps≈5; may just be low-fps steering, verify at real fps.
 
+### Run 7 (~22:25, 390×844, HEAD 55d5bc9 — stopped on coordinator hold)
+
+PLAYER `ff09912` (bridge rail-guide + substepped physics) fixed the crossings: **L01→L02→L03
+all PASS end-to-end on mobile** — solve, done, ability grant, and real bridge walks.
+
+| island | result | fps | detail |
+|--------|--------|-----|--------|
+| L01 | **PASS** | 6 | full loop incl. bridge walk to L02 |
+| L02 | **PASS** | 5 | letter solver now lands (substeps) + bridge to L03 |
+| L03 | **PASS** | 7 | solve + bridge to I01 |
+| I01 | FAIL | 8 | done set, but I01→L05 walk failed: player paced the exit area (x 5.5→11), slipped off the east edge twice (fell to y≈−13, respawned), never found the deck — both legs timeout, end y=2.7 vs L05 4.9. Bridge direction may not match the walk corridor, or `walk-bridge-3` not registered. |
+| L05 | FAIL | 5 | `useV5.done` missing after solve attempts; crossing to L04 also timed out (player hovered exit at y 4.9→5.5 island). No mergeGeometries crash this time. |
+| L04 | FAIL | 6 | **module crashed** — `L04/Obstacle.tsx:732 BlinkFx` renders `<style>`/`<div>` inside the R3F `<group>` (DOM in the Canvas) → Guard marked broken → no `solve.L04`, no interactables. ISL-D must wrap DOM in `<Html>` (drei) or move it to an overlay. |
+| I02–L09 | — | — | never reached: **browser died** (`Connection closed`) right after L04's crash cascade |
+
+New bugs to file:
+- **ISL-D L04**: `src/levels/L04/Obstacle.tsx:732` — `BlinkFx` emits DOM `<style>`/`<div>`
+  inside the three tree → module crash → island unrunnable (no solver, no interactables).
+- **ISL-C L05**: `__journey.solve.L05` ran twice, `done` still unset — same class of
+  timing race as L02 had (substeps may have hidden it; verify solver sets done directly).
+- **WORLD**: I01→L05 bridge — player can't locate the deck from I01's exit (falls off the
+  +x rim). Check bridge-3 registration/orientation; consider rail-guide coverage there too.
+- **INFRA**: second consecutive full-browser death (`Connection closed`) after module-crash
+  cascades — likely SwiftShader OOM under lazy-loaded islands. Harness rebuilds and
+  continues, but the run loses remaining islands each time.
+
 ### Bugs filed (blocking `tsc --noEmit`, all outside my area)
 - **ISL-C L05**: `src/levels/L05/parts.v5.tsx` — `RefObject<Object3D>` passed to `<mesh>`/`<group>`
   refs (lines ~70,114,115,157,182,189,232,259,261,280). Type them `useRef<THREE.Mesh>(null)` /
