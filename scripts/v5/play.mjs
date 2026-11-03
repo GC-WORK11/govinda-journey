@@ -18,6 +18,7 @@ const base = (argv.find((a) => !a.startsWith('--')) || 'http://localhost:5190/')
 const flag = (n) => argv.includes('--' + n)
 const opt = (n) => (argv.find((a) => a.startsWith('--' + n + '=')) || '').split('=')[1]
 const LITE = flag('lite') ? '&lite' : ''
+const VISITOR = flag('visitor') // fresh context, plain URL, no ?qa, no __journey — real input only
 const ONLY = opt('only') ? opt('only').split(',') : null
 const SIZE = opt('size') || 'both'
 
@@ -208,6 +209,58 @@ async function pressUse(page, drv, it) {
 const results = []
 const rec = (r) => { results.push(r); console.log(`  ${r.ok ? 'PASS' : 'FAIL'} ${r.size} ${r.id}${r.detail ? ' — ' + r.detail : ''}`) }
 
+// ---- visitor mode -----------------------------------------------------------
+// The no-?qa release path: fresh browser context, plain '/', real keyboard (or
+// real touch joystick + jump button at 390). No __journey, no module imports —
+// progress read from the persisted store + the DOM header only.
+async function visitorRun(browser, { size, vp, wire, errorsFor }) {
+  const t0 = Date.now(), tag = 'visitor'
+  const ctx = await browser.createBrowserContext()
+  try {
+    const page = await ctx.newPage()
+    await page.setViewport(vp); page.setDefaultTimeout(120000); wire(page)
+    const fails = []
+    const drv = vp.isMobile ? touchDriver(page, vp) : keyDriver(page)
+    const fwd = vp.isMobile ? [0, -1] : 'KeyW'
+    const doneHas = (id) => page.evaluate((lid) => {
+      try { return !!JSON.parse(localStorage.getItem('govinda-journey-v5') || '{}').state?.done?.includes(lid) } catch { return false }
+    }, id).catch(() => false)
+    const prog = () => page.evaluate(() => document.querySelector('.v5-prog')?.textContent || '').catch(() => '')
+
+    await page.goto(base, { waitUntil: 'domcontentloaded', timeout: 90000 }).catch((e) => fails.push('goto: ' + e.message))
+    try { await page.bringToFront() } catch {}
+    const booted = await page.waitForSelector('canvas', { timeout: 60000 }).then(() => true, () => false)
+    for (let t = 0; t < 60 && !(await prog()).includes('01'); t++) await sleep(750)
+    if (!booted) fails.push('no <canvas> — 3D never mounted on the visitor path')
+    if (!(await prog()).includes('01')) fails.push(`header never showed 01 (spawn landed wrong?) prog='${await prog()}'`)
+    await sleep(1500)
+
+    // phase 1 — clear the low wall: forward + hop bursts until done.L01 persists
+    let cleared = false
+    for (let r = 0; r < 26 && !cleared; r++) {
+      await drv.burst(fwd, 620)
+      if (r % 3 === 2) await drv.jump()
+      if (r % 2 === 1) cleared = await doneHas('L01')
+    }
+    if (!cleared) fails.push("done.L01 never persisted — low wall not cleared by real input")
+
+    // phase 2 — through the gate, over the bridge, land on L02 (header flips to 02)
+    let arrived = false
+    for (let t = 0; t < 80 && !arrived; t++) {
+      await drv.burst(fwd, 620)
+      if (t % 5 === 4) await drv.jump()
+      if (t % 2 === 1 && (await prog()).includes('02')) { arrived = true; break }
+    }
+    if (!arrived) fails.push(`header never showed 02 — didn't land on L02 (prog='${await prog()}')`)
+    await drv.release()
+    await shot(page, `visitor-${size}-L01-to-L02.png`)
+    const cerr = (errorsFor?.(tag) || [])
+    rec({ size, i: 0, id: 'VISITOR-L01toL02', ok: fails.length === 0, ms: Date.now() - t0, fps: await fps(page).catch(() => 0), detail: fails.join(' | ') || undefined, console: cerr })
+  } catch (e) {
+    rec({ size, id: 'VISITOR-BOOT', ok: false, detail: 'visitor boot: ' + e.message.slice(0, 180) })
+  } finally { await ctx.close().catch(() => {}) }
+}
+
 // ---------------------------------------------------------------------------
 const VIEWPORTS = [
   ['1440', { width: 1440, height: 900 }],
@@ -225,6 +278,7 @@ for (const [size, vp] of VIEWPORTS) {
     page.on('error', (e) => errors.push({ tag, text: 'page crash: ' + e.message.slice(0, 300) }))
   }
   const errorsFor = (t) => errors.filter((e) => e.tag === t).map((e) => e.text)
+  if (VISITOR) { tag = 'visitor'; await visitorRun(browser, { size, vp, wire, errorsFor }); continue }
   const isReady = (page) => page.evaluate(async (src) => {
     try { const c = await import(src); if (c.walkables.size > 0) return true } catch {}
     return !!(window.__journey && window.__journey.v5)

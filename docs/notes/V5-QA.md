@@ -28,6 +28,24 @@ Usage: `node scripts/v5/play.mjs [baseUrl] [--lite] [--only=L01,L02] [--size=144
 ## Status
 - Harness written and syntax-checked. Run loop: every ~15 min once V5 mounts.
 
+## V6 release check — how I run each item (QA owns, docs/V6.md §Release check)
+1. **Fresh-profile visitor path** (no `?qa`): jobs file `<out>\t<url>\t<size>` →
+   `node scripts/livecheck.mjs /tmp/jobs.txt` — fresh `browser.createBrowserContext()`
+   per job, prints `canvas=…`, console errors, player pos; screenshots to the given
+   paths. Jobs: `/`, `/?at=L05`, `/?at=L09` at `390x844` + `1440x900`. PASS = every
+   shot shows the right island + character, `errors=0`.
+2. **Visitor walk** L01→L02: `node scripts/v5/play.mjs <base> --visitor --size=1440|390`
+   — fresh context, plain `/`, real keyboard / real touch joystick+jump. PASS =
+   `done.L01` persists (low wall cleared) AND `.v5-prog` header reads `02 / 11`.
+   Proof: `proofs/v5/visitor-<size>-L01-to-L02.png`.
+3. **Full playthrough**: `node scripts/v5/play.mjs --size=390 --lite` then
+   `node scripts/v5/play.mjs --size=1440` — PASS = all 11 islands PASS
+   (solve+done+ability+real bridge walk each).
+4. **V4-vs-new visual sheet**: `proofs/cmp/{v4,v5}-{desk,mob}-{L01,L05,L09}.png`
+   produced by play.mjs; judge clay-tone parity per island.
+5. **No-SVG-slop review**: eyeball character/pet/prop shots for primitives-as-props,
+   uncanny rigs, neon, boxy panels; list offenders by owner.
+
 ## Run log
 
 ### Run 1 (~18:50) — BOOT FAIL (expected: V5 not mounted yet)
