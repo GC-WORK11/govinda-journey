@@ -263,6 +263,23 @@ PASS** (fps 4–6). L04 still logs the `BlinkFx` cross-renderer crash (`:757`) a
 via Guard fallback only. I02–L09 untested this run. Same code as run 10 which swept
 11/11, so no new signal expected — but go-7 will confirm on the settled HEAD.
 
+### Run 15/16 (~00:55, HEAD bb056f1→183ac54) — **both sizes green**
+
+**1440×900 full-effects, full sweep: 11/11 PASS** — first clean desktop sweep
+(L01 5, L02 5, L03 7, I01 6, L05 5, L04 5, I02 9, L06 6, L07 7, L08 9, L09 1 fps).
+L09 finale survived under full effects at fps≈1.
+
+**390×844 `--lite`, subset `--only=L02,L03,I02,L06,L07,L08,L09`: 6/7 PASS** —
+one fail: **L03→I01 crossing** (bot demanded too-tight mouth entry at low fps and
+hugged the rim; falls at local x≈+5.5–7.5 east edge). Harness-side fix `782543b`
+(leg0 arrive 0.8→1.4 m, 12→9 s) + ISL-B `ff3d358` simpler two-stone ledge:
+
+**Targeted rerun `--only=L03,L06,L07`: L03/L06/L07 PASS at both sizes** (390 fps
+7/6/5; 1440 fps 10/8/7).
+
+Standing tally on HEAD: **1440 = 11/11, 390 = 11/11** (full sweep + go-6 partial +
+targeted reruns; every island has a recorded PASS at both sizes).
+
 ### Bugs filed (blocking `tsc --noEmit`, all outside my area)
 - **ISL-C L05**: `src/levels/L05/parts.v5.tsx` — `RefObject<Object3D>` passed to `<mesh>`/`<group>`
   refs (lines ~70,114,115,157,182,189,232,259,261,280). Type them `useRef<THREE.Mesh>(null)` /
