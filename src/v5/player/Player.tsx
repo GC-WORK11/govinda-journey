@@ -214,6 +214,67 @@ const dampAngle = (a: number, b: number, l: number, dt: number) => {
   return a + d * (1 - Math.exp(-l * dt))
 }
 
+/* ---- bridge spline: the walk-bridge-* strip is 41 world-space vertex PAIRS,
+   one pair per deck section — its midpoint polyline IS the centreline. */
+type BridgeLine = {
+  cx: Float32Array; cy: Float32Array; cz: Float32Array
+  hw: Float32Array; cum: Float32Array; len: number
+}
+const bridgeCache = new WeakMap<THREE.Object3D, BridgeLine>()
+function bridgeLine(o: THREE.Object3D): BridgeLine | null {
+  const hit = bridgeCache.get(o); if (hit) return hit
+  const pa = (o as THREE.Mesh).geometry?.getAttribute?.('position')
+  if (!pa || pa.count < 4) return null
+  const n = Math.floor(pa.count / 2)
+  const L: BridgeLine = { cx: new Float32Array(n), cy: new Float32Array(n), cz: new Float32Array(n), hw: new Float32Array(n), cum: new Float32Array(n), len: 0 }
+  for (let i = 0; i < n; i++) {
+    const ax = pa.getX(i * 2), ay = pa.getY(i * 2), az = pa.getZ(i * 2)
+    const bx = pa.getX(i * 2 + 1), by = pa.getY(i * 2 + 1), bz = pa.getZ(i * 2 + 1)
+    L.cx[i] = (ax + bx) / 2; L.cy[i] = (ay + by) / 2; L.cz[i] = (az + bz) / 2
+    L.hw[i] = Math.hypot(bx - ax, by - ay, bz - az) / 2
+    L.cum[i] = i ? L.cum[i - 1] + Math.hypot(L.cx[i] - L.cx[i - 1], L.cy[i] - L.cy[i - 1], L.cz[i] - L.cz[i - 1]) : 0
+  }
+  L.len = L.cum[n - 1] || 1
+  bridgeCache.set(o, L)
+  return L
+}
+const _bq = { x: 0, y: 0, z: 0, tx: 0, tz: 0, sx: 0, sz: 0, hw: 0 }
+/** Point + frame on the centreline at arc-length s (xz tangent, side = left normal). */
+function bridgeAt(L: BridgeLine, s: number) {
+  const t = THREE.MathUtils.clamp(s, 0, L.len)
+  let i = 0
+  while (i < L.cum.length - 2 && L.cum[i + 1] < t) i++
+  const seg = Math.max(1e-6, L.cum[i + 1] - L.cum[i])
+  const f = THREE.MathUtils.clamp((t - L.cum[i]) / seg, 0, 1)
+  _bq.x = THREE.MathUtils.lerp(L.cx[i], L.cx[i + 1], f)
+  _bq.y = THREE.MathUtils.lerp(L.cy[i], L.cy[i + 1], f)
+  _bq.z = THREE.MathUtils.lerp(L.cz[i], L.cz[i + 1], f)
+  const tx = L.cx[i + 1] - L.cx[i], tz = L.cz[i + 1] - L.cz[i]
+  const tl = Math.hypot(tx, tz) || 1
+  _bq.tx = tx / tl; _bq.tz = tz / tl
+  _bq.sx = -_bq.tz; _bq.sz = _bq.tx
+  _bq.hw = THREE.MathUtils.lerp(L.hw[i], L.hw[i + 1], f)
+  return _bq
+}
+/** Nearest arc-length + signed lateral offset of a world point on the strip. */
+function bridgeNearest(L: BridgeLine, x: number, z: number) {
+  let bi = 0, bd = Infinity
+  for (let i = 0; i < L.cum.length - 1; i++) {
+    const sx = L.cx[i + 1] - L.cx[i], sz = L.cz[i + 1] - L.cz[i]
+    const sl = sx * sx + sz * sz || 1e-9
+    const f = THREE.MathUtils.clamp(((x - L.cx[i]) * sx + (z - L.cz[i]) * sz) / sl, 0, 1)
+    const px = L.cx[i] + sx * f - x, pz = L.cz[i] + sz * f - z
+    const d = px * px + pz * pz
+    if (d < bd) { bd = d; bi = i }
+  }
+  const sx = L.cx[bi + 1] - L.cx[bi], sz = L.cz[bi + 1] - L.cz[bi]
+  const sl = Math.hypot(sx, sz) || 1e-9
+  const f = THREE.MathUtils.clamp(((x - L.cx[bi]) * sx + (z - L.cz[bi]) * sz) / (sl * sl), 0, 1)
+  const s = L.cum[bi] + f * sl
+  const lat = (x - (L.cx[bi] + sx * f)) * (-sz / sl) + (z - (L.cz[bi] + sz * f)) * (sx / sl)
+  return { s, lat }
+}
+
 export default function Player({ start }: { start?: THREE.Vector3 }) {
   const body = useRef<THREE.Group>(null!)
   const blob = useRef<THREE.Mesh>(null!)
@@ -226,6 +287,8 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
   const S = useRef({
     pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0,
     grounded: false, coyote: 0, groundY: 0, airT: 0, prevVy: 0, groundName: '',
+    groundObj: null as THREE.Object3D | null,
+    bridge: { on: false, obj: null as THREE.Object3D | null, line: null as BridgeLine | null, s: 0, lat: 0, t: 0 },
     lastSafe: new THREE.Vector3(), hist: [] as THREE.Vector3[], histT: 0,
     stepAcc: 0, camYaw: 0, camPitch: 0.42, camDist: BASE_DIST, camDistT: BASE_DIST, zoomMul: 1.0,
     targetSm: new THREE.Vector3(), first: true, respawnT: 0,
@@ -254,6 +317,7 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
         s.pos.set(x, y, z); s.vel.set(0, 0, 0); s.lastSafe.copy(s.pos)
         s.hist.fill(s.pos.clone()); s.histT = 0 // don't respawn back across the map
         s.targetSm.copy(s.pos).add(_v2.set(0, 1.05, 0)); s.first = true
+        s.bridge.on = false; s.groundObj = null; s.groundName = ''
       },
       press: (key: string, ms?: number) => pressKey(key, ms),
     }
@@ -311,10 +375,76 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
       }
     }
 
+    /* ---- bridge auto-guide (design: friendly crossing) — once grounded on a
+       walk-bridge-* strip the player is carried along its centreline: input
+       steers progress (forward/back) and a small lateral offset clamped inside
+       the rails; they cannot fall off. Arc-length advances by DISTANCE PER
+       REAL TIME — fully frame-rate independent. Spline = section midpoints of
+       the strip's world-space vertex pairs (41 sections). ---- */
+    const bd = s.bridge
+    if (!bd.on && s.grounded && s.groundObj && s.groundObj.name.startsWith('walk-bridge')) {
+      const L = bridgeLine(s.groundObj)
+      if (L) {
+        const np = bridgeNearest(L, s.pos.x, s.pos.z)
+        bd.on = true; bd.line = L; bd.obj = s.groundObj; bd.s = np.s; bd.lat = np.lat; bd.t = t
+      }
+    }
+    // stepped onto land (only possible at the ends) → hand back to free physics
+    if (bd.on && s.grounded && s.groundObj && !s.groundObj.name.startsWith('walk-bridge')) bd.on = false
+
+    let hSpeed = Math.hypot(s.vel.x, s.vel.z)
+    if (bd.on && bd.line) {
+      const L = bd.line
+      const dtR = Math.min(0.5, Math.max(0, (t - bd.t) / 1000)); bd.t = t
+      const p0 = bridgeAt(L, bd.s)
+      const fwdC = THREE.MathUtils.clamp(wish.x * p0.tx + wish.z * p0.tz, -1, 1)
+      const latC = THREE.MathUtils.clamp(wish.x * p0.sx + wish.z * p0.sz, -1, 1)
+      const adv = fwdC * speed
+      bd.s += adv * dtR
+      bd.lat += latC * 1.6 * dtR
+      bd.lat -= bd.lat * Math.min(1, 2.2 * dtR) // gentle recentring drift
+      const q = bridgeAt(L, bd.s)
+      bd.lat = THREE.MathUtils.clamp(bd.lat, -q.hw * 0.78, q.hw * 0.78)
+      // pushing past either end releases to normal physics (island tops underlap)
+      if ((bd.s <= 0.02 && adv < 0) || (bd.s >= L.len - 0.02 && adv > 0)) bd.on = false
+      if (bd.on) {
+        s.pos.x = q.x + q.sx * bd.lat; s.pos.z = q.z + q.sz * bd.lat
+        if (!frozen && t - input.jumpAt < BUFFER * 1000 && (s.grounded || s.coyote > 0)) {
+          s.vel.y = JUMP_V; s.grounded = false; s.coyote = 0; input.jumpAt = -1e9; s.airT = 0
+          spawnDust(s.pos, 3, 0.14, 0.5, 0.15)
+        }
+        s.vel.y = Math.max(-30, s.vel.y - GRAV * dtR)
+        s.pos.y += s.vel.y * dtR
+        if (s.vel.y <= 0 && s.pos.y <= q.y + 0.05) {
+          s.pos.y = q.y; s.vel.y = 0; s.grounded = true; s.coyote = COYOTE; s.airT = 0; s.groundY = q.y
+        } else { s.grounded = false; s.coyote -= dtR; s.airT += dtR }
+        s.vel.x = q.tx * adv; s.vel.z = q.tz * adv
+        hSpeed = Math.abs(adv)
+        if (hSpeed > 0.35) s.yaw = dampAngle(s.yaw, Math.atan2(s.vel.x, s.vel.z), TURN, dtR)
+        if (bd.obj) { s.groundObj = bd.obj; s.groundName = bd.obj.name }
+        s.histT += dtR
+        if (s.grounded && s.histT > 0.05) {
+          s.histT = 0; s.hist.push(s.pos.clone()); if (s.hist.length > 60) s.hist.shift()
+          if (s.vel.lengthSq() < 30) s.lastSafe.copy(s.hist[Math.max(0, s.hist.length - 16)])
+        }
+        const ui = usePlayerUI.getState()
+        if (s.pos.y < Math.min(s.lastSafe.y, 0) - 16 || !Number.isFinite(s.pos.y)) {
+          s.pos.copy(s.lastSafe); s.vel.set(0, 0, 0); s.bridge.on = false
+          s.grounded = false; ui.setFading(false); ui.bumpRespawn()
+          s.targetSm.copy(s.pos).add(_v2.set(0, 1.05, 0))
+        }
+        if (s.grounded && hSpeed > 0.6) {
+          s.stepAcc += hSpeed * dtR
+          const stride = run ? 0.72 : 0.55
+          if (s.stepAcc > stride) { s.stepAcc = 0; spawnDust(_v1.set(s.pos.x, s.groundY + 0.02, s.pos.z), run ? 4 : 3, 0.12, 0.4, 0.13) }
+        } else s.stepAcc = 0
+      }
+    }
+
     /* ---- physics: substep so sim speed survives slow frames (was: one capped
        step → at ~10 fps the sim ran at a third of real speed and scripted
        walks fell behind the world) ---- */
-    let hSpeed = Math.hypot(s.vel.x, s.vel.z)
+    if (!bd.on) {
     let rem = Math.min(rawDt, 0.26) // ~8 substeps — keeps real pace down to ~4 fps
     while (rem > 1e-5) {
       const h = Math.min(rem, 1 / 30); rem -= h
@@ -392,7 +522,7 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
         }
       }
       s.grounded = grounded
-      if (grounded) { s.coyote = COYOTE; s.airT = 0; s.groundName = groundObj?.name ?? '' }
+      if (grounded) { s.coyote = COYOTE; s.airT = 0; s.groundName = groundObj?.name ?? ''; s.groundObj = groundObj }
 
       /* bridge rail guide: near/on a walk-bridge strip, steer lateral offset
          back to its centreline — the deck drifts diagonally between islands,
@@ -474,6 +604,7 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
           spawnDust(_v1.set(s.pos.x, s.groundY + 0.02, s.pos.z), run ? 4 : 3, 0.12, 0.4, 0.13)
         }
       } else s.stepAcc = 0
+    }
     }
 
     /* ---- write core.player ---- */

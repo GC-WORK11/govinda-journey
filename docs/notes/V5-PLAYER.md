@@ -49,13 +49,20 @@ Status: complete and integrated — all requests below were delivered by WORLD.
   `cinematic.on`; gravity/grounding keep integrating so the player stays put
   physically. Velocity damps to a stop.
 
-## Bridge rail guide (PLAYER-side convention, since ff09912)
-- Any walkable mesh named `walk-bridge-*` gets centreline assist: while
-  grounded on it the lateral offset is clamped inside the deck halfwidth
-  (can't slide off the edge), and while airborne within ~1.5–2.6 m lateral
-  (scaled by section width, wider at the flared mouths) and ~4 m along, the
-  player is pulled toward the corridor (cap 2.4 m/s) so ledge-lip drops and
-  sideways hops land on the deck instead of slipping past.
+## Bridge auto-guide (design change — Govinda, since this commit)
+- Once grounded on any `walk-bridge-*` mesh the player switches to **spline
+  drive**: the strip's world-space vertex pairs give the centreline (41
+  sections); the player is carried along it — **cannot fall off**.
+- Input still steers: forward/back input advances arc-length `s` (walk/run
+  speed × real elapsed seconds — **distance per real time**, works at any
+  fps); lateral input steers a small offset `lat` clamped to `hw*0.78` of the
+  local section halfwidth (widest at the flared mouths); `lat` drifts back to
+  centre gently. Jump still works and lands back on the deck.
+- Release: pushing past `s<=0` or `s>=len` hands back to free physics (the
+  strip underlaps both island discs, so stepping off is seamless); teleport
+  and respawn also clear the mode. Grounded on anything non-bridge releases.
+- Legacy note: the pre-drive rail guide still runs for the airborne catch
+  (ledge-lip drops onto the deck before the drive engages).
 - Mesh requirement: position attribute = WORLD-SPACE vertex PAIRS per
   cross-section (v[2i], v[2i+1] = section i's two edges) — exactly how
   WORLD's Bridge5 strip is built (41 sections × 2 verts, 2 tris/section;
