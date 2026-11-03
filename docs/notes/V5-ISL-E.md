@@ -1,8 +1,10 @@
 # ISL-E — L06 Remote + L07 Wispr Wrap obstacles
 
-Status: **L06 verified end-to-end live** (real solver run: `__journey.solve.L06()` → done + `remote`
-granted in ~4 s). L07 solver verified by code inspection + same harness as L06; live run pending a
-shared-Chrome slot. tsc clean (`npx tsc -p . --noEmit`, filtered).
+Status: **both islands verified end-to-end live** in the real world (`/?qa&at=<ID>&unlock`):
+`__journey.solve.L06()` → done + `remote` in ~4 s; `__journey.solve.L07()` → done + `voice` in ~10 s,
+both via real interactions (teleport + `interactables.get(<id>).use()` + the same DOM paths players
+hit). Post-solve screenshots inspected at 1440x900 (door swung open + lantern lit on L07, bridge out
++ dock scene on L06). tsc clean (`npx tsc -p . --noEmit`, filtered).
 
 ## What is built
 
