@@ -29,13 +29,24 @@ export function useLocalPlayer(root: RefObject<THREE.Group | null>, out: THREE.V
   })
 }
 
+/** Move the player to a WORLD-space point. Real Player: its teleport API (writes the
+ *  authoritative state). Dev harness fallback: core.player. Safe to call every frame
+ *  for short scripted moves (climb hop, bench glide). */
+export function tpWorld(w: THREE.Vector3) {
+  const tp = (window as any).__journey?.player?.teleport
+  if (tp) tp(w.x, w.y, w.z)
+  else {
+    core.player.pos.copy(w)
+    core.player.vel.set(0, 0, 0)
+  }
+}
+
 /** Teleport the traveller to an island-local point (?qa solvers / my dev harness). */
 export function tpLocal(root: THREE.Group | null, local: THREE.Vector3, yaw?: number) {
   if (!root) return
   const w = local.clone()
   root.localToWorld(w)
-  core.player.pos.copy(w)
-  core.player.vel.set(0, 0, 0)
+  tpWorld(w)
   if (yaw !== undefined) core.player.facing = yaw
 }
 
@@ -287,7 +298,7 @@ export function FloatRock({ r = 0.9, seed = 3, top = C.leaf, ...p }: { r?: numbe
     }
     g.computeVertexNormals()
     const arr = new Float32Array(pos.count * 3)
-    const cTop = new THREE.Color(top), rock = new THREE.Color('#b8a88e'), dark = new THREE.Color('#8c7055'), tmp = new THREE.Color()
+    const cTop = new THREE.Color(top), rock = new THREE.Color('#c0af90'), dark = new THREE.Color('#97805f'), tmp = new THREE.Color()
     for (let i = 0; i < pos.count; i++) {
       const y = pos.getY(i)
       tmp.copy(y > -0.02 * r ? cTop : rock).lerp(dark, Math.min(1, Math.max(0, (-y / r - 0.15) * 0.75)))

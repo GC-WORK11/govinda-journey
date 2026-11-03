@@ -12,7 +12,7 @@ import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import * as core from '../../v5/core'
 import {
-  C, clay, REDUCED, useLocalPlayer, tpLocal, useSolver, useAt, Hint,
+  C, clay, REDUCED, useLocalPlayer, tpLocal, tpWorld, useSolver, useAt, Hint,
   PathStones, Rock, Mound, StoneLantern, sleep,
 } from '../L03/shared.v5'
 
@@ -89,7 +89,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       }
       const w = tmpV.clone()
       if (root.current) root.current.localToWorld(w)
-      core.player.pos.copy(w)
+      tpWorld(w)
     }
   })
 
@@ -125,8 +125,8 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       <LilyPads />
 
       {/* stepping stones into the shallows */}
-      {[[-0.2, 0.75], [0.55, 1.05], [1.3, 1.0]].map(([x, z], i) => (
-        <SteppingStone key={i} position={[POND.x + x - 1.0, 0, POND.z + z - 0.6]} s={0.5 - i * 0.06} />
+      {[[-0.4, 0.85], [0.35, 1.15], [1.1, 1.1]].map(([x, z], i) => (
+        <SteppingStone key={i} position={[POND.x + x - 1.0, 0, POND.z + z - 0.6]} s={0.38 - i * 0.05} />
       ))}
 
       <Bench pos={BENCH} yaw={BENCH_YAW} />
@@ -203,9 +203,9 @@ function Willow({ pos }: { pos: THREE.Vector3 }) {
         <mesh position={[-0.7, -0.15, 0.2]} material={clay(C.leaf)} castShadow><sphereGeometry args={[0.6, 14, 10]} /></mesh>
         <mesh position={[0.5, -0.3, -0.45]} material={clay(C.leaf)} castShadow><sphereGeometry args={[0.55, 12, 10]} /></mesh>
         {/* drooping strands toward the water */}
-        {[[-0.9, -0.7, 0.15], [-0.5, -0.85, 0.55], [0.15, -0.95, -0.7], [0.75, -0.75, -0.3], [0.9, -0.6, 0.35], [-0.2, -0.9, -0.75]].map(([x, y, z], i) => (
+        {[[-0.75, -0.7, 0.15], [-0.45, -0.82, 0.5], [0.15, -0.9, -0.62], [0.62, -0.72, -0.28], [0.72, -0.6, 0.3], [-0.18, -0.85, -0.66]].map(([x, y, z], i) => (
           <mesh key={i} position={[x, y, z]} rotation={[0.12 * Math.sin(i), 0, 0.1 * Math.cos(i * 2)]} material={clay(C.leafDark)}>
-            <cylinderGeometry args={[0.012, 0.03, 0.85, 5]} />
+            <cylinderGeometry args={[0.012, 0.026, 0.7, 5]} />
           </mesh>
         ))}
       </group>
@@ -279,7 +279,7 @@ function SteppingStone({ position, s }: { position: [number, number, number]; s:
   const ref = useRef<THREE.Mesh>(null)
   core.useWalkable(ref)
   return (
-    <mesh ref={ref} position={[position[0], 0.055, position[2]]} scale={[s, s * 0.5, s * 0.85]}
+    <mesh ref={ref} position={[position[0], 0.045, position[2]]} scale={[s, s * 0.42, s * 0.85]}
       material={clay(C.stone)} castShadow receiveShadow>
       <sphereGeometry args={[1, 14, 10]} />
     </mesh>

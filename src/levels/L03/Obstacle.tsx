@@ -14,7 +14,7 @@ import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import * as core from '../../v5/core'
 import {
-  C, clay, REDUCED, useLocalPlayer, tpLocal, useSolver, useAt, Hint,
+  C, clay, REDUCED, useLocalPlayer, tpLocal, tpWorld, useSolver, useAt, Hint,
   PathStones, Rock, Mound, RopeFence, StoneLantern, FloatRock, carryWorld, sleep,
 } from './shared.v5'
 
@@ -24,7 +24,8 @@ const LEDGE = new THREE.Vector3(3.35, 0, 3.3)      // rock outcrop holding the r
 const LEDGE_TOP = 1.32
 const WALL_AT = new THREE.Vector3(2.62, 0, 2.48)   // base of the handhold wall (SW face)
 const CLIMB_TO = new THREE.Vector3(3.28, LEDGE_TOP + 0.02, 3.22)
-const RACK = new THREE.Vector3(3.6, LEDGE_TOP, 3.55)
+const RACK = new THREE.Vector3(3.45, LEDGE_TOP, 3.45)
+const RACK_YAW = 0.62 // rack local +z faces the path below (SW)
 
 const ABUT = new THREE.Vector3(3.9, 0, 1.55)       // stone lip on the rim
 const PLATS = [
@@ -100,6 +101,7 @@ type Block = {
   g: THREE.Group | null
   state: BlockState
   t: number                       // placing anim progress
+  landed: boolean                 // placed transform applied at least once
   from: THREE.Vector3
   to: THREE.Vector3
   fromQ: THREE.Quaternion
@@ -122,6 +124,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       g: null,
       state: done ? 'placed' : 'rack',
       t: done ? 1 : 0,
+      landed: false,
       from: new THREE.Vector3(), to, fromQ: new THREE.Quaternion(), toQ,
     }
   }), [done])
@@ -152,7 +155,8 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   }), [climbAt])
   core.useInteractable(climbIt)
 
-  const blockAts = [useAt(root, RACK.x - 0.34, RACK.y + 0.4, RACK.z), useAt(root, RACK.x, RACK.y + 0.4, RACK.z + 0.02), useAt(root, RACK.x + 0.34, RACK.y + 0.4, RACK.z)]
+  const rdx = Math.cos(RACK_YAW), rdz = -Math.sin(RACK_YAW)
+  const blockAts = [0, 1, 2].map((i) => useAt(root, RACK.x + (i - 1) * 0.34 * rdx, RACK.y + 0.5, RACK.z + (i - 1) * 0.34 * rdz))
   const blockIts = useMemo<core.Interactable[]>(() => blocks.map((b, i) => ({
     id: `l03-page-${i}`, at: blockAts[i], radius: 1.0, label: 'take a page',
     enabled: () => b.state === 'rack' && !core.player.carrying && !doneRef.current,
@@ -194,10 +198,10 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       const g = b.g
       if (!g) return
       if (b.state === 'rack') {
-        // standing in the rack, tilted back
-        const rx = RACK.x - 0.34 + i * 0.34
-        g.position.set(rx, RACK.y + 0.02, RACK.z + i * 0.02)
-        g.rotation.set(-0.34, 0.06 - i * 0.06, 0)
+        // standing upright in the rack like a folder, leaning on the back rail
+        const dx = Math.cos(RACK_YAW), dz = -Math.sin(RACK_YAW)
+        g.position.set(RACK.x + (i - 1) * 0.34 * dx, RACK.y + 0.5, RACK.z + (i - 1) * 0.34 * dz)
+        g.rotation.set(Math.PI / 2 - 0.24, RACK_YAW + (i - 1) * 0.05, 0)
         g.scale.setScalar(1)
       } else if (b.state === 'carried') {
         carryWorld(tmpV)
@@ -216,6 +220,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
         g.scale.setScalar(0.58 + 0.42 * e)
         if (b.t >= 1) {
           b.state = 'placed'
+          b.landed = true
           placedCount.current++
           const slab = (b as any).slab as THREE.Object3D | undefined
           if (slab) core.walkables.add(slab)
@@ -225,6 +230,12 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
             setTimeout(() => complete(), REDUCED ? 700 : 1500)
           }
         }
+      } else if (b.state === 'placed' && !b.landed) {
+        // already-solved mount: drop straight into the gap pose
+        b.landed = true
+        g.position.copy(b.to)
+        g.quaternion.copy(b.toQ)
+        g.scale.setScalar(1)
       }
     })
 
@@ -236,7 +247,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       tmpV.lerpVectors(c.from, c.to, e)
       tmpV.y += Math.sin(e * Math.PI) * 0.3
       if (root.current) root.current.localToWorld(tmpV)
-      core.player.pos.copy(tmpV)
+      tpWorld(tmpV)
       if (c.t >= 1) { c.on = false; core.player.frozen = false }
     }
   })
@@ -246,6 +257,13 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   useSolver(id, async () => {
     const r = root.current
     if (!r) return
+    // up the wall via the real climb interaction when climb is granted (?qa&unlock)
+    tpLocal(r, new THREE.Vector3(WALL_AT.x - 0.2, 0.1, WALL_AT.z - 0.2))
+    await sleep(150)
+    core.interactables.get('l03-climb')?.use()
+    await sleep(1100)
+    if (!climb.current.on && !core.has('climb')) tpLocal(r, CLIMB_TO.clone().add(new THREE.Vector3(0, 0.05, 0)))
+    await sleep(200)
     for (let i = 0; i < 3; i++) {
       tpLocal(r, new THREE.Vector3(RACK.x - 0.4 + i * 0.35, LEDGE_TOP + 0.1, RACK.z - 0.8))
       await sleep(120)
@@ -401,10 +419,10 @@ function LedgeWall() {
     }
     g.computeVertexNormals()
     const arr = new Float32Array(pos.count * 3)
-    const cTop = new THREE.Color('#a9b98a'), rock = new THREE.Color('#b8a88e'), dark = new THREE.Color('#93765a'), tmp = new THREE.Color()
+    const cTop = new THREE.Color('#a7bd80'), rock = new THREE.Color('#d4bf98'), dark = new THREE.Color('#b5996f'), tmp = new THREE.Color()
     for (let i = 0; i < pos.count; i++) {
       const y = pos.getY(i)
-      tmp.copy(y > LEDGE_TOP - 0.08 ? cTop : rock).lerp(dark, Math.min(1, Math.max(0, (0.9 - y) * 0.8)))
+      tmp.copy(y > LEDGE_TOP - 0.08 ? cTop : rock).lerp(dark, Math.min(1, Math.max(0, (0.85 - y) * 0.42)))
       arr[i * 3] = tmp.r; arr[i * 3 + 1] = tmp.g; arr[i * 3 + 2] = tmp.b
     }
     g.setAttribute('color', new THREE.BufferAttribute(arr, 3))
@@ -446,18 +464,23 @@ function LedgeWall() {
 /** Wooden rack holding the loose pages on the ledge top. */
 function Rack() {
   return (
-    <group position={[RACK.x, RACK.y, RACK.z]} rotation={[0, 0.75, 0]}>
+    <group position={[RACK.x, RACK.y, RACK.z]} rotation={[0, RACK_YAW, 0]}>
       {[-0.55, 0.55].map((x) => (
-        <mesh key={x} position={[x, 0.26, -0.16]} rotation={[-0.3, 0, 0]} material={clay(C.wood)} castShadow>
-          <boxGeometry args={[0.05, 0.56, 0.06]} />
+        <mesh key={x} position={[x, 0.3, -0.2]} rotation={[-0.28, 0, 0]} material={clay(C.wood)} castShadow>
+          <boxGeometry args={[0.05, 0.66, 0.06]} />
         </mesh>
       ))}
-      <mesh position={[0, 0.42, -0.26]} rotation={[-0.3, 0, Math.PI / 2]} material={clay(C.wood)} castShadow>
-        <cylinderGeometry args={[0.022, 0.022, 1.2, 6]} />
+      <mesh position={[0, 0.5, -0.32]} rotation={[0, 0, Math.PI / 2]} material={clay(C.wood)} castShadow>
+        <cylinderGeometry args={[0.02, 0.02, 1.2, 6]} />
       </mesh>
-      <mesh position={[0, 0.03, 0.06]} material={clay(C.wood)} castShadow>
-        <boxGeometry args={[1.24, 0.05, 0.3]} />
+      <mesh position={[0, 0.04, 0.02]} material={clay(C.wood)} castShadow>
+        <boxGeometry args={[1.24, 0.06, 0.34]} />
       </mesh>
+      {[-0.34, 0, 0.34].map((x) => (
+        <mesh key={x} position={[x, 0.075, 0.02]} material={clay(C.woodLight)} castShadow>
+          <boxGeometry args={[0.03, 0.06, 0.34]} />
+        </mesh>
+      ))}
     </group>
   )
 }
@@ -494,7 +517,7 @@ function Platform({ p, i }: { p: THREE.Vector3; i: number }) {
   const yawOut = Math.atan2(toNext.x - p.x, toNext.z - p.z)
   return (
     <group position={p}>
-      <FloatRock r={0.98 - i * 0.04} seed={i * 3 + 5} top="#a9b98a" />
+      <FloatRock r={0.98 - i * 0.04} seed={i * 3 + 5} top="#a3b884" />
       <mesh ref={pad} position={[0, -0.02, 0]} material={clay('#cfc4ae')} receiveShadow castShadow>
         <cylinderGeometry args={[0.8, 0.84, 0.08, 18]} />
       </mesh>
