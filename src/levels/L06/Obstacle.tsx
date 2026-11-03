@@ -73,6 +73,7 @@ export default function Obstacle({ id, complete, done }: core.ObstacleProps) {
     vel: new V3(), yaw: done ? 0.8 : 2.4, rotor: 0,
     t: 0, landT: 0, boardT: 0,
     auto: null as THREE.Vector3[] | null,       // solver autopilot waypoints
+    leftPad: false,                             // set once the heli leaves the home pad zone
   })
   const phaseRef = useRef(phase); phaseRef.current = phase
   const passedRef = useRef(passed); passedRef.current = passed
@@ -215,8 +216,10 @@ export default function Obstacle({ id, complete, done }: core.ObstacleProps) {
       // landing checks
       const dFar = _v.copy(PAD_FAR); dFar.y = s.pos.y
       const dHome = _v2.copy(PAD_HOME); dHome.y = s.pos.y
+      if (s.pos.distanceTo(dHome) > 2.5) s.leftPad = true
       if (passedRef.current >= RINGS.length && s.pos.distanceTo(dFar) < 1.15 && hs < 3.5) setPhase('land')
-      else if (!takeoff && s.pos.distanceTo(dHome) < 1.0 && s.pos.y < 2.4 && hs < 3) setPhase('land') // land back home — always escapable
+      // land back home — only after it has actually left and returned low+slow
+      else if (s.leftPad && sinceBoard > 3.5 && s.pos.distanceTo(dHome) < 0.9 && s.pos.y < 1.5 && hs < 2.5) setPhase('land')
     }
 
     /* ------------------------------- landing ------------------------------- */
@@ -234,6 +237,7 @@ export default function Obstacle({ id, complete, done }: core.ObstacleProps) {
         s.landT = 0
         if (atHome) {
           setPhase('walk')
+          s.leftPad = false
           release()
           _v.copy(PAD_HOME).add(_v2.set(-1.0, 0.05, 0.6))
           const w1 = root.current ? root.current.localToWorld(_v) : _v
