@@ -26,6 +26,7 @@ const CONSOLE_POS = new THREE.Vector3(3.15, 0, -0.7)
 const SHELF_FAR = new THREE.Vector3(6.1, -0.14, -0.7)
 const SHELF_NEAR = new THREE.Vector3(4.85, -0.1, -0.7)
 const DOOR_Z = -3.3
+const EXIT_L = new THREE.Vector3(0, 0, -4.0)
 const TABLE_POS = new THREE.Vector3(-1.75, 0, -2.68)
 const SCREEN_LOCAL = TABLE_POS.clone().add(new THREE.Vector3(0, 0.62, 0.1))
 
@@ -249,6 +250,8 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
         await sleep(600)
         submitRef.current(WORD) // the same call the sheet's Send runs
         for (let i = 0; i < 160 && !core.useV5.getState().done.includes(id); i++) await sleep(100)
+        // step out through the open door onto the exit path so the walk continues cleanly
+        await tp(EXIT_L, 0, 0.4)
       },
     }
     return () => { if (J.solve) delete J.solve[id] }

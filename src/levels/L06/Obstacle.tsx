@@ -30,6 +30,7 @@ const ROCK_POS = new THREE.Vector3(-8.25, -0.12, -2.95)
 const SWITCH_TOP = ROCK_POS.clone().add(new THREE.Vector3(0, 1.02, 0.08))
 const BRIDGE_A = new THREE.Vector3(-5.9, 0.1, -1.7)
 const BRIDGE_B = new THREE.Vector3(-7.5, 0.06, -2.7)
+const EXIT_L = new THREE.Vector3(0, 0, -4.2)
 const HOVER_Y = 1.12
 
 export default function Obstacle({ id, active, complete, done }: core.ObstacleProps) {
@@ -152,6 +153,9 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
         stick.current.x = 0; stick.current.y = 0
         await sleep(1400) // let the bridge finish
         closePhoneRef.current()
+        await sleep(400)
+        // leave the traveller on the exit path — the dock is a dead end for a straight-line walker
+        await tp(EXIT_L, 0, 0.4)
       },
     }
     return () => { if (J.solve) delete J.solve[id] }
