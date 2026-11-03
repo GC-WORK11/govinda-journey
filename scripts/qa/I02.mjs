@@ -24,6 +24,11 @@ export default async function play(page) {
       await sleep(30)
     }
     await page.mouse.up()
+    if (i === 3) {
+      await sleep(520)
+      const vp = page.viewport()
+      await page.screenshot({ path: `proofs/I02-book-${vp.width}.png` })
+    }
     await sleep(1700)
   }
 }

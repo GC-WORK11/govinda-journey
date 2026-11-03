@@ -51,45 +51,45 @@ export default function Game({ onWin }: GameProps) {
     return { x, y }
   }
 
-  // Animate folding and traveler
+  // Animate folding and traveler - always keep the loop running
   useEffect(() => {
     let last = performance.now()
     const tick = (t: number) => {
       const dt = Math.min(0.05, (t - last) / 1000)
       last = t
-      let changed = false
 
-      setLetters((prev) =>
-        prev.map((l) => {
+      setLetters((prev) => {
+        let changed = false
+        const next = prev.map((l) => {
           if (l.folding && l.foldProgress < 1) {
             changed = true
             return { ...l, foldProgress: Math.min(1, l.foldProgress + dt * 2.5) }
           }
           return l
         })
-      )
+        return changed ? next : prev
+      })
 
-      setStones((prev) =>
-        prev.map((s) => {
+      setStones((prev) => {
+        let changed = false
+        const next = prev.map((s) => {
           if (s.foldProgress < 1) {
             changed = true
             return { ...s, foldProgress: Math.min(1, s.foldProgress + dt * 2.5) }
           }
           return s
         })
-      )
+        return changed ? next : prev
+      })
 
       setTravelerProgress((p) => {
         if (p > 0 && p < 1) {
-          changed = true
           return Math.min(1, p + dt * 0.35)
         }
         return p
       })
 
-      if (changed) {
-        animFrame.current = requestAnimationFrame(tick)
-      }
+      animFrame.current = requestAnimationFrame(tick)
     }
     animFrame.current = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(animFrame.current)

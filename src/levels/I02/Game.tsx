@@ -4,9 +4,9 @@ import './I02.css'
 
 const P = {
   sky: '#f8f0e2', cloud: '#fdf9f1',
-  hillFar: '#d3d9b6', hillNear: '#bccb92',
+  hillFar: '#cdd7b4', hillNear: '#aec27f',
   moss: '#a7bd80', leaf: '#8fb36b', leafDark: '#6f9a55',
-  sand: '#e8d6b8', sandLight: '#f2e5cd', stone: '#c9bfb0', stoneLight: '#ded6c8',
+  sand: '#e5d2ae', sandLight: '#f0e2c6', stone: '#c9bfb0', stoneLight: '#ded6c8',
   water: '#8fc1c9', waterLight: '#b8dade',
   wood: '#a87a52', woodLight: '#c99c6e', earth: '#b48a63', earthDark: '#8a6748',
   terra: '#d9825b', brick: '#b5654a', cream: '#f3e9da', paper: '#fbf6ee',
