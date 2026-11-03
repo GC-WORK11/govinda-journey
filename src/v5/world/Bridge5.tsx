@@ -55,8 +55,9 @@ function bridgeGeo(from: THREE.Vector3, to: THREE.Vector3) {
   }
   const rails = mergeGeometries(geos, false)!
   geos.forEach((x) => x.dispose())
-  // invisible walk strip following the deck profile
-  const w = 0.62, strip: number[] = []
+  // invisible walk strip following the deck profile — at least plank width
+  // (planks are 0.95 across; a hair over for forgiveness at the edges)
+  const w = 0.98, strip: number[] = []
   const idx: number[] = []
   for (let i = 0; i <= 40; i++) {
     const t = i / 40, p = from.clone().lerp(to, t)

@@ -42,9 +42,12 @@ export const Player = take(playerMods, '../player/Player.tsx')
 export const Controls = take(playerMods, '../player/Controls.tsx')
 
 /** One module's bug must never take the world down — render `fallback`, log once. */
-export class Guard extends Component<{ children: React.ReactNode; fallback?: React.ReactNode }, { err: boolean }> {
+export class Guard extends Component<
+  { children: React.ReactNode; fallback?: React.ReactNode; onError?: () => void },
+  { err: boolean }
+> {
   state = { err: false }
   static getDerivedStateFromError() { return { err: true } }
-  componentDidCatch(e: unknown) { console.error('[v5] module failed:', e) }
+  componentDidCatch(e: unknown) { console.error('[v5] module failed:', e); this.props.onError?.() }
   render() { return this.state.err ? (this.props.fallback ?? null) : this.props.children }
 }

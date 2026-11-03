@@ -147,7 +147,10 @@ export function Island5({ id, i }: { id: IslandId; i: number }) {
   const finale = useWorldUI((s) => s.finale)
   const Obstacle = OBSTACLES[id]
   const Diorama = DIORAMAS[id]
-  const open = done || !hasObstacle(id)
+  // If the obstacle module crashes (Guard caught it), don't let its gate
+  // strand the traveller — the path stays walkable (bridge too, via `broken`).
+  const broken = useWorldUI((s) => s.broken[id])
+  const open = done || !hasObstacle(id) || broken
   const complete = useMemo(() => () => useV5.getState().complete(id), [id])
   // obstacles + dioramas mount when the player could see them (and stay mounted
   // — island state must not be lost by walking away); the finale mounts all.
@@ -169,7 +172,9 @@ export function Island5({ id, i }: { id: IslandId; i: number }) {
       {Obstacle ? (
         mounted.current && (
           <Suspense fallback={null}>
-            <Guard><Obstacle id={id} active={idx === i} complete={complete} done={done} /></Guard>
+            <Guard onError={() => useWorldUI.getState().markBroken(id)}>
+              <Obstacle id={id} active={idx === i} complete={complete} done={done} />
+            </Guard>
           </Suspense>
         )
       ) : (

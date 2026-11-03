@@ -40,11 +40,12 @@ if (QA && new URLSearchParams(location.search).has('fresh')) {
 
 function Islands5() {
   const done = useV5((s) => s.done)
+  const broken = useWorldUI((s) => s.broken)
   return (
     <group>
       {V5_ORDER.map((id, i) => <Island5 key={id} id={id} i={i} />)}
       {V5_ORDER.slice(0, -1).map((id, i) => (
-        <Bridge5 key={id} i={i} shown={done.includes(id) || !hasObstacle(id)} />
+        <Bridge5 key={id} i={i} shown={done.includes(id) || !hasObstacle(id) || !!broken[id]} />
       ))}
     </group>
   )
