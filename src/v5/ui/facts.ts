@@ -8,9 +8,13 @@
  */
 import type { IslandId } from '../core'
 
-/** Per-level claims currently marked verified in docs/FACTS.md (stub: none yet —
- *  the audit file is still being written). */
-const VERIFIED: Partial<Record<IslandId, Set<string>>> = {}
+/** Per-level claims marked verified=yes in docs/FACTS.md (audit of 2026-11-04).
+ *  FACTS says: set tech and story to yes for L01, L03, L04, L05, L06, L07,
+ *  L08, L09 — every other island's claims are game copy or empty (n/a). */
+const YES = new Set(['tech', 'story'])
+const VERIFIED: Partial<Record<IslandId, Set<string>>> = {
+  L01: YES, L03: YES, L04: YES, L05: YES, L06: YES, L07: YES, L08: YES, L09: YES,
+}
 
 /** True while docs/FACTS.md has not landed — copy stays to names/links only. */
 export const FACTS_PENDING = Object.keys(VERIFIED).length === 0

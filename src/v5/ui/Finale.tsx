@@ -6,16 +6,15 @@
  * until docs/FACTS.md marks them verified (src/v5/ui/facts.ts).
  */
 import { cinematic, V5_ORDER, type IslandId } from '../core'
-import { CONTACT, RESUME, LEVELS } from '../../levels/registry'
+import { CONTACT, RESUME } from '../../levels/registry'
 import { LEVEL_BY_ID } from '../world/Island5'
 import { useWorldUI } from '../world/progress'
 import { FACTS_PENDING, techVerified } from './facts'
 
-/** The islands that are projects (story/interlude chapters aren't listed). */
-const PROJECTS = V5_ORDER
-  .map((id) => LEVELS.find((l) => l.id === id)!)
-  .filter((l) => l && (l.links.length > 0 || l.tech) && l.id !== 'L09')
-  .map((l) => l.id as IslandId)
+/** The project islands, in journey order (docs/FACTS.md repo/demo table —
+ *  L01, L02, I01 and I02 are story chapters, not projects). */
+const PROJECTS = (['L03', 'L05', 'L04', 'L06', 'L07', 'L08'] as IslandId[])
+  .filter((id) => V5_ORDER.includes(id))
 
 /** Short stack words, kept to what each project page itself states. */
 const STACK: [string, IslandId][] = [
@@ -60,7 +59,8 @@ export function Finale() {
         )}
 
         <p className="links">
-          {CONTACT.map((k) => <a key={k.href} href={k.href} target="_blank" rel="noreferrer" tabIndex={on ? 0 : -1}>{k.label}</a>)}
+          {/* Résumé is the button below — once only, not again in the link row */}
+          {CONTACT.filter((k) => k.href !== RESUME).map((k) => <a key={k.href} href={k.href} target="_blank" rel="noreferrer" tabIndex={on ? 0 : -1}>{k.label}</a>)}
         </p>
         <div className="row">
           <a className="btn" href={RESUME} target="_blank" rel="noreferrer" tabIndex={on ? 0 : -1}>Résumé</a>

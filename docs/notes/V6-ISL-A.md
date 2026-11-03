@@ -1,4 +1,5 @@
 # V6 · ISL-A status
 - How-to-play: `src/v5/ui/HowTo.tsx` — cream veil + Fraunces goal + Inter key/touch hints, freezes the traveller, melts on first real input; skipped for ?qa/?at/returning journeys. Caption + pill hide while it is up (:has in v5.css). Verified via livecheck at 1440x900 + 390x844 (0 errors).
-- Finale: `src/v5/ui/Finale.tsx` — real portfolio summary (project islands with registry links, FACTS-gated tech/stack, contact + résumé); `src/v5/ui/facts.ts` stubs docs/FACTS.md until the audit lands.
-- Requests: FACTS — emit `docs/FACTS.md` then regenerate `VERIFIED` in src/v5/ui/facts.ts; anything not marked verified stays hidden.
+- Finale: `src/v5/ui/Finale.tsx` — real portfolio summary (project islands with registry links, FACTS-gated tech/stack, contact + résumé); `src/v5/ui/facts.ts` now mirrors docs/FACTS.md verified flags.
+- Requests: FACTS landed; VERIFIED populated (tech+story yes for L01, L03–L09). HowTo line fixed per audit ("Each project island…"), finale project list is the FACTS allowlist (L03–L08, L01 story-only). Résumé deduped to the button; finale card got a warm-dark radial scrim.
+- Verify for QA: `http://localhost:5190/?qa&fresh&at=L09&unlock&finale` at 1440x900 and 390x844 — check: finale card shows 6 project rows (Small websites, Ent, ALive, Remote, Wispr Wrap, Sign-Flow) each with place + tech line + links; stack row "React · Vercel · Rust · C++20 · Expo"; Résumé appears once (button, not in link row); card scrim keeps text readable over the lit islands on mobile; 0 console errors.

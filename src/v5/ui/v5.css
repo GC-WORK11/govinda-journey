@@ -76,7 +76,14 @@
 .v5-fin .keep { font-size: 13.5px; color: #efe0c8; opacity: .85; border-bottom: 1px solid transparent; }
 .v5-fin .keep:hover { opacity: 1; border-color: rgba(239,224,200,.5); }
 /* the portfolio summary — the projects you just walked through */
-.v5-fin .card { max-height: 86vh; overflow-y: auto; }
+.v5-fin .card { max-height: 86vh; overflow-y: auto; position: relative; }
+/* soft warm-dark scrim behind the words only — the finale plays over the lit
+   islands, so a tight radial fade keeps the text readable on mobile too */
+.v5-fin .card::before { content: ""; position: absolute; inset: -34px -70px; z-index: -1; pointer-events: none;
+  background: radial-gradient(closest-side,
+    rgba(38, 28, 22, .52) 0%,
+    rgba(38, 28, 22, .34) 55%,
+    transparent 100%); }
 .v5-fin .projs { margin-top: 18px; }
 .v5-fin .proj { margin: 9px 0 0; font: 400 13.5px var(--sans); color: #efe0c8; }
 .v5-fin .proj .pt { font-family: var(--serif); font-size: 15px; letter-spacing: -.005em; }

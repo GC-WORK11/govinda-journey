@@ -45,8 +45,8 @@ export function HowTo() {
     <div className={`v5-how ${show ? 'on' : ''}`} role="dialog" aria-label="How to play">
       <div className="words">
         <p className="eyebrow">The journey of Govinda</p>
-        <p className="line">A chain of little islands, one per chapter. Walk the path —
-          each island is a short game about something real I built. Finish it to open the way on.</p>
+        <p className="line">A chain of little islands, one per chapter. Each project
+          island is a short game about something real I built — finish it to open the way on.</p>
         <p className="keys">
           {touch.current
             ? 'Stick to walk · hop and use buttons · drag the sky to look'
