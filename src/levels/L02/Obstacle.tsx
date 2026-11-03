@@ -38,6 +38,45 @@ type Slot = {
   baseRy: number
 }
 
+/** V4's stream: a shallow earthen bed with a warm pond surface, five stepping
+ *  stones across it, and carved posts at each bank — all opaque clay. */
+function Stream() {
+  return (
+    <group position={[2.0, 0, 3.05]} rotation={[0, -0.08, 0]}>
+      {/* stream bed */}
+      <mesh position={[0, 0.03, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[1.25, 0.42, 1]} material={clay(C.earth)} receiveShadow>
+        <circleGeometry args={[1, 40]} />
+      </mesh>
+      {/* opaque clay water, like the V4 diorama pond */}
+      <mesh position={[0, 0.045, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[1.16, 0.35, 1]} material={clay(C.water)}>
+        <circleGeometry args={[1, 40]} />
+      </mesh>
+      <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[1.06, 0.29, 1]} material={clay(C.waterLight)}>
+        <circleGeometry args={[1, 40]} />
+      </mesh>
+      {/* stepping stones across */}
+      {[-0.8, -0.4, 0, 0.4, 0.8].map((x, i) => (
+        <group key={i} position={[x, 0, Math.sin(i * 1.2) * 0.14]}>
+          <mesh position={[0, 0.06, 0]} material={clay(C.stone)} castShadow receiveShadow>
+            <cylinderGeometry args={[0.19, 0.22, 0.12, 14]} />
+          </mesh>
+          <mesh position={[0, 0.125, 0]} material={clay(C.sand)}>
+            <cylinderGeometry args={[0.165, 0.165, 0.012, 14]} />
+          </mesh>
+        </group>
+      ))}
+      {/* carved bank posts, one at each end of the stream */}
+      {[-1.32, 1.32].map((x, i) => (
+        <group key={i} position={[x, 0, i ? 0.06 : -0.06]}>
+          <mesh position={[0, 0.24, 0]} material={clay(C.wood)} castShadow><cylinderGeometry args={[0.045, 0.06, 0.5, 7]} /></mesh>
+          <mesh position={[0, 0.53, 0]} material={clay(C.woodLight)} castShadow><sphereGeometry args={[0.07, 9, 7]} /></mesh>
+          <mesh position={[0, 0.6, 0]} material={clay(C.terracotta)} castShadow><coneGeometry args={[0.05, 0.08, 7]} /></mesh>
+        </group>
+      ))}
+    </group>
+  )
+}
+
 function StoneStep({ pos, yaw, instant }: { pos: THREE.Vector3; yaw: number; instant?: boolean }) {
   const ref = useRef<THREE.Mesh>(null)
   const t = useRef(instant ? 1 : 0)
@@ -200,6 +239,9 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       {/* the closed gate on the ledge */}
       <Gate position={[0, 1.62, -3.78]} open={open} instant={done} width={1.85} height={1.5} />
       {open && <pointLight position={[0, 2.6, -3.5]} color="#ffc27e" intensity={2.0} distance={4.5} decay={2} />}
+
+      {/* V4's stream across the front grass — the letters drifted down from it */}
+      <Stream />
 
       {/* scattered letters + what hides them */}
       {slots.map((s, i) => (

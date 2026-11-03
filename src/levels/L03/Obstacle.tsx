@@ -401,60 +401,51 @@ function PayoffGlow({ lit }: { lit: boolean }) {
 
 /* ------------------------------ ledge + rack ------------------------------- */
 
-/** The rock outcrop with the page rack on top; handhold wall on its SW face. */
+/** The rock outcrop with the page rack on top; handhold wall on its SW face.
+ *  A stepped stack of warm clay boulders — reads as stones, not a slab. */
 function LedgeWall() {
   const side = useRef<THREE.Mesh>(null)
   const top = useRef<THREE.Mesh>(null)
   core.useBlocker(side)
   core.useWalkable(top)
-  const geo = useMemo(() => {
-    const prof: [number, number][] = [
-      [0.001, LEDGE_TOP + 0.03], [0.62, LEDGE_TOP + 0.02], [0.88, LEDGE_TOP - 0.05],
-      [0.98, LEDGE_TOP - 0.4], [0.92, LEDGE_TOP - 0.85], [1.0, 0.35], [1.06, 0.0],
-    ]
-    const g = new THREE.LatheGeometry(prof.map(([px, py]) => new THREE.Vector2(px, py)), 36)
-    const pos = g.attributes.position as THREE.BufferAttribute
-    const rnd = (n: number) => { const x = Math.sin(n * 12.9898 + 31.7) * 43758.5453; return x - Math.floor(x) }
-    for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i)
-      const rad = Math.hypot(x, z); if (rad < 1e-3) continue
-      const a = Math.atan2(z, x)
-      const k = 1 + 0.06 * Math.sin(a * 5 + y * 3) + 0.05 * (rnd(i) - 0.5)
-      pos.setX(i, x * k); pos.setZ(i, z * k)
-    }
-    g.computeVertexNormals()
-    const arr = new Float32Array(pos.count * 3)
-    const cTop = new THREE.Color('#a7bd80'), rock = new THREE.Color('#d4bf98'), dark = new THREE.Color('#b5996f'), tmp = new THREE.Color()
-    for (let i = 0; i < pos.count; i++) {
-      const y = pos.getY(i)
-      tmp.copy(y > LEDGE_TOP - 0.08 ? cTop : rock).lerp(dark, Math.min(1, Math.max(0, (0.85 - y) * 0.42)))
-      arr[i * 3] = tmp.r; arr[i * 3 + 1] = tmp.g; arr[i * 3 + 2] = tmp.b
-    }
-    g.setAttribute('color', new THREE.BufferAttribute(arr, 3))
-    return g
-  }, [])
-  const vc = useMemo(() => new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.94 }), [])
   return (
     <group position={[LEDGE.x, 0, LEDGE.z]}>
-      <mesh ref={side} geometry={geo} material={vc} castShadow receiveShadow />
+      {/* invisible collider: the climb face the player pushes against */}
+      <mesh ref={side} position={[0, 0.6, 0]} visible={false}>
+        <cylinderGeometry args={[1.02, 1.45, LEDGE_TOP - 0.04, 18]} />
+      </mesh>
       {/* invisible flat cap the player actually stands on */}
       <mesh ref={top} position={[0, LEDGE_TOP - 0.02, 0]} visible={false}>
         <cylinderGeometry args={[0.68, 0.68, 0.08, 20]} />
       </mesh>
+      {/* three warm boulders piled into a little tor */}
+      <mesh position={[-0.05, 0.3, 0.05]} scale={[1.55, 0.62, 1.45]} material={clay('#d3bf97')} castShadow receiveShadow>
+        <sphereGeometry args={[1, 22, 14]} />
+      </mesh>
+      <mesh position={[-0.18, 0.68, 0.14]} scale={[1.28, 0.62, 1.2]} material={clay('#dcc9a2')} castShadow receiveShadow>
+        <sphereGeometry args={[1, 20, 13]} />
+      </mesh>
+      <mesh position={[0.16, 0.98, -0.05]} scale={[1.0, 0.44, 0.96]} material={clay('#e4d2ac')} castShadow receiveShadow>
+        <sphereGeometry args={[1, 18, 12]} />
+      </mesh>
+      {/* grassy crown echoing the island top */}
+      <mesh position={[0, LEDGE_TOP - 0.1, 0]} material={clay('#a7bd80')} castShadow receiveShadow>
+        <cylinderGeometry args={[0.72, 0.88, 0.22, 18]} />
+      </mesh>
       {/* handholds + a vine rope down the SW face */}
       <group position={[WALL_AT.x - LEDGE.x, 0, WALL_AT.z - LEDGE.z]} rotation={[0, Math.atan2(WALL_AT.x - LEDGE.x, WALL_AT.z - LEDGE.z) + Math.PI, 0]}>
         {[[-0.18, 0.42], [0.12, 0.66], [-0.1, 0.9], [0.16, 1.12], [-0.05, 1.28]].map(([x, y], i) => (
-          <mesh key={i} position={[x, y, 0.1]} rotation={[Math.PI / 2.4, 0, 0]} material={clay(C.woodLight)} castShadow>
+          <mesh key={i} position={[x, y, -0.3]} rotation={[Math.PI / 2.4, 0, 0]} material={clay(C.woodLight)} castShadow>
             <cylinderGeometry args={[0.022, 0.028, 0.16, 6]} />
           </mesh>
         ))}
         {[[-0.3, 0.28], [0.3, 0.18]].map(([x, r], i) => (
-          <mesh key={i} position={[x, LEDGE_TOP / 2, 0.12]} rotation={[0, 0, r]} material={clay(C.leafDark)} castShadow>
+          <mesh key={i} position={[x, LEDGE_TOP / 2, -0.32]} rotation={[0, 0, r]} material={clay(C.leafDark)} castShadow>
             <cylinderGeometry args={[0.016, 0.026, LEDGE_TOP, 5]} />
           </mesh>
         ))}
         {[[-0.3, LEDGE_TOP - 0.1], [0.28, LEDGE_TOP - 0.22]].map(([x, y], i) => (
-          <mesh key={i} position={[x, y, 0.13]} material={clay(C.leaf)} castShadow>
+          <mesh key={i} position={[x, y, -0.3]} material={clay(C.leaf)} castShadow>
             <sphereGeometry args={[0.07, 8, 6]} />
           </mesh>
         ))}
@@ -648,12 +639,8 @@ function SiteFence() {
 
 /* --------------------------------- studio ---------------------------------- */
 
-/** The weekend studio: workbench, easel with a lit page, awning, stool, crates. */
+/** The weekend studio: workbench, the V4 browser-frame easel, awning, stool, crates. */
 function Studio({ position, yaw = 0 }: { position: [number, number, number]; yaw?: number }) {
-  const screen = useRef<THREE.MeshStandardMaterial>(null)
-  useFrame((s) => {
-    if (screen.current && !REDUCED) screen.current.emissiveIntensity = 0.5 + Math.sin(s.clock.elapsedTime * 2.1) * 0.08
-  })
   return (
     <group position={position} rotation={[0, yaw, 0]}>
       {/* awning: four posts + warm cloth */}
@@ -688,17 +675,35 @@ function Studio({ position, yaw = 0 }: { position: [number, number, number]; yaw
           <mesh key={i} position={[x, y, z]} rotation={[0, 0, r]} material={clay(C.wood)}><cylinderGeometry args={[0.009, 0.012, 0.18, 5]} /></mesh>
         ))}
       </group>
-      {/* easel with the lit page */}
-      <group position={[0.85, 0, -0.4]} rotation={[0, -0.5, 0]}>
-        <mesh position={[-0.2, 0.42, 0]} rotation={[0, 0, 0.22]} material={clay(C.wood)} castShadow><cylinderGeometry args={[0.024, 0.03, 0.88, 6]} /></mesh>
-        <mesh position={[0.2, 0.42, 0]} rotation={[0, 0, -0.22]} material={clay(C.wood)} castShadow><cylinderGeometry args={[0.024, 0.03, 0.88, 6]} /></mesh>
-        <mesh position={[0, 0.4, -0.14]} rotation={[-0.4, 0, 0]} material={clay(C.wood)} castShadow><cylinderGeometry args={[0.02, 0.026, 0.8, 6]} /></mesh>
-        <group position={[0, 0.62, 0.04]} rotation={[-0.12, 0, 0]}>
-          <RoundedBox args={[0.52, 0.4, 0.035]} radius={0.02} material={clay(C.paper)} castShadow />
-          <mesh position={[0, 0, 0.021]}>
-            <planeGeometry args={[0.44, 0.32]} />
-            <meshStandardMaterial ref={screen} map={pageTextures[0]} emissive="#ffd9a0" emissiveIntensity={0.5} roughness={0.85} />
-          </mesh>
+      {/* the V4 easel: a giant clay browser window, page shipped and lit */}
+      <group position={[0.9, 0, -0.42]} rotation={[0, -0.5, 0]} scale={1.15}>
+        {[-0.67, 0.67].map((x) => (
+          <RoundedBox key={x} args={[0.1, 1.52, 0.1]} radius={0.04} position={[x, 0.74, -0.03]} rotation={[0, 0, -x * 0.15]} material={clay(C.wood)} castShadow />
+        ))}
+        <RoundedBox args={[1.2, 0.08, 0.08]} radius={0.03} position={[0, 0.34, -0.05]} material={clay(C.woodLight)} />
+        <RoundedBox args={[0.1, 1.4, 0.1]} radius={0.04} position={[0, 0.6, -0.38]} rotation={[-0.3, 0, 0]} material={clay(C.wood)} castShadow />
+        <RoundedBox args={[1.36, 0.08, 0.18]} radius={0.03} position={[0, 0.49, 0.06]} material={clay(C.woodLight)} castShadow />
+        <group rotation={[-0.08, 0, 0]}>
+          <RoundedBox args={[1.52, 1.2, 0.09]} radius={0.07} position={[0, 1.13, 0]} material={clay(C.cream)} castShadow receiveShadow />
+          <RoundedBox args={[1.5, 0.22, 0.1]} radius={0.06} position={[0, 1.62, 0.005]} material={clay(C.sand)} castShadow />
+          {[-0.63, -0.51, -0.39].map((x, i) => (
+            <mesh key={i} position={[x, 1.63, 0.06]} material={clay([C.brick, '#e0b26a', C.leaf][i])}><sphereGeometry args={[0.034, 10, 8]} /></mesh>
+          ))}
+          <RoundedBox args={[0.72, 0.09, 0.02]} radius={0.045} position={[0.27, 1.63, 0.055]} material={clay(C.paper)} />
+          {/* the shipped page — all three pieces seated, warm */}
+          <RoundedBox args={[1.34, 0.9, 0.02]} radius={0.03} position={[0, 1.06, 0.052]} material={clay(C.paper)} receiveShadow />
+          <RoundedBox args={[1.06, 0.22, 0.015]} radius={0.04} position={[0, 1.36, 0.068]} material={clay(C.terracotta)} castShadow />
+          <RoundedBox args={[0.56, 0.52, 0.015]} radius={0.05} position={[-0.42, 0.98, 0.068]} material={clay(C.water)} castShadow />
+          <mesh position={[-0.5, 0.86, 0.075]} scale={[1.4, 0.8, 0.4]} material={clay(C.moss)} castShadow><sphereGeometry args={[0.16, 12, 9]} /></mesh>
+          <mesh position={[0.42, 0.85, 0.068]} rotation={[Math.PI / 2, 0, 0]} material={clay(C.leaf)} castShadow><cylinderGeometry args={[0.25, 0.25, 0.02, 24]} /></mesh>
+          <mesh position={[0.42, 0.85, 0.08]} material={clay(C.paper)}><sphereGeometry args={[0.045, 10, 8]} /></mesh>
+          {/* little people who came to see it */}
+          {[-0.55, -0.18, 0.18, 0.55].map((x, i) => (
+            <group key={i} position={[x, 0.0, 1.02]}>
+              <mesh position={[0, 0.13, 0]} material={clay([C.terracotta, C.leafDark, C.water, C.brick][i])} castShadow><capsuleGeometry args={[0.06, 0.1, 4, 10]} /></mesh>
+              <mesh position={[0, 0.27, 0]} material={clay(C.cream)} castShadow><sphereGeometry args={[0.062, 12, 10]} /></mesh>
+            </group>
+          ))}
         </group>
       </group>
       {/* stool + crates */}
