@@ -1,21 +1,20 @@
 /**
- * One V5 island: its base (ART's IslandBase once it lands; until then the V4
- * clay island scaled up with a quiet seeded dressing), the island's Obstacle
- * (lazy; a draped placeholder until ISL-* lands it), a small gate at the exit
- * that swings open once done, and lantern stands that warm up after dark.
+ * One V5 island: the V4 clay island (base + seeded scatter + its diorama,
+ * scaled up to the V5 radius), the island's Obstacle layered on top (lazy;
+ * a draped placeholder until ISL-* lands it), a small gate at the exit that
+ * swings open once done, and lantern stands that warm up after dark.
  * Local frame: top surface y = 0, path enters (0,0,4.2) → exits (0,0,-4.2).
  */
 import { Suspense, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
-import { C, Island, Tree, Rock, Bush, ClayPot, clay, clayVC, paint } from '../../world/kit'
+import { C, Island, clay, clayVC, scatterGeo } from '../../world/kit'
 import { Lanterns } from '../../world/Lanterns'
 import { env } from '../../world/sky'
 import { useV5, useWalkable, useBlocker, V5_ORDER, type IslandId } from '../core'
 import { ISLAND_R, ISLAND_POS } from './layout'
-import { OBSTACLES, ArtIslandBase, hasObstacle } from './modules'
+import { OBSTACLES, DIORAMAS, hasObstacle, Guard } from './modules'
 import { useWorldUI } from './progress'
 import { LEVELS } from '../../levels/registry'
 
@@ -23,66 +22,27 @@ const RM = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-mot
 const LAST = V5_ORDER.length - 1
 export const LEVEL_BY_ID = Object.fromEntries(LEVELS.map((l) => [l.id, l]))
 
+/** V4 dioramas were composed for radius 3.2 — scale them onto the V5 base. */
+const D_SCALE = ISLAND_R / 3.2
+
 const rnd = (seed: number, n: number) => { const x = Math.sin(seed * 91.7 + n * 12.9898) * 43758.5453; return x - Math.floor(x) }
 
-/* ---------- fallback island base (until ART's IslandBase lands) ---------- */
+/* ---------- V4 island visuals (parity base; ART packs layer on top) ---------- */
 
-/** Seeded rim dressing — kept clear of the entry/exit z-path corridor. */
-function FallbackDressing({ seed }: { seed: number }) {
-  const items = useMemo(() => {
-    const out: { x: number; z: number; kind: number; s: number; r: number }[] = []
-    for (let k = 0; k < 70 && out.length < 10; k++) {
-      const ang = rnd(seed, k * 3 + 1) * Math.PI * 2, d = 3.2 + rnd(seed, k * 3 + 2) * 1.35
-      const x = Math.cos(ang) * d, z = Math.sin(ang) * d
-      if (Math.abs(x) < 1.35 && Math.abs(z) > 2.1) continue // path corridor
-      out.push({ x, z, kind: Math.floor(rnd(seed, k * 5 + 4) * 5), s: 0.8 + rnd(seed, k * 3 + 3) * 0.55, r: rnd(seed, k * 7) * Math.PI * 2 })
-    }
-    return out
-  }, [seed])
-  return (
-    <group>
-      {items.map((it, i) => {
-        const p: [number, number, number] = [it.x, 0.03, it.z]
-        const rot: [number, number, number] = [0, it.r, 0]
-        switch (it.kind) {
-          case 0: return <Rock key={i} position={p} s={it.s * 0.5} />
-          case 1: return <Bush key={i} position={p} s={it.s} />
-          case 2: return <ClayPot key={i} position={p} s={it.s * 0.9} />
-          default: return <Tree key={i} position={p} rotation={rot} h={it.s * 1.15} color={it.kind === 4 ? C.moss : undefined} />
-        }
-      })}
-    </group>
-  )
-}
-
-/** Stepping stones along the local z-path (entry → exit), one merged mesh. */
-function PathStones({ seed }: { seed: number }) {
-  const geo = useMemo(() => {
-    const geos: THREE.BufferGeometry[] = []
-    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), s = new THREE.Vector3(1, 1, 1)
-    for (let i = 0; i < 9; i++) {
-      const t = i / 8, z = 3.55 - t * 7.1, x = Math.sin(t * Math.PI * 2 + seed * 2) * 0.3
-      const g = new THREE.CylinderGeometry(0.19 + rnd(seed, i) * 0.07, 0.22 + rnd(seed, i + 1) * 0.07, 0.07, 7)
-      e.set((rnd(seed, i + 2) - 0.5) * 0.1, rnd(seed, i + 3) * Math.PI, (rnd(seed, i + 4) - 0.5) * 0.1)
-      q.setFromEuler(e)
-      g.applyMatrix4(m.compose(new THREE.Vector3(x + (rnd(seed, i + 5) - 0.5) * 0.14, 0.035, z), q, s))
-      paint(g, rnd(seed, i + 8) > 0.5 ? '#d6cab4' : '#c9bfb0', undefined, 0.08)
-      geos.push(g)
-    }
-    const merged = mergeGeometries(geos, false)
-    geos.forEach((x) => x.dispose())
-    return merged
-  }, [seed])
-  if (!geo) return null
-  return <mesh geometry={geo} material={clayVC()} castShadow receiveShadow />
-}
-
-function FallbackBase({ id, seed }: { id: IslandId; seed: number }) {
+function IslandBase5({ id, seed }: { id: IslandId; seed: number }) {
   const L = LEVEL_BY_ID[id]
+  const ground = L?.palette.ground ?? C.leaf
+  const accent = L?.palette.accent ?? C.terracotta
   const top = useRef<THREE.Mesh>(null)
-  const whole = useRef<THREE.Group>(null)
   useWalkable(top)
-  useWalkable(whole)
+  const scatter = useMemo(
+    () =>
+      scatterGeo({
+        radius: ISLAND_R, ground, accent, seed: seed * 7 + 2,
+        path: [new THREE.Vector3(0, 0, 4.4), new THREE.Vector3(0, 0, 0.3), new THREE.Vector3(0, 0, -4.4)],
+      }),
+    [seed, ground, accent],
+  )
   return (
     <group>
       {/* invisible flat walk surface — raycastable, never drawn */}
@@ -90,11 +50,8 @@ function FallbackBase({ id, seed }: { id: IslandId; seed: number }) {
         <cylinderGeometry args={[ISLAND_R - 0.15, ISLAND_R - 0.15, 0.12, 36]} />
         <meshBasicMaterial visible={false} />
       </mesh>
-      <group ref={whole}>
-        <Island radius={ISLAND_R} ground={L?.palette.ground ?? C.leaf} seed={seed} />
-      </group>
-      <PathStones seed={seed} />
-      <FallbackDressing seed={seed} />
+      <Island radius={ISLAND_R} ground={ground} seed={seed} />
+      {scatter && <mesh geometry={scatter} material={clayVC()} castShadow receiveShadow />}
     </group>
   )
 }
@@ -186,23 +143,35 @@ function ObstaclePlaceholder({ seed }: { seed: number }) {
 
 export function Island5({ id, i }: { id: IslandId; i: number }) {
   const done = useV5((s) => s.done.includes(id))
-  const active = useWorldUI((s) => s.idx === i)
+  const idx = useWorldUI((s) => s.idx)
+  const finale = useWorldUI((s) => s.finale)
   const Obstacle = OBSTACLES[id]
+  const Diorama = DIORAMAS[id]
   const open = done || !hasObstacle(id)
   const complete = useMemo(() => () => useV5.getState().complete(id), [id])
+  // obstacles + dioramas mount when the player could see them (and stay mounted
+  // — island state must not be lost by walking away); the finale mounts all.
+  const near = finale || (i >= idx - 1 && i <= idx + 2)
+  const mounted = useRef(false)
+  if (near) mounted.current = true
   return (
     <group position={ISLAND_POS[i]} name={`island-${id}`}>
-      {ArtIslandBase ? (
+      <IslandBase5 id={id} seed={i + 1} />
+      {Diorama && mounted.current && (
         <Suspense fallback={null}>
-          <ArtIslandBase id={id} radius={ISLAND_R} palette={LEVEL_BY_ID[id]?.palette} />
+          <Guard>
+            <group scale={[D_SCALE, D_SCALE, D_SCALE]}>
+              <Diorama unlocked={done} active={idx === i} />
+            </group>
+          </Guard>
         </Suspense>
-      ) : (
-        <FallbackBase id={id} seed={i + 1} />
       )}
       {Obstacle ? (
-        <Suspense fallback={null}>
-          <Obstacle id={id} active={active} complete={complete} done={done} />
-        </Suspense>
+        mounted.current && (
+          <Suspense fallback={null}>
+            <Guard><Obstacle id={id} active={idx === i} complete={complete} done={done} /></Guard>
+          </Suspense>
+        )
       ) : (
         <ObstaclePlaceholder seed={i + 3} />
       )}

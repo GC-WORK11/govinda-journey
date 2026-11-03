@@ -19,6 +19,7 @@ const N = V5_ORDER.length
 const LAST = N - 1
 const tmp = makeSky()
 const a = new THREE.Vector3(), b = new THREE.Vector3(), q = new THREE.Vector3()
+export const skyDebug = { cIdx: 0, p: 0 }
 
 /** Continuous index along the chain: nearest segment projection, 0 … N-1. */
 export function pathProgress(p: THREE.Vector3) {
@@ -69,6 +70,7 @@ export default function Sky5() {
   useFrame((_, rawDt) => {
     const dt = Math.min(rawDt, 0.1)
     const cIdx = pathProgress(player.pos)
+    skyDebug.cIdx = cIdx; skyDebug.p = cIdx / LAST
     const idx = Math.min(LAST, Math.max(0, Math.round(cIdx)))
     useWorldUI.getState().setIdx(idx)
     const p = cIdx / LAST

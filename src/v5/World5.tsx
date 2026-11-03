@@ -8,7 +8,7 @@
  * Clouds5 / Effects5), PLAYER (Player / Controls), and each island's Obstacle —
  * until they land, quiet fallbacks keep the world whole.
  */
-import { Suspense, useEffect, useRef, useState } from 'react'
+import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { PerformanceMonitor } from '@react-three/drei'
 import * as THREE from 'three'
@@ -16,17 +16,27 @@ import { V5_ORDER, useV5, player, cinematic, type IslandId } from './core'
 import { ISLAND_POS, ENTRY, PATH_MID, islandIndex, islandPos } from './world/layout'
 import { Island5 } from './world/Island5'
 import { Bridge5 } from './world/Bridge5'
-import { hasObstacle, Player, ArtWater, ArtClouds, ArtEffects } from './world/modules'
+import { hasObstacle, Player, ArtWater, Guard } from './world/modules'
 import { useWorldUI } from './world/progress'
-import Sky5 from './world/Sky5'
+import Sky5, { skyDebug } from './world/Sky5'
+import { env } from '../world/sky'
 import { Clouds } from '../world/Clouds'
 import { C, clay } from '../world/kit'
 import Chrome from './ui/Chrome'
 import './ui/v5.css'
 
+/** V4's tilt-shift finish — parity baseline until ART's Effects5 clears the bar. */
+const Effects = lazy(() => import('../world/Effects'))
+
 const LITE = typeof location !== 'undefined' && new URLSearchParams(location.search).has('lite')
 const QA = typeof location !== 'undefined' && new URLSearchParams(location.search).has('qa')
 const RM = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches
+
+// ?qa&fresh — start from a clean journey (before persist state is read anywhere)
+if (QA && new URLSearchParams(location.search).has('fresh')) {
+  localStorage.removeItem('govinda-journey-v5')
+  useV5.getState().reset()
+}
 
 function Islands5() {
   const done = useV5((s) => s.done)
@@ -38,6 +48,27 @@ function Islands5() {
       ))}
     </group>
   )
+}
+
+/**
+ * Islands merge many small geometries into single meshes; if any merge fails
+ * (mixed attributes) it returns null and three's frustum culling crashes on
+ * `geometry.boundingSphere` every frame — the canvas freezes while the DOM
+ * overlay looks fine. Sweep null-geometry meshes out of the render path so a
+ * single island bug can never freeze the whole world.
+ */
+function Hygiene() {
+  const scene = useThree((s) => s.scene)
+  useEffect(() => {
+    const sweep = () =>
+      scene.traverse((o) => {
+        if ((o as THREE.Mesh).isMesh && !(o as THREE.Mesh).geometry) o.visible = false
+      })
+    sweep()
+    const t = window.setInterval(sweep, 1600)
+    return () => window.clearInterval(t)
+  }, [scene])
+  return null
 }
 
 /**
@@ -79,6 +110,9 @@ function FallbackRig() {
 }
 const _fw = new THREE.Vector3(), _fa = new THREE.Vector3()
 
+/** Foam rings around each island for ART's water plane. */
+const WATER_ISLANDS = ISLAND_POS.map((p) => [p.x, p.z, 6.2] as [number, number, number])
+
 /**
  * The finale pull-back. When core.cinematic.on flips true (L09 complete), this
  * eases the camera up and back past the last island until the whole lit path
@@ -112,6 +146,7 @@ function QaProbe() {
       return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }
     }
     j.project = (x: number, y: number, z: number, id: IslandId) => px(islandPos(id).clone().add(new THREE.Vector3(x, y, z)))
+    j.debug = { pos: () => player.pos.toArray(), cam: () => camera.position.toArray(), cIdx: () => skyDebug.cIdx, night: () => env.night }
     j.find = (name: string) => {
       const o = scene.getObjectByName(name); if (!o) return null
       const w = new THREE.Vector3(); o.getWorldPosition(w); return px(w)
@@ -140,8 +175,9 @@ export default function World5() {
       },
       project: null, find: null,
     }
-    // &at=<ID> teleports; &unlock marks every island before it complete
+    // &at=<ID> teleports; &unlock marks every island before it complete; &finale completes all
     const q = new URLSearchParams(location.search)
+    if (q.has('finale')) for (const id of V5_ORDER) useV5.getState().complete(id)
     const at = q.get('at') as IslandId | null
     if (at && (V5_ORDER as readonly string[]).includes(at)) {
       if (q.has('unlock')) for (const id of V5_ORDER.slice(0, islandIndex(at))) useV5.getState().complete(id)
@@ -164,24 +200,25 @@ export default function World5() {
         <color attach="background" args={['#efe2cb']} />
         <fog attach="fog" args={['#efe2cb', 30, 85]} />
         <Sky5 />
-        {ArtClouds ? (
-          <Suspense fallback={null}><ArtClouds /></Suspense>
-        ) : (
-          <Clouds />
+        <Clouds />
+        {ArtWater && (
+          <Suspense fallback={null}>
+            <Guard><ArtWater y={-14} islands={WATER_ISLANDS} /></Guard>
+          </Suspense>
         )}
-        {ArtWater && <Suspense fallback={null}><ArtWater /></Suspense>}
+        <Hygiene />
         <Islands5 />
         {Player ? (
           <Suspense fallback={<FallbackRig />}>
-            <Player />
+            <Guard fallback={<FallbackRig />}><Player /></Guard>
           </Suspense>
         ) : (
           <FallbackRig />
         )}
         <FinaleCam />
         {QA && <QaProbe />}
-        {!LITE && fx && ArtEffects && (
-          <Suspense fallback={null}><ArtEffects /></Suspense>
+        {!LITE && fx && (
+          <Suspense fallback={null}><Guard><Effects /></Guard></Suspense>
         )}
       </Canvas>
       <Chrome />
