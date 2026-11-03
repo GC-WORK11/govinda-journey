@@ -54,6 +54,12 @@
 .v5-fin .keep { font-size: 13.5px; color: #efe0c8; opacity: .85; border-bottom: 1px solid transparent; }
 .v5-fin .keep:hover { opacity: 1; border-color: rgba(239,224,200,.5); }
 
+/* narrow screens: the wordmark owns the top-left — the ribbon rides below it */
+@media (max-width: 640px) {
+  .v5-ribbon { top: calc(max(18px, env(safe-area-inset-top)) + 52px); width: min(84vw, 340px); }
+  .v5-cap { top: calc(max(18px, env(safe-area-inset-top)) + 98px); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .v5-ribbon .dot, .v5-cap, .v5-fin { transition: none; }
   .v5-glyph.earned .art { animation: none; }
