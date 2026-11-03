@@ -1,70 +1,56 @@
 /**
- * QA script for L02: drag each rejection letter into the water gap.
- * @param {import('puppeteer').Page} page
+ * QA script for L02 — Rejections
+ * Drags the three letters into the stream slots to create stepping stones.
  */
-export default async function play(page) {
-  const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+export default async function (page) {
+  const wait = (ms) => new Promise(r => setTimeout(r, ms))
   
-  // Wait for the game to load
-  await page.waitForSelector('[data-qa="letter-0"]', { timeout: 5000 })
-  await sleep(500)
+  // Wait for the game to be ready and letters to settle
+  await wait(1200)
 
-  // Drag each letter to the drop zone, one at a time
-  for (let i = 0; i < 5; i++) {
-    const selector = `[data-qa="letter-${i}"]`
-    
-    // Check if letter still exists
-    const exists = await page.$(selector)
-    if (!exists) {
-      await sleep(300)
-      continue
-    }
-    
-    // Get SVG and letter positions
-    const positions = await page.evaluate((sel) => {
-      const svg = document.querySelector('.l02 svg')
-      const letterG = document.querySelector(sel)
-      if (!svg || !letterG) return null
-      
-      const svgRect = svg.getBoundingClientRect()
-      const letterRect = letterG.getBoundingClientRect()
-      
-      // Drop zone center: viewBox y=125 (middle of water gap 80-170)
-      // Spread stones from x=100 to x=280 (well within gap 40-340)
-      const svgWidth = 380
-      const spacing = 180 / 4 // divide space into 4 gaps for 5 stones
-      const targetViewBoxX = 100 + spacing * sel.match(/\d+/)[0] * 1
-      const targetViewBoxY = 125
-      
-      const dropX = svgRect.left + (targetViewBoxX / svgWidth) * svgRect.width
-      const dropY = svgRect.top + (targetViewBoxY / 250) * svgRect.height
-      
-      return {
-        letterX: letterRect.left + letterRect.width / 2,
-        letterY: letterRect.top + letterRect.height / 2,
-        dropX,
-        dropY,
-      }
-    }, selector)
-    
-    if (!positions) {
-      await sleep(300)
-      continue
-    }
+  // Letter home positions - these need to be precise
+  const letters = [
+    [0.9, 0.55, 0.95],
+    [1.55, 0.55, 1.05],
+    [2.15, 0.55, 1.35],
+  ]
 
-    // Perform the drag
-    await page.mouse.move(positions.letterX, positions.letterY, { steps: 3 })
-    await sleep(80)
+  // Slot positions
+  const slots = [
+    [0.3, 0.6, 2.05],
+    [1.0, 0.6, 2.05],
+    [1.7, 0.6, 2.05],
+  ]
+
+  // Drag each letter to a slot
+  for (let i = 0; i < 3; i++) {
+    const letterPos = letters[i]
+    const slotPos = slots[i]
+
+    // Get screen coordinates
+    const fromPx = (await page.evaluate((n) => window.__journey.find(n), `letter-${i}`)) || await page.evaluate((p) => window.__journey.project(...p), letterPos)
+    const toPx = await page.evaluate((p) => window.__journey.project(...p), slotPos)
+
+    // Drag with generous timing
+    await page.mouse.move(fromPx.x, fromPx.y)
+    await wait(200)
     await page.mouse.down()
-    await sleep(80)
-    await page.mouse.move(positions.dropX, positions.dropY, { steps: 15 })
-    await sleep(80)
+    await wait(250)
+
+    // Smooth drag in many steps
+    const steps = 12
+    for (let s = 1; s <= steps; s++) {
+      const t = s / steps
+      const x = fromPx.x + (toPx.x - fromPx.x) * t
+      const y = fromPx.y + (toPx.y - fromPx.y) * t
+      await page.mouse.move(x, y)
+      await wait(60)
+    }
+
     await page.mouse.up()
-    
-    // Wait for stone to appear and fold animation to complete
-    await sleep(900)
+    await wait(700)
   }
 
-  // Wait for all stones to finish folding, then traveler to cross
-  await sleep(4500)
+  // Wait for the win animation
+  await wait(1500)
 }

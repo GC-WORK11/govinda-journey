@@ -48,19 +48,19 @@ export default function Diorama({ unlocked }: DioramaProps) {
             castShadow 
           />
           {/* Screen display */}
-          <mesh position={[0, 0, -0.011]}>
+          <mesh position={[0, 0, 0.011]}>
             <planeGeometry args={[0.42, 0.26]} />
             <meshStandardMaterial color="#2a2a2a" roughness={0.3} />
           </mesh>
           {/* Document on screen */}
-          <mesh position={[0, 0, -0.015]}>
+          <mesh position={[0, 0, 0.015]}>
             <planeGeometry args={[0.36, 0.22]} />
             <meshStandardMaterial color={C.paper} />
           </mesh>
-          
+
           {/* Blinking cursor after unlock */}
           {unlocked && (
-            <mesh position={[-0.14, -0.06, -0.017]}>
+            <mesh position={[-0.14, -0.06, 0.017]}>
               <planeGeometry args={[0.008, 0.025]} />
               <meshBasicMaterial color={C.ink}>
                 <primitive attach="onBeforeCompile" object={(shader: any) => {

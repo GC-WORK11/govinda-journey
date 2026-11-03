@@ -1,36 +1,33 @@
 /**
- * QA script for L06 Remote
- * Taps task chips, approves completed tasks, wins after 2 tasks
+ * QA script for L06 Remote (3D version)
+ * Taps three task buttons on the phone standing near the traveller
  */
 
 const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms))
 
 export default async function play(page) {
   // Wait for game to be ready
-  await page.waitForSelector('[data-qa="task-chip-1"]', { timeout: 5000 })
-  await wait(500)
-
-  // Send first task
-  await page.click('[data-qa="task-chip-1"]')
-  
-  // Wait for coding to complete and approve button to appear (coding animation is ~4s)
-  await page.waitForSelector('[data-qa="approve-btn"]', { timeout: 8000 })
-  await wait(300)
-  
-  // Approve first task
-  await page.click('[data-qa="approve-btn"]')
   await wait(800)
 
-  // Send second task
-  await page.click('[data-qa="task-chip-2"]')
-  
-  // Wait for coding to complete and approve button to appear
-  await page.waitForSelector('[data-qa="approve-btn"]', { timeout: 8000 })
-  await wait(300)
-  
-  // Approve second task
-  await page.click('[data-qa="approve-btn"]')
-  
-  // Wait a bit for win condition
-  await wait(1000)
+  // Use find() to locate named task buttons on the phone
+  const button1 = await page.evaluate(() => window.__journey.find('leaf'))
+  const button2 = await page.evaluate(() => window.__journey.find('gear'))
+  const button3 = await page.evaluate(() => window.__journey.find('check'))
+
+  if (!button1 || !button2 || !button3) {
+    throw new Error('Could not find task buttons')
+  }
+
+  // Tap first button (leaf)
+  await page.mouse.click(button1.x, button1.y)
+  await wait(1200) // Wait for orb to travel and laptop to work
+
+  // Tap second button (gear)
+  await page.mouse.click(button2.x, button2.y)
+  await wait(1200)
+
+  // Tap third button (check)
+  await page.mouse.click(button3.x, button3.y)
+  await wait(1200) // Wait for win
+
 }

@@ -1,18 +1,30 @@
-// Three slow breaths: hold the pond for a full breath in, let go to breathe out.
-// Repeats if a breath does not register (e.g. a hot reload mid-game).
+/**
+ * QA script for I01 — Stillness
+ * Hold anywhere for three full breaths (2.5s each), releasing between each breath.
+ */
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 export default async function play(page) {
-  const solved = () => page.evaluate(() => window.__journey?.state().solved.includes('I01'))
-  const el = await page.waitForSelector('[data-qa="breathe"]')
-  for (let i = 0; i < 8; i++) {
-    if (await solved()) return
-    const box = await el.boundingBox()
-    if (!box) return
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await sleep(800)
+
+  // Project the lotus position to get a point to click
+  const lotusPos = [0, 0.12, -0.75]
+  const centerPx = await page.evaluate((p) => window.__journey.project(...p), lotusPos)
+
+  // Three breaths: hold for 2.8s (slightly more than 2.5s needed), release, wait, repeat
+  for (let breath = 0; breath < 3; breath++) {
+    await page.mouse.move(centerPx.x, centerPx.y)
+    await sleep(100)
+    
+    // Hold down (breathe in)
     await page.mouse.down()
-    await sleep(4150)
+    await sleep(2800)
+    
+    // Release (breathe out)
     await page.mouse.up()
-    await sleep(3200)
+    await sleep(800)
   }
+
+  // Wait for win animation
+  await sleep(1500)
 }

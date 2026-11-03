@@ -1,58 +1,23 @@
-/**
- * QA script for L07 Wispr Wrap
- * Simulates typing two lines (fallback to type mode since speech isn't reliable in headless)
- */
-
-export default async function play(page) {
-  // Wait for game to load
-  await page.waitForSelector('.l07-stage', { timeout: 5000 })
-  
-  // Wait a moment for mode detection (should fallback to type mode in headless)
-  await new Promise(r => setTimeout(r, 800))
-  
-  // Check if we're in type mode or speech mode
-  const hasTypeInput = await page.$('[data-qa="type-input"]')
-  
-  if (hasTypeInput) {
-    // Type mode flow
-    console.log('  Using type mode')
-    
-    // First line - type and send
-    await page.focus('[data-qa="type-input"]')
-    await page.type('[data-qa="type-input"]', 'hello from the other side')
-    await new Promise(r => setTimeout(r, 400))
-    
-    // Click the send button via the SVG element
-    await page.evaluate(() => {
-      const btn = document.querySelector('[data-qa="send-button"]')
-      if (btn) btn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }))
-    })
-    
-    // Wait for words to fly and land
-    await new Promise(r => setTimeout(r, 2200))
-    
-    // Second line
-    await page.focus('[data-qa="type-input"]')
-    // Clear the input first
-    await page.evaluate(() => {
-      const input = document.querySelector('[data-qa="type-input"]')
-      if (input) input.value = ''
-    })
-    await page.type('[data-qa="type-input"]', 'words that travel far')
-    await new Promise(r => setTimeout(r, 400))
-    
-    // Click send again
-    await page.evaluate(() => {
-      const btn = document.querySelector('[data-qa="send-button"]')
-      if (btn) btn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }))
-    })
-    
-    // Wait for completion and win animation
-    await new Promise(r => setTimeout(r, 3000))
-  } else {
-    console.log('  WARNING: Type mode not detected, speech API might be available')
-    await new Promise(r => setTimeout(r, 2000))
+// L07 'Wispr Wrap': tap each floating word pebble; it arcs to the laptop screen. Any order wins.
+export default async function (page) {
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+  const mobile = (page.viewport()?.width || 1440) < 600
+  const solved = () => page.evaluate(() => window.__journey?.state().solved.includes('L07'))
+  const tapAt = async (s) => { if (mobile) await page.touchscreen.tap(s.x, s.y); else await page.mouse.click(s.x, s.y) }
+  const spawns = [[-0.30, 0.62, 1.70], [0.22, 0.80, 1.88], [0.72, 0.64, 1.98], [1.25, 0.78, 1.86]]
+  for (let round = 0; round < 4 && !(await solved()); round++) {
+    for (let i = 0; i < spawns.length; i++) {
+      if (await solved()) return
+      let s = null
+      for (let k = 0; k < 40 && !s; k++) {
+        s = await page.evaluate(
+          (n, f) => (window.__journey?.find(n) ?? window.__journey?.project(...f)) || null,
+          'l07-word-' + i, spawns[i])
+        if (!s) await sleep(250)
+      }
+      if (!s) return
+      await tapAt(s)
+      await sleep(650)
+    }
   }
-  
-  console.log('  L07 QA completed')
 }

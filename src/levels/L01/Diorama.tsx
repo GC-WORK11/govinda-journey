@@ -4,6 +4,7 @@ import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import type { DioramaProps } from '../types'
 import { C, clay, Scaffold, Rock } from '../../world/kit'
+import { LAMP_POS, HEAD_Y, Lantern, lampLit, lampDark, haloTexture } from './lanterns'
 
 /* A small IIT Patna-style campus block: cream walls, a terracotta hip roof,
    arched windows, a tiny gate and a banyan. Four lamp posts along the path
@@ -12,31 +13,15 @@ import { C, clay, Scaffold, Rock } from '../../world/kit'
 const REDUCED = typeof window !== 'undefined' &&
   !!window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-const lampOn = new THREE.MeshStandardMaterial({ color: '#f5b45e', emissive: '#ff9d3c', emissiveIntensity: 1.5, roughness: 0.55 })
 const winOn = new THREE.MeshStandardMaterial({ color: '#ffd489', emissive: '#ffb04e', emissiveIntensity: 0.85, roughness: 0.5 })
-const lampOff = new THREE.MeshStandardMaterial({ color: '#6b5847', roughness: 0.92 })
 const winOff = new THREE.MeshStandardMaterial({ color: '#9db6b3', roughness: 0.92 })
 
-const poleGeo = new THREE.CylinderGeometry(0.022, 0.03, 0.5, 6)
-const baseGeo = new THREE.CylinderGeometry(0.055, 0.07, 0.06, 8)
-const headGeo = new THREE.SphereGeometry(0.072, 12, 9)
-const capGeo = new THREE.ConeGeometry(0.05, 0.05, 6)
 const winGeo = new THREE.CapsuleGeometry(0.11, 0.2, 4, 10)
 const puffGeo = new THREE.SphereGeometry(1, 10, 8)
 
-function Lamp({ p, on }: { p: [number, number, number]; on: boolean }) {
-  return (
-    <group position={p}>
-      <mesh geometry={baseGeo} position={[0, 0.03, 0]} material={clay('#4a3f38')} castShadow />
-      <mesh geometry={poleGeo} position={[0, 0.31, 0]} material={clay('#4a3f38')} castShadow />
-      <mesh geometry={headGeo} position={[0, 0.585, 0]} material={on ? lampOn : lampOff} castShadow />
-      <mesh geometry={capGeo} position={[0, 0.65, 0]} material={clay('#4a3f38')} />
-    </group>
-  )
-}
-
-export default function Diorama({ unlocked }: DioramaProps) {
+export default function Diorama({ unlocked, active }: DioramaProps) {
   const puffs = useRef<(THREE.Mesh | null)[]>([])
+  const haloTex = useMemo(haloTexture, [])
   const roofGeo = useMemo(() => {
     const g = new THREE.ConeGeometry(1.33, 0.56, 4)
     g.rotateY(Math.PI / 4) // square footprint, axis-aligned so the z-squash below stays a rectangle
@@ -49,7 +34,7 @@ export default function Diorama({ unlocked }: DioramaProps) {
   useFrame((s) => {
     const t = s.clock.elapsedTime
     if (!REDUCED) {
-      lampOn.emissiveIntensity = unlocked ? 1.5 + Math.sin(t * 8.7) * 0.16 + Math.sin(t * 21.3) * 0.08 : 0
+      lampLit.emissiveIntensity = unlocked ? 1.5 + Math.sin(t * 8.7) * 0.16 + Math.sin(t * 21.3) * 0.08 : 0
       winOn.emissiveIntensity = 0.85 + Math.sin(t * 2.6) * 0.06
     }
     puffs.current.forEach((m, i) => {
@@ -122,13 +107,19 @@ export default function Diorama({ unlocked }: DioramaProps) {
         <mesh position={[0.02, 1.02, -0.05]} material={clay(C.leaf)} castShadow><sphereGeometry args={[0.3, 12, 10]} /></mesh>
       </group>
 
-      {/* the four lamps along the way */}
-      <Lamp p={[0.72, 0, 0.52]} on={unlocked} />
-      <Lamp p={[1.45, 0, 0.42]} on={unlocked} />
-      <Lamp p={[0.18, 0, 0.28]} on={unlocked} />
-      <Lamp p={[1.42, 0, 1.05]} on={unlocked} />
+      {/* the four lanterns along the path — hidden while the game borrows them */}
+      {!active && LAMP_POS.map((p, i) => (
+        <group key={i} position={p}>
+          <Lantern head={unlocked ? lampLit : lampDark} />
+          {unlocked && (
+            <sprite position={[0, HEAD_Y, 0]} scale={[0.9, 0.9, 1]}>
+              <spriteMaterial map={haloTex} color="#ffc27a" transparent opacity={0.32} depthWrite={false} />
+            </sprite>
+          )}
+        </group>
+      ))}
       {unlocked && (
-        <pointLight position={[0.55, 0.75, 0.45]} color="#ffc27e" intensity={2.2} distance={3} decay={2} />
+        <pointLight position={[0.85, 0.9, 1.35]} color="#ffc27e" intensity={2.2} distance={3.4} decay={2} />
       )}
 
       {/* dressing */}

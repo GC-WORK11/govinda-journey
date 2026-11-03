@@ -1,0 +1,76 @@
+# The Journey of Govinda — in-world 3D mini-game (READ FULLY)
+
+Repo: /workspace/govinda-journey (Vite + React 18 + R3F 8 + drei 9 + three 0.170, TypeScript). Dev server already
+running at http://localhost:5190/ (never start/stop it). Read docs/AGENTS.md "Disk rules" + "Shared box etiquette" first.
+
+## The new direction (from the owner)
+"Looks too complex and boxy. Make it a real interactive game, level by level, pixel-perfect 3D."
+- NO 2D panels/sheets/DOM games. Your game happens IN the 3D world, on your island, with real 3D objects.
+- ONE verb (tap OR drag OR hold). 10–20 seconds. A non-technical person understands it in 3 seconds.
+- The ONLY on-screen text is the one hint line (already in src/levels/registry.ts `hint`, shown by the Overlay).
+  Do not render any text in 3D unless it is a tiny, essential label. No numbers/scores/timers/captions.
+- Instant juicy feedback on every action: bounce/squash, warm glow, leaf/sparkle burst, a soft blip sound.
+- Look: warm matte clay miniature (cozy diorama). Rounded shapes (RoundedBox, capsules, spheres, lathe/extrude),
+  soft colours from the island palette. Never neon, never cyberpunk, never flat boxes, no emoji, no console.log.
+- Robust: never a broken state, works with mouse and touch at 1440x900 and 390x844 portrait. The object you
+  interact with must be big enough to tap on a phone (≥ ~0.35 units across at the island's scale).
+
+## The contract
+Create/replace ONLY `src/levels/<ID>/Play.tsx` (plus optional helper files inside `src/levels/<ID>/`) and
+`scripts/qa/<ID>.mjs`. You MAY edit your own `src/levels/<ID>/Diorama.tsx` if your game needs the scenery to
+react (it gets `unlocked` and `active` props). Do NOT edit World.tsx, Overlay.tsx, store, registry, kit, play.tsx
+(if you think the shared kit needs a fix, write it in your notes instead).
+
+```tsx
+import type { PlayProps } from '../types'      // { onWin: () => void; won: boolean }
+export default function Play({ onWin, won }: PlayProps) { ... }
+```
+- Rendered INSIDE the R3F Canvas, inside your island's group: island-local coordinates. Island top surface y≈0
+  (check `topY` in src/world/kit.tsx), radius 3.2. Your Diorama's building is near the centre; the traveller stands
+  at (-0.9, 0, 1.4). The camera looks from +x,+y,+z (front-right, above). Free, well-framed play space is roughly
+  x ∈ [-1.6, 2.2], z ∈ [-0.5, 2.4], y ∈ [0, 1.6]. Objects may float above the island.
+- It mounts when the game starts (after the chapter title) and stays mounted during the ~2.6 s payoff (`won`=true)
+  — use `won` to play a payoff (everything settles/glows/flies into place) and to disable input.
+- Call onWin() exactly ONCE when solved. The world then: drops the scaffold, squash-bounces your building, fires a
+  leaf burst + warm flare, shows the badge, then builds the bridge to the next island. Don't duplicate those.
+
+## Shared kit: src/world/play.tsx (read it — use it)
+`Draggable` (drag on a horizontal plane, onDrop(localPos) → true accepts, false springs home, `to` snaps it),
+`Tappable` (hover lift + squash on tap), `useHoldAnywhere()` (press-and-hold anywhere / Space),
+`burst(worldPos, color, n, power)`, `Pop` (squash-stretch appear), `Bob` (float), `blip(step)`, `chime()`,
+`glowMat(color, base)` + `pulse(mat, on, t, dt)`, `springStep`, `REDUCED` (prefers-reduced-motion: tone down).
+Clay materials: `clay(hex)` and the palette `C` from src/world/kit.tsx. drei has RoundedBox, Sparkles, Float etc.
+Use island-local → world via a group ref: `ref.current.localToWorld(new THREE.Vector3(x,y,z))` for burst().
+Give a hint of affordance: the thing to touch gently bobs/glows until touched; targets/slots glow softly.
+
+## Assets
+Primitives done well are fine. CC0 GLBs (Kenney/KayKit/Quaternius on GitHub raw URLs) are allowed if they clearly
+look better: download with curl to /tmp, compress with node /tmp/gjt/prune.mjs-style gltf-transform (already
+installed in /tmp/gjt; see that script) to < 150 KB, put in public/models/<id>-*.glb, load with
+useGLTF('./models/<file>.glb'). No npm installs, no npx downloads. Initial total load must stay small.
+
+## QA (mandatory)
+`scripts/qa/<ID>.mjs` exports `default async function (page)` that WINS your game through real pointer input on
+the canvas. Locate 3D points with `await page.evaluate((p) => window.__journey.project(...p), [x,y,z])`
+(island-local → CSS px) or `window.__journey.find('<object name>')` (set `name=` on your groups). Then
+`page.mouse.move/down/up/click` (drag: down, several moves, up; hold: down, wait, up). Works on the mobile
+viewport too. Run `node scripts/level-check.mjs <ID>` (it waits for the shared Chrome lock) at most THREE times
+total; it must print PASS (WON at both sizes, 0 console problems). Look at proofs/<ID>-desktop-game.png,
+-mobile-game.png, -after.png with your image viewer/reader and judge them honestly: is it obvious what to do?
+does it look premium? Fix and re-run if not. Typecheck: `npx tsc --noEmit -p .` (local, no download).
+
+## Finish
+Write docs/notes/<ID>-3d.md (≤ 15 lines: the game, the verb, files, anything rough). Then stop. Never run git.
+Never run pkill/kill. Keep your turns economical.
+
+## YOUR LEVEL: L07 — 'Wispr Wrap' (speak on the phone, words land on the Linux laptop). Hint shown: 'Tap the words'.
+Read src/levels/L07/Diorama.tsx first. Game (TAP): a phone and a laptop on the island. Three to four soft rounded
+speech-bubble 'word tiles' float out of the phone (clay pebbles; a tiny text label on each is allowed here, e.g.
+'hello', 'from', 'my', 'phone' using drei Text with the font at ./fonts if present else default; keep tiny and tasteful).
+Tap a tile → it flies in an arc to the laptop and types onto its screen as a line block, keystroke blips. Order does
+not need to be strict (tap any; they line up in sentence order on the screen). All in → the cursor blinks, chime →
+onWin(). Tell me in notes if your hint wording should change (registry now says 'Speak, or tap the words'; I'll set it to 'Tap the words').
+
+
+## FIX PASS (you are taking over)
+A previous agent wrote src/levels/L07/Play.tsx and scripts/qa/L07.mjs, but: the word tiles are not visible in proofs/L07-desktop-game.png (nothing to tap appears on the island), and the QA script never wins. Read docs/notes/L07-3d.md. Fix or rewrite Play.tsx so the tiles are big, clearly visible in front of the traveller in the camera-facing open zone (front rim, z about 1.6-2.2, clear of trees/bridge posts at about (-0.9,1.4)), and make the QA script win via window.__journey.find(name) on named hit meshes. Also note: the World camera/sky is being changed concurrently by another agent; if the page errors transiently, wait 30 s and retry. Max 3 level-check runs.

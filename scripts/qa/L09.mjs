@@ -1,22 +1,15 @@
-// Chalk: click Send, then answer all three questions to open the school gate.
+// Chalk: tap the pebble with the right answer (7); it flies onto the board and the gate opens.
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 export default async function play(page) {
-  // Click the send button
-  const sendBtn = await page.waitForSelector('[data-qa="send-btn"]')
-  await sendBtn.click()
-  
-  // Wait for all questions to be drawn
-  await sleep(3200)
-  
-  // Answer all three questions by clicking option-1 for each
-  // We need to get all option-1 elements (there should be 3, one per question)
-  const options = await page.$$('[data-qa="option-1"]')
-  for (let i = 0; i < options.length; i++) {
-    await sleep(300)
-    await options[i].click()
-  }
-  
-  // Wait for the gate to open
-  await sleep(1500)
+  // Wait for Pop animations to complete
+  await sleep(1100)
+
+  // The middle pebble (answer 7) is named L09-ans-7; fall back to its island-local point.
+  let p = await page.evaluate(() => window.__journey.find('L09-ans-7'))
+  if (!p) p = await page.evaluate((q) => window.__journey.project(...q), [0.5, 0.62, 1.8])
+  await page.mouse.click(p.x, p.y)
+
+  // Wait for the fly-in, chalk tick, chime and gate opening
+  await sleep(2400)
 }

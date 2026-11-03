@@ -184,3 +184,9 @@ h2 { font-size: clamp(32px, 4.2vw, 48px); margin: 8px 0 10px; }
   .tr .pips { display: none; }
   .hint span { font-size: 16px; padding: 9px 16px; }
 }
+
+/* After sunset the sky darkens: HUD text turns warm cream so it stays readable. */
+.ui.night .mark, .ui.night .count, .ui.night .corner .link, .ui.night .chapter .eyebrow, .ui.night .chapter h2 { color: #f6ecdc; text-shadow: 0 1px 12px rgba(30,26,46,.7); }
+.ui.night .pips i, .ui.dusk .pips i { background: rgba(246,236,220,.45); }
+.ui.night .pips i.on, .ui.dusk .pips i.on { background: #f6ecdc; }
+.ui.dusk .mark, .ui.dusk .count, .ui.dusk .corner .link { text-shadow: 0 1px 10px rgba(251,246,238,.75); }

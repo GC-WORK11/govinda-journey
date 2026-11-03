@@ -6,7 +6,7 @@ import { Scaffold, clay, C } from '../../world/kit'
 import * as THREE from 'three'
 
 // Greenhouse with glass panels, Delhi rooftops, small India Gate arch, hazy puffs that clear on unlock.
-export default function Diorama({ unlocked }: DioramaProps) {
+export default function Diorama({ unlocked, active }: DioramaProps) {
   return (
     <group>
       {/* greenhouse at center-back */}
@@ -20,8 +20,8 @@ export default function Diorama({ unlocked }: DioramaProps) {
       {/* small India Gate arch front-right */}
       <Arch position={[1.1, 0, 1.2]} />
       
-      {/* hazy puffs that disappear when unlocked */}
-      {!unlocked && (
+      {/* hazy puffs that disappear when unlocked (the mini-game brings its own smog) */}
+      {!unlocked && !active && (
         <>
           <HazePuff position={[-0.8, 0.9, -0.6]} />
           <HazePuff position={[0.6, 1.2, -0.4]} scale={0.8} />

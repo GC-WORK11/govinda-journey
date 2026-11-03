@@ -264,58 +264,62 @@ export function Scaffold({ open, size = [1.6, 1.8, 1.6], ...p }: P & { open: boo
   return (
     <group {...p} ref={g}>
       {poles.map(([x, z], i) => (
-        <mesh key={i} position={[x, h / 2, z]} material={clay(C.woodLight)} castShadow><cylinderGeometry args={[0.035, 0.035, h, 6]} /></mesh>
-      ))}
-      {[0.35, 0.7].map((f, i) => (
-        <group key={'r' + i}>
-          <mesh position={[0, h * f, -d / 2]} rotation={[0, 0, Math.PI / 2]} material={clay(C.woodLight)}><cylinderGeometry args={[0.025, 0.025, w, 6]} /></mesh>
-          <mesh position={[0, h * f, d / 2]} rotation={[0, 0, Math.PI / 2]} material={clay(C.woodLight)}><cylinderGeometry args={[0.025, 0.025, w, 6]} /></mesh>
-        </group>
+        <mesh key={i} position={[x, h * 0.35, z]} material={clay(C.woodLight)} castShadow><cylinderGeometry args={[0.035, 0.035, h * 0.7, 6]} /></mesh>
       ))}
       <group ref={cloth}>
-        <RoundedBox args={[w * 0.96, h * 0.92, d * 0.96]} radius={0.12} smoothness={3} position={[0, h * 0.46, 0]} material={clay(C.sand)} castShadow />
+        {/* a soft draped dust sheet, tied with a terracotta cord */}
+        <mesh scale={[w * 0.56, h * 1.02, d * 0.56]} material={clay(C.paper)} castShadow receiveShadow>
+          <sphereGeometry args={[1, 28, 14, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        </mesh>
+        <mesh position={[0, h * 0.42, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[w * 0.5, d * 0.5, 1]} material={clay(C.terracotta)}>
+          <torusGeometry args={[1, 0.035 / Math.max(w, d) * 2, 6, 32]} />
+        </mesh>
+        <mesh position={[0, h * 1.02, 0]} material={clay(C.terracotta)}><sphereGeometry args={[0.07, 10, 8]} /></mesh>
       </group>
     </group>
   )
 }
 
+/** Geometry data for a bridge: per-plank transforms + the merged posts/ropes mesh. */
+export function bridgeParts(from: THREE.Vector3, to: THREE.Vector3) {
+  const dir = to.clone().sub(from); const len = dir.length(); dir.normalize()
+  const lat = new THREE.Vector3(-dir.z, 0, dir.x).multiplyScalar(0.42)
+  const ang = Math.atan2(dir.x, dir.z)
+  const n = Math.max(3, Math.floor(len / 0.34))
+  const planks: { p: THREE.Vector3; r: number }[] = []
+  for (let i = 0; i <= n; i++) {
+    const t = i / n, p = from.clone().lerp(to, t)
+    p.y = -0.05 - Math.sin(t * Math.PI) * 0.35
+    planks.push({ p, r: ang })
+  }
+  const geos: THREE.BufferGeometry[] = []
+  const mtx = new THREE.Matrix4(), q = new THREE.Quaternion(), eu = new THREE.Euler(), sc = new THREE.Vector3(1, 1, 1)
+  const put = (g: THREE.BufferGeometry, v: THREE.Vector3, ry: number, hex: string, rx = 0, rz = 0) => {
+    eu.set(rx, ry, rz); q.setFromEuler(eu); g.applyMatrix4(mtx.compose(v, q, sc)); paint(g, hex, undefined, 0.06); geos.push(g)
+  }
+  for (const end of [from, to]) for (const s of [-1, 1]) {
+    const base = end.clone().addScaledVector(lat, s)
+    put(new THREE.CylinderGeometry(0.045, 0.058, 0.62, 7), base.clone().setY(0.31 - 0.1), ang, C.wood, 0, s * 0.07)
+    put(new THREE.SphereGeometry(0.075, 10, 8), base.clone().setY(0.56), ang, C.woodLight)
+  }
+  for (const s of [-1, 1]) {
+    const pts: THREE.Vector3[] = []
+    for (let k = 0; k <= 10; k++) {
+      const t = k / 10, p = from.clone().lerp(to, t).addScaledVector(lat, s)
+      p.y = 0.52 - Math.sin(t * Math.PI) * 0.34
+      pts.push(p)
+    }
+    const tube = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 16, 0.02, 6)
+    paint(tube, '#dcc7a0', undefined, 0.05); geos.push(tube)
+  }
+  const rails = mergeGeometries(geos, false)!
+  geos.forEach((x) => x.dispose())
+  return { planks, rails }
+}
+
 /** Wooden plank bridge with posts and sagging rope rails between two island edges (y = 0). */
 export function Bridge({ from, to }: { from: THREE.Vector3; to: THREE.Vector3 }) {
-  const { planks, rails } = useMemo(() => {
-    const dir = to.clone().sub(from); const len = dir.length(); dir.normalize()
-    const lat = new THREE.Vector3(-dir.z, 0, dir.x).multiplyScalar(0.42)
-    const ang = Math.atan2(dir.x, dir.z)
-    const n = Math.max(3, Math.floor(len / 0.34))
-    const planks: { p: THREE.Vector3; r: number }[] = []
-    for (let i = 0; i <= n; i++) {
-      const t = i / n, p = from.clone().lerp(to, t)
-      p.y = -0.05 - Math.sin(t * Math.PI) * 0.35
-      planks.push({ p, r: ang })
-    }
-    const geos: THREE.BufferGeometry[] = []
-    const mtx = new THREE.Matrix4(), q = new THREE.Quaternion(), eu = new THREE.Euler(), sc = new THREE.Vector3(1, 1, 1)
-    const put = (g: THREE.BufferGeometry, v: THREE.Vector3, ry: number, hex: string, rx = 0, rz = 0) => {
-      eu.set(rx, ry, rz); q.setFromEuler(eu); g.applyMatrix4(mtx.compose(v, q, sc)); paint(g, hex, undefined, 0.06); geos.push(g)
-    }
-    for (const end of [from, to]) for (const s of [-1, 1]) {
-      const base = end.clone().addScaledVector(lat, s)
-      put(new THREE.CylinderGeometry(0.045, 0.058, 0.62, 7), base.clone().setY(0.31 - 0.1), ang, C.wood, 0, s * 0.07)
-      put(new THREE.SphereGeometry(0.075, 10, 8), base.clone().setY(0.56), ang, C.woodLight)
-    }
-    for (const s of [-1, 1]) {
-      const pts: THREE.Vector3[] = []
-      for (let k = 0; k <= 10; k++) {
-        const t = k / 10, p = from.clone().lerp(to, t).addScaledVector(lat, s)
-        p.y = 0.52 - Math.sin(t * Math.PI) * 0.34
-        pts.push(p)
-      }
-      const tube = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 16, 0.02, 6)
-      paint(tube, '#dcc7a0', undefined, 0.05); geos.push(tube)
-    }
-    const rails = mergeGeometries(geos, false)!
-    geos.forEach((x) => x.dispose())
-    return { planks, rails }
-  }, [from, to])
+  const { planks, rails } = useMemo(() => bridgeParts(from, to), [from, to])
   return (
     <group>
       {planks.map((k, i) => (

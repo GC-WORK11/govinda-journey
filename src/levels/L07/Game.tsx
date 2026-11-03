@@ -402,7 +402,7 @@ export default function Game({ onWin }: GameProps) {
           {showSuggestion && mode === 'speech' && <span className="l07-suggest">try: hello from the other side of the room</span>}
           {showSuggestion && mode === 'type' && 'Type a line and tap send.'}
           {!showSuggestion && linesComplete < 2 && 'Keep going…'}
-          {linesComplete >= 2 && 'Words delivered!'}
+          {linesComplete >= 2 && 'Words delivered'}
         </p>
       </div>
     </div>

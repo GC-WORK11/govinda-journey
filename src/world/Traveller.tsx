@@ -1,5 +1,5 @@
 import { forwardRef, Suspense, useEffect, useMemo, useRef } from 'react'
-import { RoundedBox, useAnimations, useGLTF } from '@react-three/drei'
+import { RoundedBox, useAnimations, useGLTF, useTexture } from '@react-three/drei'
 import * as THREE from 'three'
 import { clay, C, blobMat } from './kit'
 
@@ -16,6 +16,8 @@ function Model({ anim }: { anim: Anim }) {
   const root = useRef<THREE.Group>(null)
   const { scene, animations } = useGLTF(URL)
   const { actions } = useAnimations(animations, root)
+  // Retinted atlas: warm brown skin, near-black hair, cream shirt, charcoal trousers.
+  const skin = useTexture('./models/student-skin.png')
   const scale = useMemo(() => {
     scene.updateMatrixWorld(true)
     const b = new THREE.Box3().setFromObject(scene)
@@ -25,11 +27,19 @@ function Model({ anim }: { anim: Anim }) {
       if (m.isMesh) {
         m.castShadow = true; m.receiveShadow = false; m.frustumCulled = false
         const mat = m.material as THREE.MeshStandardMaterial
-        if (mat && 'roughness' in mat) { mat.roughness = 0.85; mat.metalness = 0 }
+        if (mat && 'roughness' in mat) {
+          mat.roughness = 0.85; mat.metalness = 0
+          if (mat.map && mat.map !== skin) {
+            skin.flipY = mat.map.flipY; skin.colorSpace = mat.map.colorSpace
+            skin.magFilter = mat.map.magFilter; skin.minFilter = mat.map.minFilter
+            skin.wrapS = mat.map.wrapS; skin.wrapT = mat.map.wrapT; skin.needsUpdate = true
+            mat.map = skin; mat.needsUpdate = true
+          }
+        }
       }
     })
     return h > 0.01 ? HEIGHT / h : 0.4
-  }, [scene])
+  }, [scene, skin])
   const chest = useMemo(() => scene.getObjectByName('chest') || scene.getObjectByName('spine'), [scene])
   useEffect(() => {
     const a = actions[CLIP[anim]] || actions.Idle
@@ -53,8 +63,8 @@ function BackpackOn({ bone }: { bone: THREE.Object3D }) {
   return (
     <primitive object={g}>
       <group position={[0, 0.12, -0.3]}>
-        <RoundedBox args={[0.5, 0.56, 0.26]} radius={0.12} smoothness={3} material={clay(C.terracotta)} castShadow />
-        <RoundedBox args={[0.44, 0.28, 0.1]} radius={0.05} position={[0, -0.1, -0.15]} material={clay('#b8664a')} castShadow />
+        <RoundedBox args={[0.5, 0.56, 0.26]} radius={0.12} smoothness={3} material={clay('#3f4b73')} castShadow />
+        <RoundedBox args={[0.44, 0.28, 0.1]} radius={0.05} position={[0, -0.1, -0.15]} material={clay('#2f3858')} castShadow />
         <mesh position={[0, 0.36, 0]} rotation={[0, 0, Math.PI / 2]} material={clay(C.sand)} castShadow>
           <cylinderGeometry args={[0.1, 0.1, 0.5, 12]} />
         </mesh>

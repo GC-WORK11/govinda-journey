@@ -61,7 +61,7 @@ export default function Overlay() {
   const isFinale = L.kind === 'finale'
 
   return (
-    <div className={`ui phase-${phase} ${started ? 'started' : ''}`}>
+    <div className={`ui phase-${phase} ${started ? 'started' : ''} ${started && current >= LEVELS.length - 3 ? 'dusk' : ''} ${started && current >= LEVELS.length - 1 ? 'night' : ''}`}>
       <header className="corner tl" data-ui>
         <span className="mark">Govinda</span>
         {started && <span className="count">{pad(current + 1)} <i>/</i> {pad(LEVELS.length)}</span>}
