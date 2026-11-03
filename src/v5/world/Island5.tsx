@@ -7,9 +7,10 @@
  */
 import { Suspense, useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
-import { C, Island, clay, clayVC, scatterGeo } from '../../world/kit'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
+import { C, Island, clay, clayVC, paint, scatterGeo } from '../../world/kit'
 import { Lanterns } from '../../world/Lanterns'
 import { env } from '../../world/sky'
 import { useV5, useWalkable, useBlocker, walkables, blockers, interactables, V5_ORDER, type IslandId } from '../core'
@@ -67,6 +68,25 @@ function ExitGate({ id, open }: { id: IslandId; open: boolean }) {
   const block = useRef<THREE.Mesh>(null)
   useBlocker(block, !open)
   const t = useRef(open ? 1 : 0)
+  // the whole swinging leaf baked to one vertex-coloured mesh (V6 perf)
+  const leaf = useMemo(() => {
+    const geos: THREE.BufferGeometry[] = []
+    const put = (g0: THREE.BufferGeometry, x: number, y: number, z: number, rz: number, hex: string) => {
+      const g = g0.index ? g0.toNonIndexed() : g0
+      if (g !== g0) g0.dispose()
+      if (rz) g.rotateZ(rz)
+      g.translate(x, y, z)
+      paint(g, hex, undefined, 0.04)
+      geos.push(g)
+    }
+    put(new RoundedBoxGeometry(1.9, 0.09, 0.09, 2, 0.03), 0.95, 0.62, 0, 0, C.woodLight)
+    put(new RoundedBoxGeometry(1.9, 0.09, 0.09, 2, 0.03), 0.95, 0.3, 0, 0, C.wood)
+    put(new THREE.CylinderGeometry(0.04, 0.05, 0.6, 7), 1.86, 0.45, 0, 0, C.wood)
+    put(new THREE.BoxGeometry(0.09, 0.13, 0.015), 1.72, 0.5, 0.02, 0.15, C.terracotta)
+    const g = mergeGeometries(geos, false)!
+    geos.forEach((x) => x.dispose())
+    return g
+  }, [])
   useFrame((_, dt) => {
     t.current += ((open ? 1 : 0) - t.current) * Math.min(1, dt * (RM ? 100 : 1.8))
     // swings outward (over the void) so the open leaf never lies across the path
@@ -83,14 +103,7 @@ function ExitGate({ id, open }: { id: IslandId; open: boolean }) {
         <cylinderGeometry args={[0.045, 0.06, 0.84, 7]} />
       </mesh>
       <group ref={hinge} position={[-0.95, 0, 0]}>
-        <RoundedBox args={[1.9, 0.09, 0.09]} radius={0.03} position={[0.95, 0.62, 0]} material={clay(C.woodLight)} castShadow />
-        <RoundedBox args={[1.9, 0.09, 0.09]} radius={0.03} position={[0.95, 0.3, 0]} material={clay(C.wood)} castShadow />
-        <mesh position={[1.86, 0.45, 0]} material={clay(C.wood)} castShadow>
-          <cylinderGeometry args={[0.04, 0.05, 0.6, 7]} />
-        </mesh>
-        <mesh position={[1.72, 0.5, 0.02]} rotation={[0, 0, 0.15]} material={clay(C.terracotta)}>
-          <boxGeometry args={[0.09, 0.13, 0.015]} />
-        </mesh>
+        <mesh geometry={leaf} material={clayVC()} castShadow />
       </group>
     </group>
   )
@@ -206,17 +219,15 @@ export function Island5({ id, i }: { id: IslandId; i: number }) {
   const broken = useWorldUI((s) => s.broken[id])
   const open = done || !hasObstacle(id) || broken
   const complete = useMemo(() => () => useV5.getState().complete(id), [id])
-  // obstacles + dioramas mount when the player could see them (and stay mounted
-  // — island state must not be lost by walking away); the finale mounts all.
-  const near = finale || (i >= idx - 1 && i <= idx + 2)
-  // and the lazy chunks are fetched another island out — arrival mounts warm.
+  // V6 perf: mount only the island underfoot plus one either side — off-window
+  // islands unmount (registries clean up; `done`/`broken` persist in stores).
+  // Lazy chunks still preload three out; the finale mounts all.
+  const near = finale || (i >= idx - 1 && i <= idx + 1)
   useEffect(() => { if (i > idx && i <= idx + 3) preloadIsland(id) }, [idx, i, id])
-  const mounted = useRef(false)
-  if (near) mounted.current = true
   return (
     <group position={ISLAND_POS[i]} name={`island-${id}`}>
       <IslandBase5 id={id} seed={i + 1} />
-      {Diorama && mounted.current && (
+      {Diorama && near && (
         <Suspense fallback={null}>
           <Guard>
             <group scale={[D_SCALE, D_SCALE, D_SCALE]}>
@@ -226,7 +237,7 @@ export function Island5({ id, i }: { id: IslandId; i: number }) {
         </Suspense>
       )}
       {Obstacle ? (
-        mounted.current && (
+        near && (
           <Suspense fallback={null}>
             <Guard onError={() => { useWorldUI.getState().markBroken(id); purgeIsland(i) }}>
               <Obstacle id={id} active={idx === i} complete={complete} done={done} />
@@ -234,7 +245,7 @@ export function Island5({ id, i }: { id: IslandId; i: number }) {
           </Suspense>
         )
       ) : (
-        <ObstaclePlaceholder seed={i + 3} />
+        near && <ObstaclePlaceholder seed={i + 3} />
       )}
       {i < LAST && <ExitGate id={id} open={open} />}
       <IslandLanterns5 done={done} />

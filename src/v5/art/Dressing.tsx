@@ -12,8 +12,10 @@ import * as THREE from 'three'
 import { useGLTF } from '@react-three/drei'
 import { applyToon, type ToonOpts } from './material'
 import { topY } from './IslandBase'
-import { scatterGeo, clayVC, Tree, Rock, Bush, ClayPot, C } from '../../world/kit'
-import { islandPos, ISLAND_R } from '../world/layout'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { scatterGeo, clayVC, paint, C } from '../../world/kit'
+import { islandPos, islandIndex, ISLAND_R } from '../world/layout'
+import { useWorldUI } from '../world/progress'
 import { LEVELS } from '../../levels/registry'
 import type { IslandId } from '../core'
 
@@ -387,6 +389,10 @@ export function IslandDressing5({
   layers?: number
   seed?: number
 }) {
+  const i = islandIndex(id)
+  // V6 WORLD mount window: props exist only on the island underfoot plus one
+  // either side; the finale pull-back dresses every island again.
+  const inWindow = useWorldUI((s) => s.finale || Math.abs(s.idx - i) <= 1)
   const pal = PALETTE_BY_ID[id] ?? { ground: C.leaf, accent: C.terracotta }
   const geos = useMemo(
     () =>
@@ -421,22 +427,55 @@ export function IslandDressing5({
     }
     return out
   }, [seed])
+  const baked = useMemo(() => piecesGeo(pieces), [pieces])
+  if (!inWindow) return null
   return (
     <group position={islandPos(id)}>
       {geos.map((g, i) => (
         <mesh key={i} geometry={g} material={clayVC()} castShadow receiveShadow />
       ))}
-      {pieces.map((it, i) =>
-        it.kind === 0 ? (
-          <Tree key={i} position={it.p} rotation={[0, it.ry, 0]} h={it.s * 1.5} />
-        ) : it.kind === 1 ? (
-          <Rock key={i} position={it.p} s={it.s * 0.4} />
-        ) : it.kind === 2 ? (
-          <Bush key={i} position={it.p} s={it.s} />
-        ) : (
-          <ClayPot key={i} position={it.p} s={it.s * 0.8} />
-        ),
-      )}
+      <mesh geometry={baked} material={clayVC()} castShadow receiveShadow />
     </group>
   )
+}
+
+/** The same primitives kit's <Tree>/<Rock>/<Bush>/<ClayPot> render, baked into
+ *  ONE vertex-coloured geometry — ~50 draw calls -> 1 per dressed island. (V6) */
+function piecesGeo(pieces: { p: [number, number, number]; ry: number; s: number; kind: number }[]) {
+  const geos: THREE.BufferGeometry[] = []
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), sv = new THREE.Vector3(), v = new THREE.Vector3()
+  const put = (g0: THREE.BufferGeometry, lx: number, ly: number, lz: number,
+    x: number, y: number, z: number, ry: number, sx: number, sy: number, sz: number, hex: string) => {
+    const g = g0.index ? g0.toNonIndexed() : g0
+    if (g !== g0) g0.dispose()
+    g.translate(lx, ly, lz)
+    e.set(0, ry, 0); q.setFromEuler(e); sv.set(sx, sy, sz)
+    g.applyMatrix4(m.compose(v.set(x, y, z), q, sv))
+    paint(g, hex, undefined, 0.06)
+    geos.push(g)
+  }
+  for (const it of pieces) {
+    const [x, y, z] = it.p, ry = it.ry, s = it.s
+    if (it.kind === 0) { // Tree (h = s * 1.5): trunk + two canopy blobs
+      const h = s * 1.5
+      put(new THREE.CylinderGeometry(0.06 * h, 0.08 * h, 0.5 * h, 8), 0, 0.25 * h, 0, x, y, z, ry, 1, 1, 1, C.wood)
+      put(new THREE.SphereGeometry(0.38 * h, 16, 12), 0, 0.72 * h, 0, x, y, z, ry, 1, 1, 1, C.leafDark)
+      put(new THREE.SphereGeometry(0.24 * h, 14, 10), 0.18 * h, 0.58 * h, 0.1 * h, x, y, z, ry, 1, 1, 1, C.leafDark)
+    } else if (it.kind === 1) { // Rock
+      put(new THREE.DodecahedronGeometry(1, 1), 0, 0, 0, x, y, z, ry, 0.4 * s, 0.28 * s, 0.4 * s, C.stone)
+    } else if (it.kind === 2) { // Bush: three blobs
+      put(new THREE.SphereGeometry(0.2, 12, 9), 0, 0.15, 0, x, y, z, ry, s, s, s, C.leafDark)
+      put(new THREE.SphereGeometry(0.12, 10, 8), 0.15, 0.1, 0.05, x, y, z, ry, s, s, s, C.leafDark)
+      put(new THREE.SphereGeometry(0.1, 10, 8), -0.13, 0.1, -0.04, x, y, z, ry, s, s, s, C.leafDark)
+    } else { // ClayPot (s * 0.8): pot + rim + plant
+      const k = s * 0.8
+      put(new THREE.CylinderGeometry(0.085, 0.06, 0.11, 10), 0, 0.055, 0, x, y, z, ry, k, k, k, C.terracotta)
+      put(new THREE.CylinderGeometry(0.096, 0.09, 0.035, 10), 0, 0.115, 0, x, y, z, ry, k, k, k, C.brick)
+      put(new THREE.SphereGeometry(0.09, 10, 8), 0, 0.19, 0, x, y, z, ry, k, k, k, C.leafDark)
+      put(new THREE.SphereGeometry(0.06, 9, 7), 0.055, 0.165, 0.03, x, y, z, ry, k, k, k, C.leaf)
+    }
+  }
+  const merged = mergeGeometries(geos, false)!
+  geos.forEach((g) => g.dispose())
+  return merged
 }
