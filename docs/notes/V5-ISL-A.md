@@ -12,22 +12,24 @@ walkable raycast + blocker push-out + jump, E-prompt HUD). Open
 ## What is built
 
 - `src/levels/L01/shared.v5.tsx` — shared pieces: `useLocalPlayer` (island-local player pos),
-  `tpLocal` + `sleep` + `useSolver` (QA), `Hint` (floating Inter canvas-sprite word, fades/bobs,
-  no card), `PathStones`, `Gate` (stone pillars + swinging wooden double doors, invisible blocker
-  panel while closed), `Rock` (blocker), `Mound` (walkable rise), `LowWall` (blocker + walkable
-  top), `PaperLetter`.
-- `src/levels/L01/campus.v5.tsx` — `CampusBlock` (cream block, terracotta hip roof, arched
-  windows that warm, chimney smoke after solve), `BigTree`, `LaptopDesk` (laptop screen glows on
-  use, stool, notebook, mug).
+  `tpLocal` + `sleep` + `useSolver` (QA), `PillHint` (DOM cream pill at the bottom, Inter,
+  V4-style — replaces the old floating sprite words), `PathStones` (pack stones), `Gate`
+  (stone pillars + swinging wooden double doors, invisible blocker panel while closed),
+  `Rock` (pack prop + opacity-0 collider box), `Mound` (walkable rise), `LowWall`
+  (blocker + walkable top), `PaperLetter`.
+- `src/levels/L01/campus.v5.tsx` — `CampusBlock` (KayKit `building_a` on a clay plinth, porch
+  light + chimney smoke warm up after solve), `BigTree` (`tree_oak` + trunk collider),
+  `LaptopDesk` (`desk` + `laptop` + `chair_desk` + `books`, mug; screen + desk light warm on use).
 - `src/levels/L01/Obstacle.tsx` — courtyard: hop a low wall (blocker, sealed ends) → desk with
   laptop under tree (interactable `l01-laptop`, radius 1.7, label "sit at the laptop") → using it
-  warms windows/lamps and swings the exit gate; complete() after the swing. Floating hints
-  walk → hop → use, gated by progress flags. `done` renders everything open, no hints.
+  warms windows/lamps and swings the exit gate; complete() after the swing. Bottom pill chain:
+  WASD/stick → jump the wall → sit at the laptop. `done` renders everything open, no pill.
 - `src/levels/L02/Obstacle.tsx` — stone ledge shelf (face z=-2.4, top y≈1.62) across the exit,
-  closed gate on top. 5 letters (open / behind rocks / on a mound) picked up by walking into
-  them (dist < 0.62); each flies a bezier arc, folds (tumble + shrink) and a stone step grows at
-  the next slot (5 steps, rises 0.32 → 1.6). 5th landing opens the gate; stepping onto the ledge
-  calls complete() → climb. `done` renders all steps + open gate, no letters.
+  closed gate on top. 5 letters (open / behind quat rocks / on a mound) picked up by walking into
+  them (dist < 0.62); each flies a bezier arc, folds (tumble + shrink) and a stone tooth with a
+  flat stone cap grows at the next slot (5 steps, rises 0.32 → 1.6). 5th landing opens the gate;
+  stepping onto the ledge calls complete() → climb. `done` renders all steps + open gate, no
+  letters. Pill: "Pick up the five letters" → "N of 5 letters" → "Climb the stone steps".
 
 ## QA solvers
 
@@ -55,8 +57,8 @@ pickup) then onto the ledge. Registered only while the obstacle is mounted.
   ending at the rock). Your ExitGate hurdle at z=-4.55 sits inside my L02 ledge volume — also
   buried, harmless. `window.__journey.solve` — I create/merge defensively; solver keys exist
   only while the obstacle is mounted.
-- ART: all geometry is placeholder V4 clay (`src/world/kit` C + clay()). Please land
-  `src/v5/art/Dressing.tsx` PROPS/`<Prop>` + toon material; then I swap: campus block → campus/college
-  prop, gate → gate prop, tree → tree prop, letter → letter/mail prop, rock/steps/ledge → rock props.
-- ART: an "envelope/letter" prop and a "stone step" prop for L02 would be ideal; the letter→step
-  fold animation is already in place, only the meshes would change.
+- ART: props swapped in — `building_a`, `tree_oak`, `desk`, `laptop`, `chair_desk`, `books`,
+  `streetlight`, `fence_planks`/`fence_simple`, `plant_bush*`, `rock_small_*`, `quat_rock_*`,
+  `path_stone`, `rock_path_round`, `stone_small_flat_a` (step caps), `<Scatter>` tuft/flower rims.
+  Still clay by design: gate (animated doors), low wall, ledge shelf, mound, letters (no envelope
+  prop exists — could swap if ART adds one), step teeth (need exact collider heights).
