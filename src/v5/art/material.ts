@@ -128,6 +128,31 @@ const MAT_KEYS = [
   'flatShading', 'visible', 'name', 'envMapIntensity', 'roughness', 'metalness',
 ] as const
 
+/**
+ * Pack palettes are colder than V4's clay set — remap the common material
+ * names / source colours onto kit.tsx's C palette so dressed islands match
+ * the handmade look. Name match wins; colour match catches unnamed variants.
+ */
+const RETINT_NAME: Record<string, string> = {
+  grass: '#8fb36b', leafsGreen: '#8fb36b', leafsDark: '#6f9a55', leafsYellow: '#a7bd80',
+  leafsOrange: '#d9825b', leafsRed: '#b5654a',
+  stone: '#c9bfb0', stoneDark: '#a89e90',
+  wood: '#c99c6e', woodDark: '#a87a52',
+  woodBark: '#8f6a49', woodBarkDark: '#74513a', woodInner: '#e8d6b8',
+  dirt: '#b48a63',
+  colorRed: '#d97f6a', colorRedDark: '#b5654a', colorYellow: '#eec978',
+  colorPurple: '#ad96d4', colorTan: '#d9b48a', colorWhite: '#fbf6ee',
+  colorGreen: '#8fb36b', colorBlue: '#8fc1c9',
+}
+const RETINT_HEX: Record<string, string> = {
+  '2cd8b8': '#8fb36b', '29c9ab': '#8fb36b', '2ba6aa': '#6f9a55',
+  'b8e2e8': '#c9bfb0', '9ab5ba': '#a89e90',
+  'ff8e62': '#c99c6e', 'c46d4b': '#a87a52',
+  'e28357': '#b48a63', 'cc765e': '#74513a', 'f5d7bb': '#e8d6b8',
+  'e04a50': '#d97f6a', 'c1363b': '#b5654a', 'feb147': '#eec978',
+  '9f89ff': '#ad96d4', 'ffae6f': '#d9b48a',
+}
+
 /** Copy the look-relevant fields of a loaded material into a toon material. */
 function convertMaterial(src: THREE.Material, opts: ToonOpts): THREE.MeshStandardMaterial {
   const s = src as THREE.MeshStandardMaterial
@@ -136,6 +161,11 @@ function convertMaterial(src: THREE.Material, opts: ToonOpts): THREE.MeshStandar
     const v = (s as unknown as Record<string, unknown>)[k]
     if (v !== undefined) (params as Record<string, unknown>)[k] = v
   }
+  // pull cold pack colours onto the warm clay palette
+  const named = RETINT_NAME[s.name]
+  const hexed = s.color ? RETINT_HEX[s.color.getHexString()] : undefined
+  const tint = named ?? hexed
+  if (tint) params.color = new THREE.Color(tint)
   const m = toon({ ...params, ...opts })
   return m
 }

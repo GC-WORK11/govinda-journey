@@ -181,13 +181,15 @@ export const PROPS: Record<string, string> = {
   twisted_tree_5: `${P}/quaternius/twisted_tree_5.glb`,
 }
 
-/** Prop sets used by <Scatter kinds>. */
+/** Prop sets used by <Scatter kinds>. V4's look is round trees, small flowers
+ * and pebbles — spiky agave shapes and cold-coloured hero props stay in PROPS
+ * for islands that want them, but out of the default sets. */
 export const SCATTER_SETS: Record<string, string[]> = {
-  tree: ['tree_pine_a', 'tree_pine_b', 'tree_pine_tall', 'tree_oak', 'tree_default', 'tree_fat', 'pine_1', 'twisted_tree_1'],
-  rock: ['rock_small_a', 'rock_small_c', 'rock_small_e', 'rock_small_flat_a', 'quat_rock', 'quat_rock_2', 'stone_small_b'],
-  tuft: ['grass', 'grass_large', 'grass_leafs', 'plant_flat_short', 'plant_flat_tall'],
+  tree: ['tree_oak', 'tree_default', 'tree_fat', 'tree_detailed', 'tree_pine_round', 'tree_small'],
+  rock: ['rock_small_a', 'rock_small_c', 'rock_small_e', 'rock_small_flat_a', 'stone_small_b', 'stone_small_d', 'rock_large_b'],
+  tuft: ['grass', 'grass_large', 'grass_leafs'],
   flower: ['flower_red_a', 'flower_red_b', 'flower_red_c', 'flower_yellow_a', 'flower_yellow_b', 'flower_purple_a', 'flower_purple_b'],
-  bush: ['plant_bush', 'plant_bush_detailed', 'plant_bush_small', 'quat_plant', 'quat_plant_big'],
+  bush: ['plant_bush', 'plant_bush_detailed', 'plant_bush_small'],
   mushroom: ['mushroom_red_group', 'mushroom_tan_group'],
   stump: ['stump_round', 'log', 'log_stack'],
 }
