@@ -290,6 +290,18 @@ export default function Obstacle({ id, complete, done }: core.ObstacleProps) {
   /* ---------------------------------- solver ---------------------------------- */
   useEffect(() => {
     const w = window as any
+    // qa/dev handle: world-space flight state for the real-input verify script
+    w.__l06dbg = {
+      phase: () => phaseRef.current,
+      passed: () => passedRef.current,
+      heli: () => root.current ? root.current.localToWorld(sim.current.pos.clone()).toArray() : null,
+      next: () => {
+        if (!root.current) return null
+        const t = passedRef.current < RINGS.length ? RINGS[passedRef.current] : PAD_FAR.toArray()
+        return root.current.localToWorld(new V3(t[0], t[1], t[2])).toArray()
+      },
+      pad: () => root.current ? root.current.localToWorld(PAD_HOME.clone()).toArray() : null,
+    }
     if (!w.__journey?.solve) return
     const tp = async (v: THREE.Vector3, ox = 0, oz = 0) => {
       for (let i = 0; i < 40 && !(window as any).__journey?.player?.teleport; i++) await new Promise((r) => setTimeout(r, 100))
