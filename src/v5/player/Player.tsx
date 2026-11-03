@@ -266,7 +266,7 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
   useFrame((_, rawDt) => {
     frameNo++
     const s = S.current
-    const dt = Math.min(rawDt, 1 / 30)
+    const dt = Math.min(rawDt, 1 / 30) // frame-rate things (camera damp, anim rate)
     const t = now()
     const cine = cinematic.on
     const frozen = player.frozen || cine
@@ -288,92 +288,164 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
     const run = isDown('ShiftLeft', 'ShiftRight') || (input.joy.active && wishLen > 0.92)
     const speed = (run ? RUN : WALK) * wishLen
 
-    /* ---- horizontal velocity: accel / decel ---- */
-    const rate = s.grounded ? 15 : 5.5
-    const k = 1 - Math.exp(-rate * dt)
-    s.vel.x += (wish.x * speed - s.vel.x) * k
-    s.vel.z += (wish.z * speed - s.vel.z) * k
-    const hSpeed = Math.hypot(s.vel.x, s.vel.z)
+    /* ---- physics: substep so sim speed survives slow frames (was: one capped
+       step → at ~10 fps the sim ran at a third of real speed and scripted
+       walks fell behind the world) ---- */
+    let hSpeed = Math.hypot(s.vel.x, s.vel.z)
+    let rem = Math.min(rawDt, 0.12)
+    while (rem > 1e-5) {
+      const h = Math.min(rem, 1 / 30); rem -= h
 
-    /* ---- facing: slerp yaw toward velocity ---- */
-    if (hSpeed > 0.35) s.yaw = dampAngle(s.yaw, Math.atan2(s.vel.x, s.vel.z), TURN, dt)
+      /* horizontal velocity: accel / decel */
+      const rate = s.grounded ? 15 : 5.5
+      const k = 1 - Math.exp(-rate * h)
+      s.vel.x += (wish.x * speed - s.vel.x) * k
+      s.vel.z += (wish.z * speed - s.vel.z) * k
+      hSpeed = Math.hypot(s.vel.x, s.vel.z)
 
-    /* ---- jump: buffer + coyote ---- */
-    if (!frozen && t - input.jumpAt < BUFFER * 1000 && (s.grounded || s.coyote > 0)) {
-      s.vel.y = JUMP_V; s.grounded = false; s.coyote = 0; input.jumpAt = -1e9
-      s.airT = 0; s.prevVy = 0
-      spawnDust(s.pos, 3, 0.14, 0.5, 0.15)
-    }
+      /* facing: slerp yaw toward velocity */
+      if (hSpeed > 0.35) s.yaw = dampAngle(s.yaw, Math.atan2(s.vel.x, s.vel.z), TURN, h)
 
-    /* ---- gravity + integrate ---- */
-    s.prevVy = s.vel.y
-    s.vel.y = Math.max(-30, s.vel.y - GRAV * dt)
-    s.pos.addScaledVector(s.vel, dt)
-    if (!s.grounded) { s.coyote -= dt; s.airT += dt }
+      /* jump: buffer + coyote */
+      if (!frozen && t - input.jumpAt < BUFFER * 1000 && (s.grounded || s.coyote > 0)) {
+        s.vel.y = JUMP_V; s.grounded = false; s.coyote = 0; input.jumpAt = -1e9
+        s.airT = 0; s.prevVy = 0
+        spawnDust(s.pos, 3, 0.14, 0.5, 0.15)
+      }
 
-    /* ---- walls: short horizontal rays vs blockers, slide + push out ---- */
-    const hv = Math.hypot(s.vel.x, s.vel.z)
-    if (hv > 0.05) {
-      const moveDir = _v1.set(s.vel.x / hv, 0, s.vel.z / hv)
-      near(blockers, s.pos, RADIUS + 1.4, nearA)
-      if (nearA.length) {
-        for (const h of [0.28, 0.66]) {
-          const org = _v2.set(s.pos.x, s.pos.y + h, s.pos.z)
-          for (const ang of [0, 0.65, -0.65, 1.2, -1.2]) {
-            const c = Math.cos(ang), sn = Math.sin(ang)
-            const dir = _v3.set(moveDir.x * c - moveDir.z * sn, 0, moveDir.x * sn + moveDir.z * c)
-            _ray.set(org, dir); _ray.far = RADIUS + hv * dt + 0.06
-            hits.length = 0
-            const hit = _ray.intersectObjects(nearA, true, hits)[0]
-            if (!hit || !hit.face) continue
-            const n = hit.face.normal.clone().transformDirection(hit.object.matrixWorld)
-            n.y = 0
-            if (n.lengthSq() < 1e-6 || n.dot(dir) > -0.15) continue
-            n.normalize()
-            // push out + slide along the wall
-            const pen = RADIUS + 0.02 - hit.distance
-            if (pen > 0) s.pos.addScaledVector(n, pen)
-            const into = s.vel.dot(n)
-            if (into < 0) s.vel.addScaledVector(n, -into)
+      /* gravity + integrate */
+      s.prevVy = s.vel.y
+      s.vel.y = Math.max(-30, s.vel.y - GRAV * h)
+      s.pos.addScaledVector(s.vel, h)
+      if (!s.grounded) { s.coyote -= h; s.airT += h }
+
+      /* walls: short horizontal rays vs blockers, slide + push out */
+      if (hSpeed > 0.05) {
+        const moveDir = _v1.set(s.vel.x / hSpeed, 0, s.vel.z / hSpeed)
+        near(blockers, s.pos, RADIUS + 1.4, nearA)
+        if (nearA.length) {
+          for (const hy of [0.28, 0.66]) {
+            const org = _v2.set(s.pos.x, s.pos.y + hy, s.pos.z)
+            for (const ang of [0, 0.65, -0.65, 1.2, -1.2]) {
+              const c = Math.cos(ang), sn = Math.sin(ang)
+              const dir = _v3.set(moveDir.x * c - moveDir.z * sn, 0, moveDir.x * sn + moveDir.z * c)
+              _ray.set(org, dir); _ray.far = RADIUS + hSpeed * h + 0.06
+              hits.length = 0
+              const hit = _ray.intersectObjects(nearA, true, hits)[0]
+              if (!hit || !hit.face) continue
+              const n = hit.face.normal.clone().transformDirection(hit.object.matrixWorld)
+              n.y = 0
+              if (n.lengthSq() < 1e-6 || n.dot(dir) > -0.15) continue
+              n.normalize()
+              // push out + slide along the wall
+              const pen = RADIUS + 0.02 - hit.distance
+              if (pen > 0) s.pos.addScaledVector(n, pen)
+              const into = s.vel.dot(n)
+              if (into < 0) s.vel.addScaledVector(n, -into)
+            }
           }
         }
       }
-    }
 
-    /* ---- ground: raycast down vs walkables ---- */
-    let grounded = false
-    const cands = near(walkables, s.pos, 2.2, nearB)
-    if (cands.length) {
-      _ray.set(_v1.set(s.pos.x, s.pos.y + STEP, s.pos.z), _down)
-      _ray.far = STEP + 3.2
-      hits.length = 0
-      const hit = _ray.intersectObjects(cands, true, hits)[0]
-      if (hit) {
-        const gy = hit.point.y, dy = s.pos.y - gy
-        const landing = !s.grounded && s.prevVy <= 0 && dy <= 0.08 && dy > -0.9
-        const tracing = s.grounded && s.vel.y <= 0.01 && dy <= STEP && dy > -STEP
-        if (landing || tracing) {
-          if (landing && s.prevVy < -4) spawnDust(_v2.set(s.pos.x, gy, s.pos.z), 7, 0.24, 0.5, 0.24)
-          s.pos.y = gy; s.vel.y = 0; grounded = true; s.groundY = gy
+      /* ground: raycast down vs walkables */
+      let grounded = false
+      let groundObj: THREE.Object3D | null = null
+      let groundFace = -1
+      const cands = near(walkables, s.pos, 2.2, nearB)
+      if (cands.length) {
+        _ray.set(_v1.set(s.pos.x, s.pos.y + STEP, s.pos.z), _down)
+        _ray.far = STEP + 3.2
+        hits.length = 0
+        const hit = _ray.intersectObjects(cands, true, hits)[0]
+        if (hit) {
+          const gy = hit.point.y, dy = s.pos.y - gy
+          const landing = !s.grounded && s.prevVy <= 0 && dy <= 0.08 && dy > -0.9
+          const tracing = s.grounded && s.vel.y <= 0.01 && dy <= STEP && dy > -STEP
+          if (landing || tracing) {
+            if (landing && s.prevVy < -4) spawnDust(_v2.set(s.pos.x, gy, s.pos.z), 7, 0.24, 0.5, 0.24)
+            s.pos.y = gy; s.vel.y = 0; grounded = true; s.groundY = gy
+            groundObj = hit.object; groundFace = hit.faceIndex ?? -1
+          }
         }
       }
-    }
-    s.grounded = grounded
-    if (grounded) { s.coyote = COYOTE; s.airT = 0 }
+      s.grounded = grounded
+      if (grounded) { s.coyote = COYOTE; s.airT = 0 }
 
-    /* ---- safe-point history + fall respawn ---- */
-    s.histT += dt
-    if (grounded && s.histT > 0.05) {
-      s.histT = 0; s.hist.push(s.pos.clone()); if (s.hist.length > 60) s.hist.shift()
-      if (s.vel.lengthSq() < 30) s.lastSafe.copy(s.hist[Math.max(0, s.hist.length - 16)])
-    }
-    const ui = usePlayerUI.getState()
-    if (s.pos.y < Math.min(s.lastSafe.y, 0) - 16 || !Number.isFinite(s.pos.y)) {
-      s.pos.copy(s.hist[Math.max(0, s.hist.length - 30)] ?? s.lastSafe)
-      s.vel.set(0, 0, 0); s.grounded = false; ui.setFading(false); ui.bumpRespawn()
-      s.targetSm.copy(s.pos).add(_v2.set(0, 1.05, 0))
-    } else if (s.pos.y < s.lastSafe.y - 7 && !ui.fading) {
-      ui.setFading(true)
+      /* bridge rail guide: near/on a walk-bridge strip, steer lateral offset
+         back to its centreline — the deck drifts diagonally between islands,
+         so holding a straight world-x slid off the west edge, and drops from
+         L02's ledge lip fell just past the flare. Grounded on the strip the
+         offset is a hard clamp (never off the deck edge); within reach in the
+         air it's a strong pull (lip drops get pulled into the corridor).
+         Strip verts are world-space pairs per deck section; faceIndex /2
+         locates the section when standing on it, else nearest midpoint. */
+      {
+        let bOff = Infinity, bLx = 0, bLz = 0, bDy = 0, bHw = 0, found = false
+        for (const o of cands) {
+          if (!o.name.startsWith('walk-bridge')) continue
+          const pa = (o as THREE.Mesh).geometry.getAttribute('position')
+          let bi = -1
+          if (o === groundObj && groundFace >= 0) bi = Math.min(pa.count - 2, Math.floor(groundFace / 2) * 2)
+          else {
+            let bd = Infinity
+            for (let i = 0; i + 1 < pa.count; i += 2) {
+              const mx = (pa.getX(i) + pa.getX(i + 1)) * 0.5, mz = (pa.getZ(i) + pa.getZ(i + 1)) * 0.5
+              const d = (mx - s.pos.x) * (mx - s.pos.x) + (mz - s.pos.z) * (mz - s.pos.z)
+              if (d < bd) { bd = d; bi = i }
+            }
+          }
+          if (bi < 0) continue
+          let lx = pa.getX(bi + 1) - pa.getX(bi), lz = pa.getZ(bi + 1) - pa.getZ(bi)
+          const ll = Math.hypot(lx, lz) || 1; lx /= ll; lz /= ll
+          const cx = (pa.getX(bi) + pa.getX(bi + 1)) * 0.5
+          const cy = (pa.getY(bi) + pa.getY(bi + 1)) * 0.5
+          const cz = (pa.getZ(bi) + pa.getZ(bi + 1)) * 0.5
+          const off = (s.pos.x - cx) * lx + (s.pos.z - cz) * lz
+          const dy = s.pos.y - cy
+          if (!found || Math.abs(off) < Math.abs(bOff)) { bOff = off; bLx = lx; bLz = lz; bDy = dy; bHw = ll * 0.5; found = true }
+        }
+        const onStrip = grounded && !!groundObj && groundObj.name.startsWith('walk-bridge')
+        if (found && (onStrip || (Math.abs(bOff) < 1.7 && bDy < 2.6 && bDy > -1.0))) {
+          if (onStrip && Math.abs(bOff) > bHw * 0.82) {
+            // hard rail: never let a grounded walk slide off the deck side
+            const cl = Math.sign(bOff) * bHw * 0.82 - bOff
+            s.pos.x += bLx * cl; s.pos.z += bLz * cl
+            const vLat = s.vel.x * bLx + s.vel.z * bLz
+            s.vel.x -= bLx * vLat; s.vel.z -= bLz * vLat
+            bOff += cl
+          }
+          const corr = THREE.MathUtils.clamp(bOff * (onStrip ? 6 : 4), -(onStrip ? 1.4 : 1.5), onStrip ? 1.4 : 1.5) * h
+          s.pos.x -= bLx * corr; s.pos.z -= bLz * corr
+          const vLat = s.vel.x * bLx + s.vel.z * bLz
+          const bleed = Math.min(1, 3 * h)
+          s.vel.x -= bLx * vLat * bleed; s.vel.z -= bLz * vLat * bleed
+        }
+      }
+
+      /* safe-point history + fall respawn */
+      s.histT += h
+      if (grounded && s.histT > 0.05) {
+        s.histT = 0; s.hist.push(s.pos.clone()); if (s.hist.length > 60) s.hist.shift()
+        if (s.vel.lengthSq() < 30) s.lastSafe.copy(s.hist[Math.max(0, s.hist.length - 16)])
+      }
+      const ui = usePlayerUI.getState()
+      if (s.pos.y < Math.min(s.lastSafe.y, 0) - 16 || !Number.isFinite(s.pos.y)) {
+        s.pos.copy(s.hist[Math.max(0, s.hist.length - 30)] ?? s.lastSafe)
+        s.vel.set(0, 0, 0); s.grounded = false; ui.setFading(false); ui.bumpRespawn()
+        s.targetSm.copy(s.pos).add(_v2.set(0, 1.05, 0))
+      } else if (s.pos.y < s.lastSafe.y - 7 && !ui.fading) {
+        ui.setFading(true)
+      }
+
+      /* footsteps dust */
+      if (grounded && hSpeed > 0.6) {
+        s.stepAcc += hSpeed * h
+        const stride = run ? 0.72 : 0.55
+        if (s.stepAcc > stride) {
+          s.stepAcc = 0
+          spawnDust(_v1.set(s.pos.x, s.groundY + 0.02, s.pos.z), run ? 4 : 3, 0.12, 0.4, 0.13)
+        }
+      } else s.stepAcc = 0
     }
 
     /* ---- write core.player ---- */
@@ -390,7 +462,7 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
       if (d <= it.radius && d < bestD) { bestD = d; bestIt = it }
     })
     currentUse.it = bestIt
-    ui.setPrompt(bestIt ? { id: bestIt.id, label: bestIt.label } : null)
+    usePlayerUI.getState().setPrompt(bestIt ? { id: bestIt.id, label: bestIt.label } : null)
     if (bestIt && t - input.useAt < 160 && !frozen) { bestIt.use(); input.useAt = -1e9 }
 
     /* ---- animation pick ---- */
@@ -401,16 +473,6 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
     else if (hSpeed > 0.3) want = 'walk'
     tsRef.current = THREE.MathUtils.clamp(hSpeed / WALK + 0.15, 0.75, 2.0)
     if (want !== anim) setAnim(want)
-
-    /* ---- footsteps dust ---- */
-    if (grounded && hSpeed > 0.6) {
-      s.stepAcc += hSpeed * dt
-      const stride = run ? 0.72 : 0.55
-      if (s.stepAcc > stride) {
-        s.stepAcc = 0
-        spawnDust(_v1.set(s.pos.x, s.groundY + 0.02, s.pos.z), run ? 4 : 3, 0.12, 0.4, 0.13)
-      }
-    } else s.stepAcc = 0
 
     /* ---- apply transform + anchor ---- */
     body.current.position.copy(s.pos); body.current.rotation.y = s.yaw
