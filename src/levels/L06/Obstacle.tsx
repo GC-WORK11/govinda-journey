@@ -10,15 +10,18 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { Html } from '@react-three/drei'
 import * as THREE from 'three'
 import * as core from '../../v5/core'
 import { input, isDown, now } from '../../v5/player/input'
 import { Prop } from '../../v5/art/Dressing'
+import { LEVELS } from '../registry'
+import { PillHint } from '../L01/shared.v5'
 import { C, clay, VoxelTower, AcBox, Antenna, Heli, RouteRing, HeliPad, PadRock, BlockBox, Laptop, PhoneOnStand, Desk } from './kit.v5'
 
 const V3 = THREE.Vector3
 type V3T = [number, number, number]
+
+const HINT = LEVELS.find((l) => l.id === 'L06')?.hint ?? 'Board the helicopter'
 
 /* ---------------------------------- layout ---------------------------------- */
 
@@ -33,19 +36,20 @@ const EXIT_L = new V3(0, 0, -4.0)
 /** Route rings — ONE clear flight line: lift off, arc out over the west rim,
  *  set down on the far rock. */
 const RINGS: V3T[] = [
-  [-0.6, 1.9, 3.4], [-3.4, 2.0, 2.6], [-5.6, 1.8, 0.3], [-7.3, 1.4, -1.7], [-8.4, 1.0, -2.7],
+  [-1.5, 1.7, 3.1], [-3.8, 1.9, 2.3], [-5.8, 1.7, 0.2], [-7.4, 1.4, -1.7], [-8.4, 1.0, -2.7],
 ]
 
 /** Towers: pos, w, d, h, tone, seed. All |x|>1.5 — clear of the walk corridor.
- *  Low enough that the caption band stays on open sky. */
+ *  The deep-north pair sits at |x|>3.3 and everything stays low, so the band
+ *  behind the caption is open sky. */
 const TOWERS: [number, number, number, number, number, string, number][] = [
-  [2.95, 1.35, 1.35, 1.1, 2.3, C.facade1, 3],
-  [3.75, -0.7, 1.25, 1.25, 2.4, C.facade2, 7],
-  [2.55, -2.75, 1.15, 1.0, 1.5, C.facade3, 11],
-  [-2.15, -2.85, 1.45, 1.2, 1.7, C.facade1, 5],
-  [-3.75, -0.9, 1.25, 1.15, 2.4, C.facade2, 13],
+  [2.95, 1.35, 1.35, 1.1, 2.2, C.facade1, 3],
+  [3.75, -0.7, 1.25, 1.25, 1.9, C.facade2, 7],
+  [3.5, -2.5, 1.15, 1.0, 1.3, C.facade3, 11],
+  [-3.4, -2.55, 1.45, 1.2, 1.35, C.facade1, 5],
+  [-3.75, -0.9, 1.25, 1.15, 1.9, C.facade2, 13],
   [-3.5, 1.75, 1.15, 1.05, 1.8, C.facade4, 17],
-  [-1.8, 3.45, 1.0, 0.9, 1.3, C.facade3, 19],
+  [-2.6, 3.4, 1.0, 0.9, 1.3, C.facade3, 19],
   [4.35, 1.6, 0.9, 0.9, 1.5, C.facade4, 23],
 ]
 
@@ -54,7 +58,7 @@ const BOUND = 11.5, Y_MIN = 0.4, Y_MAX = 5.6
 
 /* ---------------------------------- obstacle ---------------------------------- */
 
-export default function Obstacle({ id, complete, done }: core.ObstacleProps) {
+export default function Obstacle({ id, active, complete, done }: core.ObstacleProps) {
   const root = useRef<THREE.Group>(null)
   const heli = useRef<THREE.Group>(null)
   const rotor = useRef<THREE.Group>(null)
@@ -360,12 +364,12 @@ export default function Obstacle({ id, complete, done }: core.ObstacleProps) {
         </group>
       ))}
       {/* rooftops */}
-      <Prop name="water_tower" position={[-3.75, 2.46, -0.9]} fit={0.9} />
-      <AcBox position={[2.95, 2.38, 1.1]} />
-      <AcBox position={[3.75, 2.48, -0.9]} s={1.2} />
-      <Antenna position={[2.55, 1.54, -2.75]} h={0.9} />
+      <Prop name="water_tower" position={[-3.75, 1.96, -0.9]} fit={0.9} />
+      <AcBox position={[2.95, 2.28, 1.1]} />
+      <AcBox position={[3.75, 1.98, -0.9]} s={1.2} />
+      <Antenna position={[3.5, 1.34, -2.5]} h={0.9} />
       <AcBox position={[-3.5, 1.86, 1.75]} s={0.9} />
-      <Antenna position={[-2.15, 1.76, -2.85]} h={0.7} />
+      <Antenna position={[-3.4, 1.4, -2.55]} h={0.7} />
       {/* street life */}
       <Prop name="streetlight" position={[-1.05, 0.03, 1.9]} fit={0.95} />
       <Prop name="streetlight" position={[-2.35, 0.03, -0.6]} fit={0.95} rotation={[0, Math.PI, 0]} />
@@ -435,15 +439,8 @@ export default function Obstacle({ id, complete, done }: core.ObstacleProps) {
         <boxGeometry args={[0.95, 0.08, 2.5]} />
       </mesh>
 
-      {/* the hint line — V4's pill, reworded for the flight */}
-      {phase !== 'done' && !solved.current && (
-        <group ref={(g) => { if (g && heli.current) g.position.copy(heli.current.position) }}>
-          <Html fullscreen zIndexRange={[30, 0]}>
-            <div className="gj-heli-hint">{phase === 'walk' ? 'board the helicopter on the pad' : 'follow the warm rings — set down on the far pad'}</div>
-            <style>{`.gj-heli-hint{position:fixed;left:50%;bottom:16vh;transform:translateX(-50%);font:500 13px Inter,system-ui;color:#fbf6ee;text-shadow:0 1px 8px rgba(50,40,30,.45);letter-spacing:.02em;pointer-events:none}`}</style>
-          </Html>
-        </group>
-      )}
+      {/* the standard bottom hint pill (V4's "Tap a task on the phone") */}
+      <PillHint text={active && !done && !solved.current ? (phase === 'fly' ? 'Follow the warm rings — set down on the far pad' : HINT) : null} />
     </group>
   )
 }
