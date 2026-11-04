@@ -11,6 +11,7 @@ import { RoundedBox } from '@react-three/drei'
 import {
   M, useIslandFrame, useLocalInteractable, useCarryAnchor, useDomOverlay,
   damp, caption, isQa, installSolve, teleportTo, waitFor, sleep, fillInput, tracePad,
+  StaticBake,
 } from './v5kit.v5'
 import { Prop } from '../../v5/art/Dressing'
 import DioramaV4 from './Diorama'
@@ -19,8 +20,11 @@ import { Guardian } from './guardian.v5'
 import { SpeakPrompt } from './voiceui.v5'
 import { SignPad, SIGN_V } from './signui.v5'
 import { has, interactables, useBlocker, useV5, type ObstacleProps } from '../../v5/core'
+import { LEVELS } from '../registry'
 
-const HOME = new THREE.Vector3(0, 0, -3.45)
+const L08H = LEVELS.find((l) => l.id === 'L08')!
+
+const HOME = new THREE.Vector3(0, 0, -1.95)
 const ASIDE = new THREE.Vector3(1.95, 0, -3.7)
 
 /** A standing stone tablet that rises and shows the engraved sign once the guardian wakes. */
@@ -47,7 +51,7 @@ function Tablet({ shown }: { shown: boolean }) {
     }
   })
   return (
-    <group ref={g} position={[1.1, -0.85, -3.0]}>
+    <group ref={g} position={[1.15, -0.85, -1.5]}>
       <RoundedBox args={[0.5, 0.85, 0.13]} radius={0.05} position={[0, 0.42, 0]} rotation={[0.04, 0, 0.03]} material={M('#c9bfb0')} castShadow />
       <mesh position={[0, 0.45, 0.068]} rotation={[0.04, 0, 0.03]}>
         <planeGeometry args={[0.36, 0.5]} />
@@ -62,7 +66,7 @@ function GateStone({ x }: { x: number }) {
   const ref = useRef<THREE.Mesh>(null)
   useBlocker(ref)
   return (
-    <mesh ref={ref} position={[x, 0.5, -3.55]} rotation={[0.2, x, 0.1]} material={M('#b8ac9a')} castShadow receiveShadow>
+    <mesh ref={ref} position={[x, 0.5, -2.0]} rotation={[0.2, x, 0.1]} material={M('#b8ac9a')} castShadow receiveShadow>
       <dodecahedronGeometry args={[0.72, 1]} />
     </mesh>
   )
@@ -103,7 +107,7 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
 
   useLocalInteractable(frame, {
     id: 'l08-guardian',
-    at: () => pos.current.clone().setY(1.1),
+    at: () => pos.current.clone().setY(1.3),
     radius: 2.3,
     label: stage === 'approach' ? 'Speak to the guardian' : 'Show the guardian your sign',
     enabled: () => active && overlay === 'none' && stage !== 'aside',
@@ -120,7 +124,7 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
 
   useLocalInteractable(frame, {
     id: 'l08-board',
-    at: () => new THREE.Vector3(-1.35, 0.9, 1.55),
+    at: () => new THREE.Vector3(-1.3, 0.9, 2.35),
     radius: 1.8,
     label: 'Read the plaza board',
     enabled: () => overlay === 'none',
@@ -128,8 +132,12 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
   })
 
   useDomOverlay(
-    overlay === 'speak' ? (
-      <SpeakPrompt word="hello" onClose={() => setOverlay('none')}
+    <>
+      {stage !== 'aside' && overlay === 'none' ? (
+        <div className="jov5-pill" data-qa="hint">{L08H.hint}</div>
+      ) : null}
+      {overlay === 'speak' ? (
+        <SpeakPrompt word="hello" onClose={() => setOverlay('none')}
         onResult={() => {
           setStage('shown')
           caption('The guardian shows you a sign.')
@@ -137,13 +145,14 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
           setTimeout(() => setOverlay('sign'), 950)
           setOverlay('none')
         }} />
-    ) : overlay === 'sign' ? (
-      <SignPad template={SIGN_V} title="Trace the guardian’s sign" sub="One stroke — the shape on the tablet."
+      ) : overlay === 'sign' ? (
+        <SignPad template={SIGN_V} title="Trace the guardian’s sign" sub="One stroke — the shape on the tablet."
         onClose={() => setOverlay('none')}
         onResult={(ok) => { if (ok) { setOverlay('none'); setStage('aside') } }} />
-    ) : overlay === 'board' ? (
-      <BoardCard onClose={() => setOverlay('none')} />
-    ) : null,
+      ) : overlay === 'board' ? (
+        <BoardCard onClose={() => setOverlay('none')} />
+      ) : null}
+    </>,
   )
 
   /* ?qa solver — plays it for real: teleport, use, type the word, draw the V. */
@@ -178,33 +187,39 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
     <group ref={frame.ref}>
       {/* the guardian + its gate */}
       <group ref={gRef} position={pos.current.toArray()}>
-        <Guardian awake={stage !== 'approach'} />
+        <group scale={1.2}>
+          <Guardian awake={stage !== 'approach'} />
+        </group>
       </group>
       <GateStone x={-1.45} />
       <GateStone x={1.5} />
       <Tablet shown={stage !== 'approach'} />
 
-      {/* the sign studio — V4's own diorama (unlocked → its scaffold stays folded),
-          placed west of the path so the guardian's gate keeps the exit line */}
-      <group position={[-2.9, 0, -0.1]}>
-        <DioramaV4 unlocked={true} active={active} />
+      {/* the sign studio — V4's own diorama (unlocked → its scaffold folds away),
+          baked to a handful of merged draws once it settles */}
+      <group position={[-3.0, 0, 1.0]} scale={1.05}>
+        <StaticBake delay={3200}>
+          <DioramaV4 unlocked={true} active={active} />
+        </StaticBake>
       </group>
 
-      {/* the plaza: paving, sign-glyph bunting over the path, the story board */}
+      {/* the plaza: paving, sign-glyph bunting over the path — instanced/merged already */}
       <Plaza />
-      <Bunting from={[-2.45, 2.1, 1.5]} to={[2.45, 2.1, 1.5]} sag={0.35} />
-      <group position={[-1.35, 0, 1.55]} rotation={[0, 0.4, 0]}>
-        <Board />
-      </group>
-      <Prop name="bench" position={[2.3, 0, -0.35]} rotation={[0, -0.9, 0]} scale={0.85} />
-      <Prop name="sign" position={[1.55, 0, 2.9]} rotation={[0, -0.35, 0]} scale={0.9} />
+      <Bunting from={[-2.5, 2.1, 2.6]} to={[2.5, 2.1, 2.6]} sag={0.35} />
 
-      {/* quiet dressing on the rim — ART pack props */}
-      <Prop name="rock_large_b" position={[3.55, -0.08, 1.35]} rotation={[0, 0.7, 0]} scale={0.38} />
-      <Prop name="plant_bush" position={[3.15, -0.04, -0.7]} rotation={[0, 2.1, 0]} scale={0.8} />
-      <Prop name="plant_bush_detailed" position={[-3.55, -0.04, -1.95]} rotation={[0, 1.2, 0]} scale={0.85} />
-      <Prop name="grass_large" position={[-2.95, -0.02, 2.55]} scale={0.85} />
-      <Prop name="flower_red_a" position={[2.35, -0.02, 2.05]} scale={0.9} />
+      {/* story board + quiet rim dressing — one bake, no shadow casts on the small props */}
+      <StaticBake shadow={false}>
+        <group position={[-1.3, 0, 2.35]} rotation={[0, 0.5, 0]}>
+          <Board />
+        </group>
+        <Prop name="bench" position={[2.3, 0, -0.35]} rotation={[0, -0.9, 0]} scale={0.85} />
+        <Prop name="sign" position={[1.55, 0, 2.9]} rotation={[0, -0.35, 0]} scale={0.9} />
+        <Prop name="rock_large_b" position={[3.55, -0.08, 1.35]} rotation={[0, 0.7, 0]} scale={0.38} />
+        <Prop name="plant_bush" position={[3.15, -0.04, -0.7]} rotation={[0, 2.1, 0]} scale={0.8} />
+        <Prop name="plant_bush_detailed" position={[-3.55, -0.04, -1.95]} rotation={[0, 1.2, 0]} scale={0.85} />
+        <Prop name="grass_large" position={[-2.95, -0.02, 2.55]} scale={0.85} />
+        <Prop name="flower_red_a" position={[2.35, -0.02, 2.05]} scale={0.9} />
+      </StaticBake>
 
       {/* DOM overlays live on their own react root (see useDomOverlay) */}
     </group>

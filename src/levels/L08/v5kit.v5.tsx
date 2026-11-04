@@ -2,12 +2,13 @@
  * Shared helpers for the V5 obstacles in L08 + L09 (area ISL-F).
  * Everything that must later be swapped for another area's real module is marked STUB.
  */
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import { createRoot, type Root } from 'react-dom/client'
-import { C } from '../../world/kit'
-import { toon } from '../../v5/art/material'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { C, paint as paintGeo } from '../../world/kit'
+import { toon, toonVC } from '../../v5/art/material'
 import { carryAnchor, carryQuat } from '../../v5/player/anchor'
 import { player, useInteractable, useV5, type Interactable } from '../../v5/core'
 
@@ -164,6 +165,9 @@ const CSS = `
   background: #fffdf9; font: 400 15px 'Inter', sans-serif; color: #2f2925; outline: none; }
 .jov5-input:focus { border-color: rgba(47,41,37,.55); }
 .jov5-note { font-size: 12px; color: #6b5f55; margin-top: 10px; text-align: center; min-height: 15px; }
+.jov5-pill { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+  background: rgba(251,246,238,.9); color: #4a4038; font: 500 12.5px 'Inter', sans-serif; letter-spacing: .02em;
+  padding: 7px 16px; border-radius: 999px; box-shadow: 0 4px 18px rgba(43,32,22,.14); pointer-events: none; z-index: 59; }
 .jov5-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #c8704a;
   margin-right: 9px; vertical-align: 0; animation: jov5pulse 2.4s ease-in-out infinite; }
 @keyframes jov5pulse { 0%,100% { transform: scale(.6); opacity: .4 } 50% { transform: scale(1.15); opacity: 1 } }
@@ -220,5 +224,102 @@ export function Veil({ children, onClose }: { children: React.ReactNode; onClose
         {children}
       </div>
     </div>
+  )
+}
+
+/* ------------------------------ static bake ------------------------------ */
+
+type BakedPart = { geo: THREE.BufferGeometry; mat: THREE.Material }
+
+const isPlainStandard = (m: THREE.Material): m is THREE.MeshStandardMaterial =>
+  (m as THREE.MeshStandardMaterial).isMeshStandardMaterial === true &&
+  !(m as THREE.MeshStandardMaterial).map &&
+  !(m as THREE.MeshStandardMaterial).emissiveMap &&
+  !(m as THREE.MeshStandardMaterial).normalMap &&
+  !(m as THREE.MeshStandardMaterial).vertexColors &&
+  // toon() and friends override these on the instance — keep them on their own
+  // material so their shader stays intact (merged per shared material instead)
+  !Object.prototype.hasOwnProperty.call(m, 'onBeforeCompile') &&
+  !Object.prototype.hasOwnProperty.call(m, 'customProgramCacheKey') &&
+  (m as THREE.MeshStandardMaterial).emissiveIntensity === 0 &&
+  !(m as THREE.MeshStandardMaterial).transparent
+
+const normGeo = (g: THREE.BufferGeometry, world: THREE.Matrix4) => {
+  const out = (g.index ? g.toNonIndexed() : g.clone()).applyMatrix4(world)
+  const n = out.getAttribute('position').count
+  if (!out.getAttribute('normal')) out.computeVertexNormals()
+  if (!out.getAttribute('uv')) out.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(n * 2), 2))
+  return out
+}
+
+/**
+ * Bakes every static Mesh under `children` into a handful of merged meshes —
+ * one vertex-coloured mesh for all the plain clay materials plus one merged
+ * mesh per special material (emissive, mapped). Waits until the child mesh
+ * count is stable across two passes so async GLB props get baked too, then
+ * unmounts the originals. ~295-call islands collapse to a few draws.
+ */
+export function StaticBake({ children, shadow = true, delay = 0 }: { children: ReactNode; shadow?: boolean; delay?: number }) {
+  const host = useRef<THREE.Group>(null)
+  const [parts, setParts] = useState<BakedPart[] | null>(null)
+  useEffect(() => {
+    let lastN = -1, stable = 0, tries = 0
+    const bake = () => {
+      const root = host.current
+      if (!root) return
+      root.updateWorldMatrix(true, true)
+      const inv = root.matrixWorld.clone().invert()
+      const std: THREE.BufferGeometry[] = []
+      const other = new Map<THREE.Material, THREE.BufferGeometry[]>()
+      const world = new THREE.Matrix4()
+      const ws = new THREE.Vector3()
+      root.traverse((o) => {
+        const m = o as THREE.Mesh
+        if (!m.isMesh || !m.visible) return
+        for (let a = o.parent; a && a !== root; a = a.parent) if (!a.visible) return
+        m.getWorldScale(ws)
+        if (Math.min(Math.abs(ws.x), Math.abs(ws.y), Math.abs(ws.z)) < 0.01) return // shrunk away
+        const geo = normGeo(m.geometry, world.copy(inv).multiply(m.matrixWorld))
+        const mat = Array.isArray(m.material) ? m.material[0] : m.material
+        if (isPlainStandard(mat)) {
+          paintGeo(geo, `#${mat.color.getHexString()}`)
+          std.push(geo)
+        } else {
+          const arr = other.get(mat) ?? []
+          arr.push(geo)
+          other.set(mat, arr)
+        }
+      })
+      const out: BakedPart[] = []
+      const push = (geos: THREE.BufferGeometry[], mat: THREE.Material) => {
+        if (!geos.length) return
+        const merged = geos.length > 1 ? mergeGeometries(geos, false) : geos[0]
+        if (merged) out.push({ geo: merged, mat })
+        else geos.forEach((g) => out.push({ geo: g, mat }))
+      }
+      push(std, toonVC())
+      other.forEach((geos, mat) => push(geos, mat))
+      if (out.length) setParts(out)
+    }
+    let iv: ReturnType<typeof setInterval>
+    const start = () => { iv = setInterval(() => {
+      const root = host.current
+      if (!root) return
+      let n = 0
+      root.traverse((o) => { if ((o as THREE.Mesh).isMesh) n++ })
+      if (n > 0 && n === lastN) { if (++stable >= 2) { clearInterval(iv); bake() } }
+      else { stable = 0; lastN = n }
+      if (++tries > 50) clearInterval(iv)
+    }, 350) }
+    const to = setTimeout(start, delay)
+    return () => { clearTimeout(to); clearInterval(iv) }
+  }, [])
+  if (!parts) return <group ref={host}>{children}</group>
+  return (
+    <group>
+      {parts.map((p, i) => (
+        <mesh key={i} geometry={p.geo} material={p.mat} castShadow={shadow} receiveShadow />
+      ))}
+    </group>
   )
 }

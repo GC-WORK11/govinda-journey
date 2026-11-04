@@ -1,17 +1,11 @@
-ISL-F / L08 — sign-language plaza: paved mosaic ring, pennant line of sign glyphs over the path,
-V4 studio diorama kept (unlocked, scaffold folded), guardian challenge unchanged, plaza board +
-bench + signpost props. Board interactable opens a soft card with registry title/line/tech (peak
-detail) + the real Live link (sign-flow-eight.vercel.app); stays readable after solve.
+ISL-F / L08 — sign-language plaza, game pieces front-centre: guardian + gate stones + tablet moved
+to mid-path (z≈-2, guardian ×1.2), V4 studio (big clay hands) pulled front-west at ×1.05, board by
+the entry; hint pill (registry `hint`) shows while unsolved; plaza dressing behind.
 
-VERIFIED (before the no-browser rule): real-input playthrough at 1440x900 — walked with held 'w',
-"E Speak to the guardian" prompt appeared, 'e' opened the speak veil, typed "hello", traced the V
-with real mouse moves → pad accepted → guardian stepped aside → done=[…,L08], abilities gained
-"sign". Desktop PNG inspected: plaza/bunting/studio all read, no milky/translucent blobs.
+Draw calls: plaza instanced tiles/flags + merged statics (~7 draws), StaticBake merges the diorama
+studio and board+props to a handful each; castShadow off on small props (per perf note, est <150).
 
-FOR QA TO RUN — URL: http://localhost:5190/?qa&at=L08&unlock (desktop 1440x900 + mobile 390x844)
-  1. Walk to the plaza board (west of the path, local ~x-1.35 z1.55) → prompt "Read the plaza
-     board" → E → card shows Sign Flow copy + one peak-detail line + "Live" link →
-     sign-flow-eight.vercel.app opens in a new tab.
-  2. Speak hello → trace V → guardian steps aside → "sign" granted; walk on to exit.
-  3. Check mobile 390x844: bunting flags don't clip the player head, board card fits, pad traces.
-  4. ?lite sanity: plaza + board still render (all opaque clay; flags use canvas textures).
+VERIFIED earlier: real-input solve at 1440x900 (walk→E→hello→trace→sign granted). Re-check after
+this layout move: URL http://localhost:5190/?qa&at=L08&unlock (desk+mob) — guardian reads big at
+mid-path, clay hands visible front-left on arrival, hint pill "Tap the hand that matches" bottom
+centre, board E → card + Live link → sign-flow-eight.vercel.app, speak→trace V→sign granted.

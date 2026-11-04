@@ -1,131 +1,189 @@
 /**
  * Plaza dressing for L08 Sign Flow (V6): a paved plaza circle, a pennant line of
  * hand-sign glyphs, and the plaza board that tells the one-line story and carries
- * the real demo link. Everything opaque clay — no blobs, no glass.
+ * the real demo link. Draw-call budget: ~7 meshes for the whole plaza (instanced
+ * tiles + flags, merged vertex-coloured statics, one atlas for the glyphs).
  */
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
-import { M, useFrozen, Veil } from './v5kit.v5'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { clayVC, paint as paintGeo } from '../../world/kit'
+import { useFrozen, Veil } from './v5kit.v5'
 import { LEVELS } from '../registry'
 
 const L08 = LEVELS.find((l) => l.id === 'L08')!
 
-/** Paved plaza floor: concentric terracotta + stone rings around the path. */
+const flat = (g: THREE.BufferGeometry, color: string) => {
+  const out = g.index ? g.toNonIndexed() : g
+  paintGeo(out, color)
+  return out
+}
+
+const TILES = Array.from({ length: 14 }, (_, i) => {
+  const a = (i / 14) * Math.PI * 2
+  return { x: Math.cos(a) * 1.93, z: -0.8 + Math.sin(a) * 1.93, rot: a, c: i % 3 ? '#e4d8c4' : '#c4704f' }
+})
+
+/** Paved plaza floor: merged terracotta + stone rings, instanced mosaic inlay. */
 export function Plaza() {
+  const geo = useMemo(() => {
+    const geos = [
+      flat(new THREE.RingGeometry(1.35, 2.5, 48), '#d99a6b').rotateX(-Math.PI / 2).translate(0, 0.012, -0.8),
+      flat(new THREE.RingGeometry(2.5, 2.62, 48), '#c9bfb0').rotateX(-Math.PI / 2).translate(0, 0.011, -0.8),
+    ]
+    const merged = mergeGeometries(geos, false)!
+    geos.forEach((g) => g.dispose())
+    return merged
+  }, [])
+  const tileGeo = useMemo(() => new THREE.CircleGeometry(0.09, 6), [])
+  const tileMat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 1 }), [])
+  const tiles = useRef<THREE.InstancedMesh>(null)
+  useEffect(() => {
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), s = new THREE.Vector3(1, 1, 1), c = new THREE.Color()
+    TILES.forEach((t, i) => {
+      e.set(-Math.PI / 2, 0, t.rot); q.setFromEuler(e)
+      m.compose(new THREE.Vector3(t.x, 0.013, t.z), q, s)
+      tiles.current!.setMatrixAt(i, m)
+      tiles.current!.setColorAt(i, c.set(t.c))
+    })
+    tiles.current!.instanceMatrix.needsUpdate = true
+    if (tiles.current!.instanceColor) tiles.current!.instanceColor.needsUpdate = true
+  }, [])
   return (
     <group>
-      <mesh position={[0, 0.012, -0.8]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <ringGeometry args={[1.35, 2.5, 48]} />
-        <meshStandardMaterial color="#d99a6b" roughness={1} />
-      </mesh>
-      <mesh position={[0, 0.011, -0.8]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <ringGeometry args={[2.5, 2.62, 48]} />
-        <meshStandardMaterial color="#c9bfb0" roughness={1} />
-      </mesh>
-      {/* mosaic inlay — small warm stones ringing the plaza */}
-      {Array.from({ length: 14 }, (_, i) => {
-        const a = (i / 14) * Math.PI * 2
-        return (
-          <mesh key={i} position={[Math.cos(a) * 1.93, 0.013, -0.8 + Math.sin(a) * 1.93]} rotation={[-Math.PI / 2, 0, a]}>
-            <circleGeometry args={[0.09, 6]} />
-            <meshStandardMaterial color={i % 3 ? '#e4d8c4' : '#c4704f'} roughness={1} />
-          </mesh>
-        )
-      })}
+      <mesh geometry={geo} material={clayVC()} receiveShadow />
+      <instancedMesh ref={tiles} args={[tileGeo, tileMat, TILES.length]} receiveShadow />
     </group>
   )
 }
 
-/** One hand-sign glyph painted on a pennant. Strokes in "sign alphabet" shapes. */
-function flagTex(kind: 'V' | 'C' | 'L' | 'O' | 'dot') {
+/* ---- bunting: instanced pennants + merged rope/poles + one atlas of glyphs ---- */
+
+const FLAG_COLORS = ['#c4704f', '#8fb36b', '#d9a25f', '#a87a52', '#b5654a', '#e4d8c4', '#c4704f']
+const FLAG_KINDS = ['V', 'C', 'L', 'O', 'dot', 'V', 'C'] as const
+
+/** One atlas cell per flag: flag-colour-free, just the white sign glyph stroke. */
+function glyphAtlas() {
+  const n = FLAG_KINDS.length
   const cv = document.createElement('canvas')
-  cv.width = cv.height = 64
+  cv.width = n * 64; cv.height = 64
   const ctx = cv.getContext('2d')!
-  ctx.strokeStyle = '#fbf6ee'
-  ctx.lineWidth = 7
-  ctx.lineCap = 'round'
-  ctx.lineJoin = 'round'
-  ctx.beginPath()
-  if (kind === 'V') { ctx.moveTo(18, 14); ctx.lineTo(32, 50); ctx.lineTo(46, 14) }
-  else if (kind === 'C') ctx.arc(32, 32, 16, -0.5, Math.PI * 1.3)
-  else if (kind === 'L') { ctx.moveTo(24, 12); ctx.lineTo(24, 46); ctx.lineTo(46, 46) }
-  else if (kind === 'O') ctx.arc(32, 32, 15, 0, Math.PI * 2)
-  else { ctx.arc(32, 32, 4, 0, Math.PI * 2); ctx.fillStyle = '#fbf6ee'; ctx.fill() }
-  ctx.stroke()
+  ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.lineJoin = 'round'
+  FLAG_KINDS.forEach((kind, i) => {
+    const x = i * 64
+    ctx.strokeStyle = '#fbf6ee'; ctx.fillStyle = '#fbf6ee'
+    ctx.beginPath()
+    if (kind === 'V') { ctx.moveTo(x + 18, 14); ctx.lineTo(x + 32, 50); ctx.lineTo(x + 46, 14) }
+    else if (kind === 'C') ctx.arc(x + 32, 32, 16, -0.5, Math.PI * 1.3)
+    else if (kind === 'L') { ctx.moveTo(x + 24, 12); ctx.lineTo(x + 24, 46); ctx.lineTo(x + 46, 46) }
+    else if (kind === 'O') ctx.arc(x + 32, 32, 15, 0, Math.PI * 2)
+    else { ctx.arc(x + 32, 32, 4, 0, Math.PI * 2); ctx.fill() }
+    ctx.stroke()
+  })
   const t = new THREE.CanvasTexture(cv)
   t.colorSpace = THREE.SRGBColorSpace
   return t
 }
 
-const FLAG_COLORS = ['#c4704f', '#8fb36b', '#d9a25f', '#a87a52', '#b5654a', '#e4d8c4']
-const FLAG_KINDS = ['V', 'C', 'L', 'O', 'dot', 'V', 'C'] as const
-
-/** A rope of pennant flags, each painted with a sign glyph, swaying gently. */
+/** A rope of pennant flags painted with sign glyphs, swaying gently. 3 draw calls. */
 export function Bunting({ from, to, sag = 0.5 }: { from: [number, number, number]; to: [number, number, number]; sag?: number }) {
-  const a = new THREE.Vector3(...from)
-  const b = new THREE.Vector3(...to)
-  const flags = useMemo(() => {
-    const out: { p: THREE.Vector3; kind: (typeof FLAG_KINDS)[number]; c: string; tex: THREE.CanvasTexture }[] = []
-    const n = FLAG_KINDS.length
+  const a = useMemo(() => new THREE.Vector3(...from), [])
+  const b = useMemo(() => new THREE.Vector3(...to), [])
+  const n = FLAG_KINDS.length
+  const at = (t: number) => {
+    const p = a.clone().lerp(b, t)
+    p.y -= Math.sin(t * Math.PI) * sag
+    return p
+  }
+
+  /* merged rope + poles + finials — one vertex-colour mesh */
+  const staticGeo = useMemo(() => {
+    const geos: THREE.BufferGeometry[] = []
+    const ropePts: THREE.Vector3[] = []
+    for (let i = 0; i <= 16; i++) ropePts.push(at(i / 16))
+    geos.push(flat(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(ropePts), 24, 0.012, 5), '#8a6748'))
+    for (const p of [a, b]) {
+      geos.push(flat(new THREE.CylinderGeometry(0.028, 0.038, p.y, 7), '#a87a52').translate(p.x, p.y / 2, p.z))
+      geos.push(flat(new THREE.SphereGeometry(0.045, 8, 8), '#c4704f').translate(p.x, p.y + 0.03, p.z))
+    }
+    const merged = mergeGeometries(geos, false)!
+    geos.forEach((g) => g.dispose())
+    return merged
+  }, [])
+
+  /* merged glyph quads — one mesh, one atlas texture */
+  const glyphGeo = useMemo(() => {
+    const verts: number[] = [], uvs: number[] = []
+    const w = 0.1, h = 0.13
     for (let i = 0; i < n; i++) {
-      const t = (i + 0.5) / n
-      const p = a.clone().lerp(b, t)
-      p.y -= Math.sin(t * Math.PI) * sag
-      out.push({ p, kind: FLAG_KINDS[i], c: FLAG_COLORS[i % FLAG_COLORS.length], tex: flagTex(FLAG_KINDS[i]) })
+      const p = at((i + 0.5) / n)
+      const u0 = i / n, u1 = (i + 1) / n
+      const z = p.z + 0.002 // flat flag face — quad hugs it, slightly in front
+      const quad = [
+        [p.x - w / 2, p.y - 0.125 - h / 2, z, u0, 1],
+        [p.x + w / 2, p.y - 0.125 - h / 2, z, u1, 1],
+        [p.x + w / 2, p.y - 0.125 + h / 2, z, u1, 0],
+        [p.x - w / 2, p.y - 0.125 - h / 2, z, u0, 1],
+        [p.x + w / 2, p.y - 0.125 + h / 2, z, u1, 0],
+        [p.x - w / 2, p.y - 0.125 + h / 2, z, u0, 0],
+      ]
+      for (const [x, y, z, u, v] of quad) { verts.push(x, y, z); uvs.push(u as number, v as number) }
     }
-    return out
+    const g = new THREE.BufferGeometry()
+    g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3))
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2))
+    return g
   }, [])
-  const rope = useMemo(() => {
-    const pts: THREE.Vector3[] = []
-    for (let i = 0; i <= 20; i++) {
-      const t = i / 20
-      const p = a.clone().lerp(b, t)
-      p.y -= Math.sin(t * Math.PI) * sag
-      pts.push(p)
+  const atlas = useMemo(glyphAtlas, [])
+
+  /* instanced flat pennants — top edge on the rope, apex pointing down */
+  const flagGeo = useMemo(() => {
+    const g = new THREE.BufferGeometry()
+    g.setAttribute('position', new THREE.Float32BufferAttribute(
+      [-0.075, -0.02, 0, 0.075, -0.02, 0, 0, -0.28, 0], 3))
+    g.computeVertexNormals()
+    return g
+  }, [])
+  const flagMat = useMemo(() =>
+    new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 1, side: THREE.DoubleSide }), [])
+  const flags = useRef<THREE.InstancedMesh>(null)
+  useEffect(() => {
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(1, 1, 1), c = new THREE.Color()
+    for (let i = 0; i < n; i++) {
+      const p = at((i + 0.5) / n)
+      m.compose(new THREE.Vector3(p.x, p.y, p.z), q, s)
+      flags.current!.setMatrixAt(i, m)
+      flags.current!.setColorAt(i, c.set(FLAG_COLORS[i]))
     }
-    return new THREE.Line(
-      new THREE.BufferGeometry().setFromPoints(pts),
-      new THREE.LineBasicMaterial({ color: '#8a6748' }),
-    )
+    flags.current!.instanceMatrix.needsUpdate = true
+    if (flags.current!.instanceColor) flags.current!.instanceColor.needsUpdate = true
   }, [])
+
   const sway = useRef<THREE.Group>(null)
   useFrame((s) => {
     if (sway.current) sway.current.rotation.z = Math.sin(s.clock.elapsedTime * 0.9) * 0.03
   })
   return (
     <group ref={sway}>
-      <primitive object={rope} />
-      {flags.map((f, i) => (
-        <group key={i} position={f.p.toArray()}>
-          <mesh position={[0, -0.13, 0]} material={M(f.c)} castShadow>
-            <coneGeometry args={[0.085, 0.26, 4]} />
-          </mesh>
-          <mesh position={[0, -0.125, 0.043]}>
-            <planeGeometry args={[0.1, 0.13]} />
-            <meshBasicMaterial map={f.tex} transparent alphaTest={0.3} />
-          </mesh>
-        </group>
-      ))}
-      {/* the two poles */}
-      {[a, b].map((p, i) => (
-        <group key={i} position={[p.x, 0, p.z]}>
-          <mesh position={[0, p.y / 2, 0]} material={M('#a87a52')} castShadow>
-            <cylinderGeometry args={[0.028, 0.038, p.y, 7]} />
-          </mesh>
-          <mesh position={[0, p.y + 0.03, 0]} material={M('#c4704f')} castShadow>
-            <sphereGeometry args={[0.045, 8, 8]} />
-          </mesh>
-        </group>
-      ))}
+      <mesh geometry={staticGeo} material={clayVC()} castShadow />
+      <mesh geometry={glyphGeo}>
+        <meshBasicMaterial map={atlas} transparent alphaTest={0.3} side={THREE.DoubleSide} />
+      </mesh>
+      <instancedMesh ref={flags} args={[flagGeo, flagMat, n]} castShadow />
     </group>
   )
 }
 
+/* ---- the plaza board: merged wood + paper face, one painted texture ---- */
+
 /** The plaza signboard — a wooden board on a post; its use() opens the card. */
 export function Board() {
-  const tex = useMemo(() => {
+  const { geo, tex } = useMemo(() => {
+    const post = flat(new THREE.CylinderGeometry(0.035, 0.045, 0.84, 7), '#a87a52').translate(0, 0.42, 0)
+    const panel = flat(new THREE.BoxGeometry(0.66, 0.44, 0.045), '#e4d8c4').translate(0, 0.98, 0)
+    const geo = mergeGeometries([post, panel], false)!
+    post.dispose(); panel.dispose()
     const cv = document.createElement('canvas')
     cv.width = 256; cv.height = 160
     const ctx = cv.getContext('2d')!
@@ -139,20 +197,16 @@ export function Board() {
     ctx.fillStyle = '#6b5f55'
     ctx.fillText('teach the laptop', 128, 84)
     ctx.fillText('your own hand signs', 128, 106)
-    // small V hand mark
     ctx.strokeStyle = '#c4704f'
     ctx.lineWidth = 8; ctx.lineCap = 'round'
     ctx.beginPath(); ctx.moveTo(112, 146); ctx.lineTo(128, 124); ctx.lineTo(144, 146); ctx.stroke()
-    const t = new THREE.CanvasTexture(cv)
-    t.colorSpace = THREE.SRGBColorSpace
-    return t
+    const tex = new THREE.CanvasTexture(cv)
+    tex.colorSpace = THREE.SRGBColorSpace
+    return { geo, tex }
   }, [])
   return (
     <group>
-      <mesh position={[0, 0.42, 0]} material={M('#a87a52')} castShadow>
-        <cylinderGeometry args={[0.035, 0.045, 0.84, 7]} />
-      </mesh>
-      <RoundedBox args={[0.66, 0.44, 0.045]} radius={0.03} position={[0, 0.98, 0]} material={M('#e4d8c4')} castShadow />
+      <mesh geometry={geo} material={clayVC()} castShadow />
       <mesh position={[0, 0.98, 0.024]}>
         <planeGeometry args={[0.58, 0.36]} />
         <meshBasicMaterial map={tex} />
