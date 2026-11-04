@@ -235,16 +235,73 @@ async function visitorRun(browser, { size, vp, wire, errorsFor }) {
     if (!(await prog()).includes('01')) fails.push(`header never showed 01 (spawn landed wrong?) prog='${await prog()}'`)
     await sleep(1500)
 
-    // phase 1 — clear the low wall: forward + hop bursts until done.L01 persists
-    let cleared = false
-    for (let r = 0; r < 26 && !cleared; r++) {
-      await drv.burst(fwd, 620)
-      if (r % 3 === 2) await drv.jump()
-      if (r % 2 === 1) cleared = await doneHas('L01')
+    // the how-to veil (plain-/?visitor path only) freezes the player and eats the
+    // FIRST pointerdown; on touch that finger can never register as a stick, so
+    // tap once, lift, wait out the fade — exactly what the veil asks a visitor to do
+    if (await page.$('.v5-how').catch(() => null)) {
+      if (drv.kind === 'keys') await page.keyboard.press('KeyW')
+      else { await drv.burst(fwd, 150); await drv.release() }
+      await sleep(1200)
     }
-    if (!cleared) fails.push("done.L01 never persisted — low wall not cleared by real input")
 
-    // phase 2 — through the gate, over the bridge, land on L02 (header flips to 02)
+    // the level's own hint pill is the live tell: 'walk' → 'Jump over the low wall'
+    // → 'Sit at the laptop under the tree' → gone. Drive each phase off it, the
+    // way a visitor reads it.
+    const hintTxt = () => page.evaluate(() =>
+      (document.querySelector('.gjv5-isla-hint')?.textContent || '').toLowerCase()).catch(() => '')
+    const promptOn = () => page.evaluate(() => {
+      const e = document.querySelector('[data-qa="v5-prompt"],[data-qa="v5-use"]')
+      if (!e) return false; const r = e.getBoundingClientRect(); return r.width > 4 && r.height > 4
+    }).catch(() => false)
+    const tapEl = async (sel) => {
+      const pt = await page.evaluate((s) => {
+        const e = document.querySelector(s); if (!e) return null
+        const r = e.getBoundingClientRect(); if (r.width < 4) return null
+        return { x: r.x + r.width / 2, y: r.y + r.height / 2 }
+      }, sel).catch(() => null)
+      if (!pt) return false
+      return page.touchscreen.tap(pt.x, pt.y).then(() => true).catch(() => page.mouse.click(pt.x, pt.y).then(() => true).catch(() => false))
+    }
+    const pressUseNow = async () => {
+      if (drv.kind === 'keys') { await page.keyboard.press('KeyE'); await sleep(140); await page.keyboard.press('Enter') }
+      else if (!(await tapEl('[data-qa="v5-use"]'))) await tapButton(page, /use|sit/i, 'right')
+      await sleep(2200)
+    }
+    const E = vp.isMobile ? [0.85, -0.45] : 'KeyD', W = vp.isMobile ? [-0.85, -0.45] : 'KeyA'
+    const ED = vp.isMobile ? [0.35, -0.85] : 'KeyD', WD = vp.isMobile ? [-0.35, -0.85] : 'KeyA'
+
+    // phase 1a — walk to the low wall (z 4.2→0.55) and hop it; hint flips to
+    // 'Sit at the laptop' once `crossed` fires. Hops keep the stick held forward —
+    // apex 0.9m over a 0.56m wall.
+    let crossed = false
+    for (let t = 0; t < 46 && !crossed; t++) {
+      await drv.burst(fwd, 560)
+      await drv.jump()
+      const h = await hintTxt()
+      if (h.includes('laptop') || !h) { if (await doneHas('L01') || h.includes('laptop')) crossed = true }
+      if (t % 4 === 3) crossed = crossed || (await doneHas('L01'))
+    }
+    await shot(page, `visitor-${size}-p1.png`)
+
+    // phase 1b — desk at local (2.35,-0.6): widening east↔west ping-pong (small
+    // legs first — the island rim is ~5m out and long east legs walk off it),
+    // pressing use whenever the prompt shows — the visitor's own discovery path.
+    const seq = [E,E,E, W,W,W,W, E,E,E,E,E, W,W,W,W,W,W, E,E,E,E,E,E, W,W,W,W,W,W, E,E,E,E]
+    let cleared = false
+    for (let t = 0; t < seq.length && !cleared; t++) {
+      const dir = t % 3 === 2 ? (seq[t] === E ? ED : WD) : seq[t] // mix in some forward
+      await drv.burst(dir, 400)
+      if (await promptOn()) await pressUseNow()
+      if (t % 2 === 1) cleared = await doneHas('L01')
+      if (!cleared && t % 8 === 7 && !(await hintTxt()).includes('laptop')) break // hint gone → done or lost
+    }
+    await shot(page, `visitor-${size}-p2.png`)
+    cleared = cleared || (await doneHas('L01'))
+    if (!cleared) fails.push("done.L01 never persisted — wall hop + laptop sit not completed by real input")
+
+    // phase 2 — drift back to centre while advancing, then forward through the
+    // gate (width 2) + over the bridge until the header flips to 02
+    for (let r = 0; r < 6; r++) await drv.burst(WD, 420)
     let arrived = false
     for (let t = 0; t < 80 && !arrived; t++) {
       await drv.burst(fwd, 620)
@@ -268,7 +325,9 @@ const VIEWPORTS = [
 ].filter(([n]) => SIZE === 'both' || n === SIZE)
 
 let ORDER = null, GRANTS = null
+console.log('[play] waiting for chrome lock')
 await withChrome(async (browser) => {
+console.log('[play] lock acquired')
 for (const [size, vp] of VIEWPORTS) {
   const errors = []
   let tag = 'boot'
