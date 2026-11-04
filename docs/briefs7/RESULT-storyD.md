@@ -63,7 +63,11 @@ The board's canvas text ("Sign-Flow", "the hand that matches") is row 257 ("Canv
 - Screenshots (JPEG, gitignored): `proofs/v7/storyD/` (see the list below). Each level at 390 (`&lite`) and 1440: arrival caption, mic caption (L07), board card (L08), win caption (L07, L08), finale card (L09).
 - Playthrough `node scripts/v5/play.mjs --only=<ID>` at 1440 and 390 `--lite` for L07, L08, L09: results below.
 
-RESULTS_PLACEHOLDER
+### Status at push time (13:58 IST): not yet verified in a browser
+
+- Playthrough (`scripts/v5/play.mjs --only=L07,L08,L09`, 390 with `--lite`, and 1440): NOT COMPLETED. The shared Chrome lock was held by other sessions for the whole window. Four attempts each waited 15 to 30 minutes and timed out before starting. One combined run (both sizes, with arrival, post-solve and finale shots) is queued behind the lock. If it finishes before 14:15 IST, its PASS/FAIL lines will be added here in a last push. Otherwise this row stays open.
+- Screenshot read-back at 390 and 1440: NOT DONE. The screenshot driver (`/tmp/gj7-storyD-tools/shots.mjs`) hit the same lock wait and then a navigation timeout, so no image of the new copy has been looked at. This is the main open item.
+- What is verified: `tsc --noEmit` (clean), production build (passes), and the copy strings against FACTS.md rows above (checked by reading the file, not by a render).
 
 ## Still wrong or open
 
