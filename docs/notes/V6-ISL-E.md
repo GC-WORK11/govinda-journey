@@ -22,10 +22,10 @@
 the save persists `done`).
 Check at 1440x900 and 390x844:
 1. Island reads as a city; caption text sits on open sky, not over towers
-   (skyline capped ≤2.4 m, tall towers pushed to the sides; rings fly low).
-2. A soft hint line shows under the frame (V4 pill equivalent): walk →
-   "board the helicopter on the pad", flying → "follow the warm rings —
-   set down on the far pad". Gone after done.
+   (deep-north pair pushed to |x|>3.3, skyline ≤2.2 m, ring 1 off centre).
+2. Standard bottom hint pill (shared PillHint / .gjv5-isla-hint): walk →
+   "Tap a task on the phone" (registry hint), flying → "Follow the warm
+   rings — set down on the far pad". Hidden once done or off-island.
 3. Walk to the helipad beside the path (east side); `E Board the helicopter`.
 4. Takeoff auto-climbs; steer through the 5 warm rings west → far rock pad
    (it lights once all 5 pass). Touchdown unfolds the plank bridge; step out
