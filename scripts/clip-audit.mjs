@@ -299,5 +299,5 @@ await withChrome(async (b) => {
     console.log(` ${ID}: solve-check -> ${solved}`)
     await p.screenshot({ path: path.join(outdir, `${ID}-solved.png`) }).catch(() => {})
   }
-}, { maxWaitMs: 20 * 60000 })
+}, { maxWaitMs: 35 * 60000 })
 process.exit(0)
