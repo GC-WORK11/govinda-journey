@@ -64,18 +64,36 @@ under `proofs/v7/clipB/`.
 
 ## Verification
 - `tsc --noEmit -p .` — clean.
+- `play.mjs --lite --size=390 --only=I01,L05,L04` ran at ~14:55 (won one
+  shared-Chrome slot). Results in `proofs/v5/last-run.json`:
+  - **L04: solver passed** (`solvedHow: "solve()"`, done flag set; the only
+    failure was the *subsequent* bridge leg to I02, `end y=5.5 vs isle 5.6`
+    — 0.1 short at the far mouth, after the world was already degraded by
+    the L05 crash below). No console errors on L04 — my moves did not break
+    the obstacle or the safe-stone path.
+  - **I01: `solve()` ran** but `done` did not flag and the I01→L05 leg ended
+    `y=2.7 vs isle 4.9` (player fell below L05's top).
+  - **L05: mount crash** — `R3F: Hooks can only be used within the Canvas
+    component!` inside `Obstacle` (three drei's ForwardRef → `useStore`/
+    `useThree`). Guard caught it, `purgeIsland(4)` removed L05's walkables,
+    and the player fell through the island — which also explains the I01
+    leg ending under L05's top.
+  - Root cause is environmental, not code: this worktree's `node_modules`
+    is a **symlink to the shared `/workspace/govinda-journey/node_modules`**,
+    so every sibling dev server rewrites the same `.vite/deps` cache
+    (`deps_temp_*` dirs were mid-churn during the run; `modules.ts?t=1`
+    shows a live re-emit). The lazily-fetched L05 chunk picked up a split
+    `@react-three/drei`/fiber copy → hook-context crash. It cannot happen
+    in a production build (single bundled copy) and clears on a stable
+    dep cache. L04's chunk (also lazy, also drei) mounted fine the same
+    session, which pins the split to the re-optimization window, not to
+    any source file.
+  - Screenshot evidence from the run copied to `proofs/v7/clipB/`
+    (`390-05-L05*.png`, `390-06-L04*.png`).
 - `scripts/clip-audit.mjs` (Box3 + rock-profile + float/sunk audit, one
-  Chrome session for all three islands, orbit screenshots, and a
-  solve-check fallback: real `goto` + `teleport` + the island's own
-  `solve()` + `done` flag) — built and queued, but the shared Chrome lock
-  was saturated by sibling sprints for the entire session: three queued
-  runs (`audit`, `play.mjs 1440`, `play.mjs 390 --lite`) each hit their
-  15–20 min lock-wait timeouts without ever winning a slot. Fixes above
-  are therefore verified by static coordinate audit (every moved prop
-  distance-checked against all neighbours) and typecheck; browser
-  screenshots/JSON could not be produced before 14:15.
-- The audit/play jobs were relaunched and remain queued; if a slot frees,
-  proofs land in `proofs/v7/clipB/` automatically.
+  Chrome session for all three islands, orbit screenshots, solve-check
+  fallback) remains queued; `play.mjs --size=1440` was re-queued. Both
+  write proofs to `proofs/v7/clipB/` automatically if a slot frees.
 
 ## Known remaining items
 - L04 safe/decoy stone pair (-0.62,-1.62)/(-0.3,-1.58) sit ~0.32 apart and
@@ -83,5 +101,5 @@ under `proofs/v7/clipB/`.
 - L04's new greenhouse and rooftops stand on the street's east verge /
   shoulders — deliberate "buildings swallowed by the collapsed road" read,
   but worth one visual pass when a browser slot is available.
-- No browser-based verification completed (lock contention); static fixes
-  are distance-verified but unconfirmed visually.
+- The L05 dev-server chunk crash (above) blocked end-to-end playthrough
+  verification this session; the level source itself is unchanged.
