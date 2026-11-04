@@ -19,3 +19,9 @@ BRUTAL RULES:
 - Use only facts verified in docs/MASTER_HANDOFF.md, docs/FACTS.md and the current registry. Do not invent facts (no ages, dates or numbers that aren't sourced). Never mention the NDA work or name fellowship programs.
 - Optional voice-over: when a level's story beat triggers, if `public/voice/<levelId>.mp3` exists (e.g. L05.mp3), play it and show the text as captions. If the file is missing, show the text only. Check with a HEAD fetch or a guarded `new Audio()` with an onerror handler, with no console errors and no 404 noise in the playtest. Respect mute, start audio only after a user gesture, and stop it on level exit.
 - The script Govinda will record is in docs/briefs8/VOICE_LINES.md. Keep the on-screen captions matching those lines.
+
+## HARD DEADLINE (updated 6:05 PM IST)
+- No new features after 8:30 PM IST.
+- Finished, polished state merged to main by 9:15 PM IST.
+- gj8-integrate deploys the final Vercel preview by 9:25 PM IST (no production promote).
+- Story text: rebuild from docs/briefs8/STORY_FACTS.md, first person, projects as the main event.
