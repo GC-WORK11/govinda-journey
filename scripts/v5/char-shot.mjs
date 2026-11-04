@@ -14,10 +14,25 @@ await withChrome(async (b) => {
   const p = await b.newPage()
   p.on('console', (m) => { if (m.type() === 'error') errs.push('console: ' + m.text().slice(0, 160)) })
   p.on('pageerror', (e) => errs.push('pageerror: ' + String(e).slice(0, 200)))
+  const ready = async (probe) => {
+    // cold vite can 504 on mid-reload dep re-optimizes; wait for a real
+    // canvas (+ fj:playable on level pages), reloading once if starved.
+    for (let a = 0; a < 3; a++) {
+      const ok = await p.waitForFunction(
+        (probe) => !!document.querySelector('canvas') && (probe || performance.getEntriesByName('fj:playable').length > 0),
+        { timeout: 40000, polling: 700 }, probe
+      ).then(() => true).catch(() => false)
+      if (ok) return true
+      try { await p.reload({ waitUntil: 'networkidle2', timeout: 60000 }) } catch {}
+    }
+    return false
+  }
   for (const s of spec.shots) {
     try {
       await p.setViewport(s.size === 'mobile' ? MOBILE : DESKTOP)
       await p.goto(s.url, { waitUntil: 'networkidle2', timeout: 90000 })
+      const ok = await ready(s.probe)
+      if (!ok) console.log('not-ready', s.out)
       await sleep(s.wait ?? 2800)
       if (s.walk || s.run) {
         if (s.run) await p.keyboard.down('ShiftLeft')
