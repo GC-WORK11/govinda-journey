@@ -280,6 +280,8 @@ export function StaticBake({ children, shadow = true, delay = 0 }: { children: R
   const host = useRef<THREE.Group>(null)
   const [parts, setParts] = useState<BakedPart[] | null>(null)
   useEffect(() => {
+    // ?nomerge — collision audits need the originals visible (same flag as AutoMerge)
+    if (new URLSearchParams(location.search).has('nomerge')) return
     let lastN = -1, stable = 0, tries = 0
     const bake = () => {
       const root = host.current

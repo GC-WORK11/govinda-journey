@@ -37,12 +37,12 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
     <group>
       <AutoMerge>
       {/* wooden deck under the little open-air studio */}
-      <RoundedBox args={[2.2, 0.07, 2.3]} radius={0.03} position={[0.65, 0.03, -0.2]}
+      <RoundedBox args={[2.2, 0.07, 2.3]} radius={0.03} position={[1.05, 0.03, -0.2]}
         material={clay(C.woodLight)} castShadow receiveShadow />
       </AutoMerge>
 
       {/* clay hand sculpture on a stone plinth */}
-      <group position={[0.55, 0, -0.95]} rotation={[0, -0.2, 0]}>
+      <group position={[0.55, 0, -0.2]} rotation={[0, -0.2, 0]}>
         <mesh position={[0, 0.28, 0]} material={clay(C.stone)} castShadow receiveShadow>
           <cylinderGeometry args={[0.52, 0.6, 0.56, 12]} />
         </mesh>
@@ -123,7 +123,7 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
       ))}
 
       {/* low fence along the back rim, a shrub in the far corner */}
-      <Fence pts={[new THREE.Vector3(-0.4, 0, -2.35), new THREE.Vector3(0.5, 0, -2.55), new THREE.Vector3(1.45, 0, -2.3)]} seed={11} />
+      <Fence pts={[new THREE.Vector3(-0.4, 0, -2.35), new THREE.Vector3(0.5, 0, -2.55), new THREE.Vector3(0.75, 0, -2.35)]} seed={11} />
       <Bush position={[-1.85, 0, -0.25]} s={0.9} color={C.moss} />
 
       {/* a stool with clay waiting to be shaped */}
@@ -138,7 +138,7 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
       </group>
       </AutoMerge>
 
-      <Scaffold open={unlocked} position={[0.55, 0, -0.95]} size={[1.7, 2.7, 1.7]} />
+      <Scaffold open={unlocked} position={[0.55, 0, -0.2]} size={[1.7, 2.7, 1.7]} />
     </group>
   )
 }

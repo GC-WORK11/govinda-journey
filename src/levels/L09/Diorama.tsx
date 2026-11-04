@@ -5,7 +5,7 @@ import * as THREE from 'three'
 import type { DioramaProps } from '../types'
 import { C, clay, Scaffold, Rock, ClayPot, Bush } from '../../world/kit'
 
-const SCHOOL_POS: [number, number, number] = [0.2, 0, -0.7]
+const SCHOOL_POS: [number, number, number] = [0.55, 0, -0.38]
 
 /** Small lamp at the gate that glows warmly after unlock (dusk feeling). */
 function GateLamp({ on }: { on: boolean }) {
@@ -78,7 +78,7 @@ function SchoolGate({ open }: { open: boolean }) {
 export default function Diorama({ unlocked, active }: DioramaProps) {
   // Blackboard on the wall
   const blackboard = useMemo(() => (
-    <group position={[0.65, 0.55, -0.9]}>
+    <group position={[0.77, 0.55, -0.1]} rotation={[0, Math.PI / 2, 0]}>
       <RoundedBox args={[0.35, 0.28, 0.03]} radius={0.02} material={clay(C.wood)} castShadow />
       <mesh position={[0, 0, 0.02]} material={clay('#2a3e2e')} castShadow>
         <planeGeometry args={[0.3, 0.23]} />
@@ -141,7 +141,7 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
       </mesh>
 
       {/* Flag pole (no flag symbol) */}
-      <group position={[1.2, 0, -0.3]}>
+      <group position={[1.5, 0, 0.5]}>
         <mesh position={[0, 0.5, 0]} material={clay(C.stone)} castShadow>
           <cylinderGeometry args={[0.025, 0.03, 1, 8]} />
         </mesh>
@@ -162,10 +162,10 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
       <ClayPot position={[1.12, 0, 0.58]} s={0.9} />
       <ClayPot position={[2.08, 0, 0.58]} s={0.85} />
       <Bush position={[-0.72, 0, -0.1]} s={0.95} />
-      <Bush position={[1.02, 0, 0.02]} s={0.75} color={C.leaf} />
+      <Bush position={[-0.95, 0, 0.35]} s={0.75} color={C.leaf} />
 
       {/* a school satchel waiting by the door */}
-      <group position={[0.58, 0, -0.06]} rotation={[0, -0.35, 0]}>
+      <group position={[0.55, 0, 0.35]} rotation={[0, -0.35, 0]}>
         <RoundedBox args={[0.15, 0.13, 0.07]} radius={0.025} position={[0, 0.07, 0]} material={clay(C.terracotta)} castShadow />
         <RoundedBox args={[0.15, 0.05, 0.075]} radius={0.02} position={[0, 0.115, 0]} material={clay(C.brick)} castShadow />
         <mesh position={[0, 0.15, 0]} rotation={[Math.PI / 2, 0, 0]} material={clay(C.wood)}>
@@ -174,7 +174,7 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
       </group>
 
       {/* Permanent scaffolding in one corner (level is still being built) */}
-      <group position={[-0.55, 0, -1.1]}>
+      <group position={[-0.85, 0, -0.25]}>
         {/* Scaffolding poles */}
         <mesh position={[0, 0.45, 0]} material={clay(C.woodLight)} castShadow>
           <cylinderGeometry args={[0.03, 0.03, 0.9, 6]} />
