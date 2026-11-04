@@ -138,13 +138,15 @@ export function mergePrims(items: Prim[]): THREE.BufferGeometry {
   const geos: THREE.BufferGeometry[] = []
   for (const it of items) {
     const [a, b, c] = it.s
-    const g =
+    let g =
       it.g === 'box' ? new THREE.BoxGeometry(1, 1, 1) :
       it.g === 'cone' ? new THREE.ConeGeometry(0.5, 1, 8) :
       it.g === 'pyr' ? new THREE.ConeGeometry(0.707, 1, 4) :
       it.g === 'dod' ? new THREE.DodecahedronGeometry(0.5, 0) :
       it.g === 'cyl' ? new THREE.CylinderGeometry(a / 2, c / 2, b, 9) :
       new THREE.SphereGeometry(0.5, 14, 10)
+    // polyhedra (dod) are non-indexed, the rest indexed — normalize or merge fails
+    if (g.index) g = g.toNonIndexed()
     _ev.set(...(it.r ?? [0, 0, 0]) as [number, number, number])
     _qv.setFromEuler(_ev)
     it.g === 'cyl' ? _sv.set(1, 1, 1) : _sv.set(a, b, c)
@@ -153,9 +155,9 @@ export function mergePrims(items: Prim[]): THREE.BufferGeometry {
     paint(g, it.c, undefined, 0.05)
     geos.push(g)
   }
-  const merged = mergeGeometries(geos, false)!
+  const merged = mergeGeometries(geos, false)
   for (const g of geos) g.dispose()
-  return merged
+  return merged ?? new THREE.BufferGeometry() // never pass null on
 }
 
 const _vc = clayVC()
