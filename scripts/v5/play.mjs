@@ -27,7 +27,7 @@ const root = path.resolve(here, '..', '..')
 const outdir = path.join(root, 'proofs', 'v5')
 mkdirSync(outdir, { recursive: true })
 
-setTimeout(() => { console.log('v5 play hard timeout'); process.exit(3) }, 1500000).unref()
+setTimeout(() => { console.log('v5 play hard timeout'); process.exit(3) }, 3300000).unref()
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const pad = (n) => String(n).padStart(2, '0')
