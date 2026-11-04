@@ -18,13 +18,13 @@ const LETTERS = [
   new THREE.Vector3(-2.5, 0.03, 0.7),   // tucked behind the big rock
   new THREE.Vector3(2.05, 0.42, 0.95),  // on top of the little rise
   new THREE.Vector3(-2.9, 0.03, -1.5),  // drifted far left, low by the ledge
-  new THREE.Vector3(2.5, 0.03, -1.3),   // between the far stones
+  new THREE.Vector3(2.85, 0.03, -1.15), // between the far stones (clear of the step run)
 ]
 /** Step i top position — a rising run of stone teeth up the ledge's right flank.
- *  x≈2.1 keeps the run clear of the V4 parity diorama's scaffold dome while it
- *  is mounted (the dome covers x −1.56…1.56, z −2.2…−0.3 on this island). */
+ *  x≈2.2 keeps the run just clear of the V4 parity diorama's gate pillar
+ *  (its box reaches x ≈ 1.64 island-local at z −0.86…−1.64). */
 const STEP_TOPS = [0.32, 0.64, 0.96, 1.28, 1.6]
-const STEP_POS = STEP_TOPS.map((y, i) => new THREE.Vector3(2.1 + (i % 2 ? 0.08 : -0.08), y, -1.0 - i * 0.34))
+const STEP_POS = STEP_TOPS.map((y, i) => new THREE.Vector3(2.2 + (i % 2 ? 0.05 : -0.05), y, -1.0 - i * 0.34))
 const FLY_S = 0.95
 
 type Slot = {
@@ -267,7 +267,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       <Merged items={bushes} />
       {/* seeded rim dressing (grass + flower blobs, ONE merged mesh) */}
       <BloomField seed={12} density={0.5}
-        avoid={[[1.6, 2.7, 1.1], [-2.5, 0.9, 1.6], [2.05, 0.95, 1.4], [-2.9, -1.5, 1.1], [2.5, -1.3, 1.2], [2.1, -1.7, 1.5], [0, -3.55, 2.4], [0, 4.2, 1.4]]} />
+        avoid={[[1.6, 2.7, 1.1], [-2.5, 0.9, 1.6], [2.05, 0.95, 1.4], [-2.9, -1.5, 1.1], [2.85, -1.15, 1.1], [2.2, -1.7, 1.5], [0, -3.55, 2.4], [0, 4.2, 1.4]]} />
 
       <PillHint text={hint} />
     </group>

@@ -42,14 +42,23 @@ await withChrome(async (b) => {
   const p = await b.newPage()
   await p.setViewport(DESKTOP)
   p.on('pageerror', (e) => console.log('pageerror:', e.message.slice(0, 200)))
+  p.on('console', (m) => { if (m.type() === 'error') console.log('console.error:', m.text().slice(0, 200)) })
   await p.evaluateOnNewDocument(HOOK)
   await p.goto(`${BASE}/?qa&fresh&at=${AT}&unlock`, { waitUntil: 'networkidle2', timeout: 90000 })
   for (let t = 0; ; t++) {
-    const ok = await p.evaluate(async () => {
-      try { const c = await import('/src/v5/core.ts'); return c.walkables.size > 0 } catch { return false }
-    }).catch(() => false)
-    if (ok) break
-    if (t > 60) { console.log('never ready'); process.exit(2) }
+    const st = await p.evaluate(async () => {
+      const out = { scene: false, island: false, walkables: 0, journey: false }
+      try {
+        out.scene = !!window.__scene
+        out.island = !!(window.__scene && window.__scene.getObjectByName('island-L01'))
+        out.journey = !!(window.__journey && window.__journey.v5)
+        const c = await import('/src/v5/core.ts'); out.walkables = c.walkables.size
+      } catch {}
+      return out
+    }).catch((e) => ({ err: String(e).slice(0, 120) }))
+    if (st.island && st.walkables > 0) break
+    if (t > 150) { console.log('never ready:', JSON.stringify(st)); if (outdir) await p.screenshot({ path: path.join(outdir, `${AT}-notready.png`) }).catch(() => {}); process.exit(2) }
+    if (t % 20 === 19) console.log('waiting:', JSON.stringify(st))
     await sleep(500)
   }
   await sleep(4500) // lazy GLB props land

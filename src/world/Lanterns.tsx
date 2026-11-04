@@ -47,7 +47,7 @@ export function driveLamps(night: number) {
   lampGlowMat().opacity = night * 0.7
 }
 
-type Spot = { p: THREE.Vector3; tall: number }
+type Spot = { p: THREE.Vector3; tall: number; /** ground height override — for stands on raised surfaces (ledges) */ gy?: number }
 
 /** Merged wooden stands + caps (vertex-coloured) and glass spheres for a set of lantern spots. */
 function lanternGeos(spots: Spot[]) {
@@ -58,9 +58,10 @@ function lanternGeos(spots: Spot[]) {
   const put = (g: THREE.BufferGeometry, x: number, y: number, z: number, hex: string) => {
     g.applyMatrix4(m.compose(new THREE.Vector3(x, y, z), q, s1)); paint(g, hex, undefined, 0.05); frames.push(g)
   }
-  for (const { p, tall } of spots) {
-    // tall: p.xz is island-local and we stand on the grass; short: p.y is already the glass height
-    const gy = tall ? topY(Math.hypot(p.x, p.z)) : 0
+  for (const { p, tall, gy: gyo } of spots) {
+    // tall: p.xz is island-local and we stand on the grass (or gy override);
+    // short: p.y is already the glass height
+    const gy = tall ? (gyo ?? topY(Math.hypot(p.x, p.z))) : 0
     if (tall) put(new THREE.CylinderGeometry(0.035, 0.05, 0.62, 7), p.x, gy + 0.31, p.z, C.wood)
     const y = tall ? gy + 0.68 : p.y
     put(new THREE.CylinderGeometry(0.028, 0.045, 0.05, 7), p.x, y + 0.085, p.z, C.wood)        // cap
