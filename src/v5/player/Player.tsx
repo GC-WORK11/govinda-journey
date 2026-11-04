@@ -33,7 +33,7 @@ export function Model({ anim, tsRef, socketRef, backpack = true, skinURL = './mo
   const root = useRef<THREE.Group>(null)
   const { scene, animations } = useGLTF(URL)
   const { actions } = useAnimations(animations, root)
-  // Retinted atlas: warm brown skin, near-black hair, cream shirt, charcoal trousers.
+  // Retinted atlas: warm brown skin, near-black hair, cream shirt, blue jeans.
   const skin = useTexture(skinURL || './models/student-skin.png')
   const scale = useMemo(() => {
     scene.updateMatrixWorld(true)
