@@ -31,4 +31,4 @@ RULE: use only these facts. Anything marked UNVERIFIED must NOT appear as a numb
 - **"Find"**: no repo or source found. UNVERIFIED, do not use.
 
 ## Never on screen
-Invented user counts or metrics; any confidential/NDA work; fellowship program names.
+Invented user counts or metrics; any confidential/confidentiality work; program names.

@@ -17,7 +17,7 @@
 - Ent: a 27B model sharded across 4 consumer laptops/GPUs. Its routing cut GPU memory by 53.7%. Source: https://ent-01.vercel.app/
 - Alive: 240,027 Delhi places. Source: the GC-WORK11/ALive README, lines 203 and 221.
 - Other shipped products: Chalk, Remote, SignWrap, Doorway, Workbench.
-- Don't name the fellowship programs. Never mention the HUD/datavendors NDA work.
+- Don't name the program. Never mention the confidential work confidentiality work.
 
 ## Repo and stack
 - Repo: https://github.com/GC-WORK11/govinda-journey. Work goes on `main`. Fast-forward only, never force-push.
@@ -36,7 +36,7 @@
 
 ## Deploy
 - Production: https://govinda-journey.vercel.app is still on the OLD V4+art deploy (du6o5034e).
-- Last preview (9eb9ac4): https://govinda-journey-dmu83u8l4-govindasince2004-6895s-projects.vercel.app
+- Last preview (9eb9ac4): https://govinda-journey-dmu83u8l4-<team>-projects.vercel.app
 - To deploy: `vercel deploy` makes a preview, then `vercel promote <url>` sends it live once it's verified. Roll back to du6o5034e if anything breaks.
 
 ## Devin

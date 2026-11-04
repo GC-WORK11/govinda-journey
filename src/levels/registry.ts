@@ -7,7 +7,6 @@ const d = (id: string) => lazy(() => import(`./${id}/Diorama.tsx`))
 
 export const RESUME = 'https://govinda-01.vercel.app/Govinda_Chauhan_ML_Systems_Resume.pdf'
 export const CONTACT = [
-  { label: 'Email', href: 'mailto:govindasince2004@gmail.com' },
   { label: 'GitHub', href: 'https://github.com/GC-WORK11' },
   { label: 'LinkedIn', href: 'https://in.linkedin.com/in/govinda-flow' },
   { label: 'Résumé', href: RESUME },

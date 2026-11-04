@@ -22,7 +22,7 @@ No typos found in visible copy (checked with a misspelling pattern list and by r
 | "Level complete" | None. |
 | Cringe | Hashtag "#NoHandsChallenge" (`registry.ts:113`, story only, v4 path; not on the V5 route). "a builder would know" (`L09/Obstacle.tsx:303`), a wink, mild. |
 | Jargon on the V5 route | "C++20", "Expo", "daemon" (`registry.ts:96`), "Rust", "Tailscale" (`registry.ts:95`), "model grid" and "air field" (`registry.ts:75`), "27B" (`registry.ts:60`), "React front ends", "Vercel", "git worktrees", "terminal agents" (`registry.ts:49`), "Shared power" and "Long reach" ability names (`Glyphs.tsx:64-65`). Sourced, but dense for a non-technical visitor. |
-| HUD / datavendors (NDA) / Mergetober / fellowship names in visible copy | None. Code-only: `PromptHUD` (`src/levels/L06/dev.v5.tsx:53`, `L07/dev.v5.tsx:53`), `.hud` class (`src/levels/L03/preview.v5.tsx:216,224`, `L04/preview.v5.tsx`, `I02/preview.v5.tsx`), comment in `src/ui/styles.css:188`. Dev harness or v4 CSS, not on screen. Consider renaming for hygiene. |
+| HUD / confidential work (confidentiality) / Mergetober / fellowship names in visible copy | None. Code-only: `PromptHUD` (`src/levels/L06/dev.v5.tsx:53`, `L07/dev.v5.tsx:53`), `.hud` class (`src/levels/L03/preview.v5.tsx:216,224`, `L04/preview.v5.tsx`, `I02/preview.v5.tsx`), comment in `src/ui/styles.css:188`. Dev harness or v4 CSS, not on screen. Consider renaming for hygiene. |
 | Numbers on screen | Each number is listed in the table below with its FACTS line. Invented AQI values 232, 187, 168, 151 (`src/levels/L04/Obstacle.tsx:33-35`) are NOT drawn: the tags render only the word "AQI" (`src/levels/L04/street.v5.tsx:315`). Keep it that way. |
 
 ## 2. Table: every user-visible string on the default route (V5)
