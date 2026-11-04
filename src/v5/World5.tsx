@@ -20,6 +20,7 @@ import { hasObstacle, Player, ArtWater, Guard } from './world/modules'
 import { useWorldUI } from './world/progress'
 import { input, now } from './player/input'
 import Sky5, { skyDebug } from './world/Sky5'
+import CharLight from './world/CharLight'
 import { env } from '../world/sky'
 import { Clouds } from '../world/Clouds'
 import { C, clay } from '../world/kit'
@@ -316,6 +317,7 @@ export default function World5() {
           <FallbackRig />
         )}
         <Pet />
+        <CharLight />
         <Skybox />
         <FinaleCam />
         {QA && <QaProbe />}
