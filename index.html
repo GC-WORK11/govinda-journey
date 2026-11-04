@@ -9,7 +9,15 @@
 <meta name="description" content="Three years of building, one path. A small playable world by Govinda Chauhan." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<!-- Fonts must not sit on the render path: preload the sheet, apply it async,
+     let the canvas world reach its first frame without waiting on Google. -->
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+<noscript><link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" /></noscript>
+<!-- The traveller's rig: bytes start at HTML parse; drei's loader cache picks
+     up the same in-flight request when World5's useGLTF.preload fires. -->
+<link rel="preload" as="fetch" crossorigin href="./models/student.glb" />
+<link rel="preload" as="image" href="./models/student-skin.png" />
 </head>
 <body>
 <div id="root"></div>

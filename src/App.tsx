@@ -1,11 +1,12 @@
 /// <reference types="vite/client" />
 import { lazy, Suspense, useEffect } from 'react'
-import Overlay from './ui/Overlay'
-import { useJourney } from './state/store'
-import { LEVELS } from './levels/registry'
 
 const World = lazy(() => import('./world/World'))
 const World5 = lazy(() => import('./v5/World5'))
+// V4-only chrome — keep it (and registry/store) off the V5 cold path.
+const Overlay = lazy(() => import('./ui/Overlay'))
+
+try { performance.mark('fj:app') } catch { /* marking must never break the app */ }
 
 // PLAYER's sandbox, routed only while it exists
 const sandboxMods = import.meta.glob('./v5/player/Sandbox.tsx')
@@ -24,14 +25,16 @@ export default function App() {
   useEffect(() => {
     // Test hook for automated play-through only (?qa in the URL). Not shown to visitors.
     if (!v4 || !q.has('qa')) return
-    ;(window as any).__journey = {
-      state: () => useJourney.getState(),
-      win: () => useJourney.getState().win(),
-      levels: LEVELS.map((l) => l.id),
-    }
-    // ?qa&at=L05 jumps to that island; add &play to open its game directly
-    const at = q.get('at')
-    if (at) { const i = LEVELS.findIndex((l) => l.id === at); const s = useJourney.getState(); if (i >= 0) { s.start(); s.goto(i); s.setPhase(q.has('play') ? 'playing' : 'arrived') } }
+    Promise.all([import('./state/store'), import('./levels/registry')]).then(([{ useJourney }, { LEVELS }]) => {
+      ;(window as any).__journey = {
+        state: () => useJourney.getState(),
+        win: () => useJourney.getState().win(),
+        levels: LEVELS.map((l) => l.id),
+      }
+      // ?qa&at=L05 jumps to that island; add &play to open its game directly
+      const at = q.get('at')
+      if (at) { const i = LEVELS.findIndex((l) => l.id === at); const s = useJourney.getState(); if (i >= 0) { s.start(); s.goto(i); s.setPhase(q.has('play') ? 'playing' : 'arrived') } }
+    })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const gl = webglOk()
@@ -46,7 +49,7 @@ export default function App() {
         <div className="world" aria-hidden>
           {gl ? <Suspense fallback={null}><World /></Suspense> : <div className="world-fallback" />}
         </div>
-        <Overlay />
+        <Suspense fallback={null}><Overlay /></Suspense>
       </div>
     )
   }

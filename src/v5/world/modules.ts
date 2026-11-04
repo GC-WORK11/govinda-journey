@@ -31,11 +31,18 @@ const dioramaMods = import.meta.glob('../../levels/*/Diorama.tsx')
 export const DIORAMAS: Partial<Record<IslandId, LazyExoticComponent<Any>>> = {}
 for (const id of V5_ORDER) DIORAMAS[id] = take(dioramaMods, `../../levels/${id}/Diorama.tsx`) as never
 
+/** Resolves once both lazy chunks for an island sit in the module cache — the
+ * same loaders the Suspense boundaries await, so repeat calls dedupe. */
+export const whenIsland = (id: IslandId) =>
+  Promise.all([
+    obstacleMods[`../../levels/${id}/Obstacle.tsx`]?.(),
+    dioramaMods[`../../levels/${id}/Diorama.tsx`]?.(),
+  ]).then(() => undefined)
+
 /** Kick the lazy chunk fetch before the player reaches the island — the module
  * cache dedupes repeat calls, so this is cheap to fire every idx change. */
 export const preloadIsland = (id: IslandId) => {
-  obstacleMods[`../../levels/${id}/Obstacle.tsx`]?.()
-  dioramaMods[`../../levels/${id}/Diorama.tsx`]?.()
+  void whenIsland(id)
 }
 
 /** ART modules, present only when the files exist (named exports, per ART's files). */
