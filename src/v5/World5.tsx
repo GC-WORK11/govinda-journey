@@ -24,6 +24,7 @@ import { env } from '../world/sky'
 import { Clouds } from '../world/Clouds'
 import { C, clay } from '../world/kit'
 import Chrome from './ui/Chrome'
+import Pet from './pet/Pet'
 import './ui/v5.css'
 
 /** V4's tilt-shift finish — parity baseline until ART's Effects5 clears the bar. */
@@ -314,6 +315,7 @@ export default function World5() {
         ) : (
           <FallbackRig />
         )}
+        <Pet />
         <Skybox />
         <FinaleCam />
         {QA && <QaProbe />}

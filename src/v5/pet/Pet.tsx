@@ -17,16 +17,17 @@ import { applyToon } from '../art/material'
 import { Guard } from '../world/modules'
 import { usePlayerUI } from '../player/uiState'
 
-/** ART's rigged CC0 dog (idle / run / sit clips). null = nothing is rendered. */
-export const PET_MODEL: string | null = null
+/** Quaternius Husky (CC0, meshopt; drei's default loader decodes it). null = nothing is rendered. */
+export const PET_MODEL: string | null = './models/pet/dog.glb'
 
-const HEIGHT = 0.5, FACE = 0
+const HEIGHT = 0.6, FACE = 0 // husky faces +z: head at z +1.8, tail at z -1.3
 const BEHIND = 1.25, SIDE = 0.8, NEAR = 2.2, RUN = 5.4
 const SIT_AFTER = 3, STEP = 0.5, LOST = 10, HOP = 0.6, REVEAL = 0.9
 const SPOTS: [number, number][] = [[BEHIND, SIDE], [BEHIND, 0], [BEHIND, -SIDE], [0, SIDE], [0, -SIDE]]
 
 const _ray = new THREE.Raycaster(), _down = new THREE.Vector3(0, -1, 0), _o = new THREE.Vector3()
 const _cand: THREE.Object3D[] = []
+const _g = { y: 0, bridge: false }
 let frame = 0
 const boxCache = new WeakMap<THREE.Object3D, { f: number; b: THREE.Box3 }>()
 /** World bounds of a walkable, refreshed once per frame (same trick as Player). */
@@ -38,7 +39,7 @@ function boxOf(o: THREE.Object3D) {
 }
 
 /** Walkable surface height under (x, z) near height y, or null over a gap, void or wall. */
-function groundAt(x: number, z: number, y: number): number | null {
+function groundAt(x: number, z: number, y: number): typeof _g | null {
   _cand.length = 0
   for (const o of walkables) {
     const b = boxOf(o)
@@ -48,7 +49,10 @@ function groundAt(x: number, z: number, y: number): number | null {
   }
   if (!_cand.length) return null
   _ray.set(_o.set(x, y + 1, z), _down); _ray.far = 2.2
-  return _ray.intersectObjects(_cand, true)[0]?.point.y ?? null
+  const hit = _ray.intersectObjects(_cand, true)[0]
+  if (!hit) return null
+  _g.y = hit.point.y; _g.bridge = hit.object.name.startsWith('walk-bridge')
+  return _g
 }
 
 const dampAngle = (a: number, b: number, l: number, dt: number) =>
@@ -57,7 +61,7 @@ const dampAngle = (a: number, b: number, l: number, dt: number) =>
 type Rig = {
   pos: THREE.Vector3; vel: THREE.Vector3; prev: THREE.Vector3
   yaw: number; lat: number; lift: number; rv: number; rk: number
-  moving: boolean; sit: boolean; still: number; stuck: number; first: boolean
+  moving: boolean; sit: boolean; bridge: boolean; still: number; stuck: number; first: boolean
   hop: null | { t: number; a: THREE.Vector3; b: THREE.Vector3 }
 }
 
@@ -67,11 +71,11 @@ function place(k: Rig, P: THREE.Vector3) {
   let ok = false
   for (const [b, l] of SPOTS) {
     const x = P.x - fx * b - fz * l, z = P.z - fz * b + fx * l
-    const y = groundAt(x, z, P.y)
-    if (y !== null) { k.pos.set(x, y, z); ok = true; break }
+    const g = groundAt(x, z, P.y)
+    if (g) { k.pos.set(x, g.y, z); ok = true; break }
   }
   if (!ok) k.pos.copy(P)
-  k.vel.set(0, 0, 0); k.hop = null; k.moving = false; k.sit = false; k.still = 0; k.stuck = 0; k.lift = 0
+  k.vel.set(0, 0, 0); k.hop = null; k.moving = false; k.sit = false; k.bridge = false; k.still = 0; k.stuck = 0; k.lift = 0
   k.yaw = player.facing
 }
 
@@ -89,14 +93,14 @@ function Dog({ url, reveal }: { url: string; reveal: boolean }) {
     return { s, y: -b.min.y * s }
   }, [scene])
   const clip = useMemo(() => {
-    const names = animations.map((a) => a.name)
-    const idle = names.find((n) => /idle/i.test(n) && !/sit/i.test(n)) ?? names[0]
-    return { idle, run: names.find((n) => /run|gallop|trot|walk/i.test(n)) ?? idle, sit: names.find((n) => /sit/i.test(n)) ?? idle }
+    const names = animations.map((a) => a.name), has = (n: string) => names.includes(n)
+    const idle = has('Idle') ? 'Idle' : names[0]
+    return { idle, walk: has('Walk') ? 'Walk' : idle, run: has('Gallop') ? 'Gallop' : idle, sit: has('Eating') ? 'Eating' : idle }
   }, [animations])
   const K = useRef<Rig>({
     pos: new THREE.Vector3(), vel: new THREE.Vector3(), prev: new THREE.Vector3(),
     yaw: 0, lat: SIDE, lift: 0, rv: 0, rk: -1,
-    moving: false, sit: false, still: 0, stuck: 0, first: true, hop: null,
+    moving: false, sit: false, bridge: false, still: 0, stuck: 0, first: true, hop: null,
   })
   const cur = useRef<THREE.AnimationAction | null>(null)
 
@@ -151,18 +155,19 @@ function Dog({ url, reveal }: { url: string; reveal: boolean }) {
       const a = 1 - Math.exp(-(running ? 6 : 4) * dt), dl = dT || 1
       k.vel.x += ((tx - k.pos.x) / dl * sp - k.vel.x) * a
       k.vel.z += ((tz - k.pos.z) / dl * sp - k.vel.z) * a
-      const nx = k.pos.x + k.vel.x * dt, nz = k.pos.z + k.vel.z * dt, gy = groundAt(nx, nz, k.pos.y)
-      if (gy !== null && Math.abs(gy - k.pos.y) < STEP) { k.pos.set(nx, gy, nz); k.stuck = 0 }
+      const nx = k.pos.x + k.vel.x * dt, nz = k.pos.z + k.vel.z * dt, g = groundAt(nx, nz, k.pos.y)
+      if (g && Math.abs(g.y - k.pos.y) < STEP) { k.pos.set(nx, g.y, nz); k.stuck = 0; k.bridge = g.bridge }
       else { k.vel.set(0, 0, 0); k.stuck += dt }
-      if (k.stuck > 0.6 && player.grounded) {
-        const hy = groundAt(tx, tz, P.y)
-        if (hy !== null) { k.hop = { t: 0, a: k.pos.clone(), b: new THREE.Vector3(tx, hy, tz) }; k.stuck = 0; k.vel.set(0, 0, 0) }
+      const rx = k.pos.x - P.x, rz = k.pos.z - P.z, fD = rx * fx + rz * fz, lD = rx * -fz + rz * fx
+      if ((k.stuck > 0.6 || (fD > 0.2 && fD < 2 && Math.abs(lD) < 0.6)) && player.grounded) {
+        const h = groundAt(tx, tz, P.y)
+        if (h) { k.hop = { t: 0, a: k.pos.clone(), b: new THREE.Vector3(tx, h.y, tz) }; k.stuck = 0; k.vel.set(0, 0, 0) }
       }
       const sx = k.pos.x - P.x, sz = k.pos.z - P.z, sd = Math.hypot(sx, sz)
       if (sd > 1e-3 && sd < 0.7) { k.pos.x = P.x + sx * (0.7 / sd); k.pos.z = P.z + sz * (0.7 / sd) }
     }
 
-    const calm = !k.moving && pSpeed < 0.25
+    const calm = !k.moving && pSpeed < 0.25 && !k.bridge
     k.still = calm ? k.still + dt : 0
     if (!k.sit && k.still > SIT_AFTER && dP < NEAR) k.sit = true
     else if (k.sit && (!calm || dP > NEAR)) k.sit = false
@@ -178,10 +183,12 @@ function Dog({ url, reveal }: { url: string; reveal: boolean }) {
     blob.current.position.set(k.pos.x, k.pos.y + 0.02, k.pos.z)
     blob.current.scale.setScalar(Math.max(0.001, s))
 
-    const a = actions[k.moving ? clip.run : k.sit ? clip.sit : clip.idle]
+    const spd = Math.hypot(vx, vz), fast = k.hop !== null || dP > NEAR || spd > 2.8
+    const name = k.sit ? clip.sit : !k.moving && !k.hop ? clip.idle : fast ? clip.run : clip.walk
+    const a = actions[name]
     if (a) {
       if (cur.current !== a) { a.reset().fadeIn(0.25).play(); cur.current?.fadeOut(0.25); cur.current = a }
-      a.timeScale = k.hop ? 1.3 : k.moving ? THREE.MathUtils.clamp(Math.hypot(vx, vz) / 4.2, 0.55, 1.3) : 1
+      a.timeScale = k.sit ? 1 : k.moving || k.hop ? THREE.MathUtils.clamp(spd / (fast ? 4.5 : 1.8), 0.6, 1.3) : 1
     }
   })
 
