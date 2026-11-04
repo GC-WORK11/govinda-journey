@@ -278,6 +278,26 @@ await withChrome(async (b) => {
       await orbit('f', 700, 60, -300)
       await orbit('top', 0, -500, -600)
     }
+
+    // fallback solve-check: real goto + teleport + the island's own solver,
+    // then verify the store flags it done (covers passability if play.mjs
+    // can't win a second lock slot before the deadline)
+    const solved = await p.evaluate(async (id) => {
+      const c = await import('/src/v5/core.ts')
+      const l = await import('/src/v5/world/layout.ts')
+      const i = c.V5_ORDER.indexOf(id)
+      window.__journey?.v5?.goto?.(id)
+      const pt = l.ISLAND_POS[i].clone().add(l.ENTRY)
+      window.__journey?.player?.teleport?.(pt.x, pt.y + 0.3, pt.z)
+      try { await window.__journey?.solve?.[id]?.() } catch (e) { return 'solve threw: ' + e.message }
+      for (let t = 0; t < 100; t++) {
+        if (c.useV5.getState().done.includes(id)) return 'done'
+        await new Promise((r) => setTimeout(r, 200))
+      }
+      return 'not-done'
+    }, ID).catch((e) => 'eval failed: ' + e.message.slice(0, 80))
+    console.log(` ${ID}: solve-check -> ${solved}`)
+    await p.screenshot({ path: path.join(outdir, `${ID}-solved.png`) }).catch(() => {})
   }
 }, { maxWaitMs: 20 * 60000 })
 process.exit(0)
