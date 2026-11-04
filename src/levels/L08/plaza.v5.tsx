@@ -7,15 +7,14 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { clayVC, paint as paintGeo } from '../../world/kit'
-import { useFrozen, Veil } from './v5kit.v5'
+import { useFrozen, Veil, cleanGeo, mergeSafe } from './v5kit.v5'
 import { LEVELS } from '../registry'
 
 const L08 = LEVELS.find((l) => l.id === 'L08')!
 
 const flat = (g: THREE.BufferGeometry, color: string) => {
-  const out = g.index ? g.toNonIndexed() : g
+  const out = cleanGeo(g) // canonical attrs — mergeSafe never gets a mismatched set
   paintGeo(out, color)
   return out
 }
@@ -32,8 +31,7 @@ export function Plaza() {
       flat(new THREE.RingGeometry(1.35, 2.5, 48), '#d99a6b').rotateX(-Math.PI / 2).translate(0, 0.012, -0.8),
       flat(new THREE.RingGeometry(2.5, 2.62, 48), '#c9bfb0').rotateX(-Math.PI / 2).translate(0, 0.011, -0.8),
     ]
-    const merged = mergeGeometries(geos, false)!
-    geos.forEach((g) => g.dispose())
+    const merged = mergeSafe(geos) ?? geos[0]
     return merged
   }, [])
   const tileGeo = useMemo(() => new THREE.CircleGeometry(0.09, 6), [])
@@ -107,8 +105,7 @@ export function Bunting({ from, to, sag = 0.5 }: { from: [number, number, number
       geos.push(flat(new THREE.CylinderGeometry(0.028, 0.038, p.y, 7), '#a87a52').translate(p.x, p.y / 2, p.z))
       geos.push(flat(new THREE.SphereGeometry(0.045, 8, 8), '#c4704f').translate(p.x, p.y + 0.03, p.z))
     }
-    const merged = mergeGeometries(geos, false)!
-    geos.forEach((g) => g.dispose())
+    const merged = mergeSafe(geos) ?? geos[0]
     return merged
   }, [])
 
@@ -182,8 +179,7 @@ export function Board() {
   const { geo, tex } = useMemo(() => {
     const post = flat(new THREE.CylinderGeometry(0.035, 0.045, 0.84, 7), '#a87a52').translate(0, 0.42, 0)
     const panel = flat(new THREE.BoxGeometry(0.66, 0.44, 0.045), '#e4d8c4').translate(0, 0.98, 0)
-    const geo = mergeGeometries([post, panel], false)!
-    post.dispose(); panel.dispose()
+    const geo = mergeSafe([post, panel]) ?? post
     const cv = document.createElement('canvas')
     cv.width = 256; cv.height = 160
     const ctx = cv.getContext('2d')!

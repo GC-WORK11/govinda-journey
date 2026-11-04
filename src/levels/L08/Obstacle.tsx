@@ -124,7 +124,7 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
 
   useLocalInteractable(frame, {
     id: 'l08-board',
-    at: () => new THREE.Vector3(-1.3, 0.9, 2.35),
+    at: () => new THREE.Vector3(-1.25, 0.9, 2.55),
     radius: 1.8,
     label: 'Read the plaza board',
     enabled: () => overlay === 'none',
@@ -133,7 +133,7 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
 
   useDomOverlay(
     <>
-      {stage !== 'aside' && overlay === 'none' ? (
+      {active && stage !== 'aside' && overlay === 'none' ? (
         <div className="jov5-pill" data-qa="hint">{L08H.hint}</div>
       ) : null}
       {overlay === 'speak' ? (
@@ -197,7 +197,7 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
 
       {/* the sign studio — V4's own diorama (unlocked → its scaffold folds away),
           baked to a handful of merged draws once it settles */}
-      <group position={[-3.0, 0, 1.0]} scale={1.05}>
+      <group position={[-3.2, 0, 1.0]} scale={1.35}>
         <StaticBake delay={3200}>
           <DioramaV4 unlocked={true} active={active} />
         </StaticBake>
@@ -209,7 +209,7 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
 
       {/* story board + quiet rim dressing — one bake, no shadow casts on the small props */}
       <StaticBake shadow={false}>
-        <group position={[-1.3, 0, 2.35]} rotation={[0, 0.5, 0]}>
+        <group position={[-1.25, 0, 2.55]} rotation={[0, 0.5, 0]}>
           <Board />
         </group>
         <Prop name="bench" position={[2.3, 0, -0.35]} rotation={[0, -0.9, 0]} scale={0.85} />

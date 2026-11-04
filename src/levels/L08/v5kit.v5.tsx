@@ -197,6 +197,7 @@ function ensureCss() {
 export function useDomOverlay(node: React.ReactNode) {
   const host = useRef<{ el: HTMLDivElement; root: Root } | null>(null)
   useEffect(() => {
+    ensureCss()
     const el = document.createElement('div')
     document.body.appendChild(el)
     const root = createRoot(el)
@@ -244,12 +245,31 @@ const isPlainStandard = (m: THREE.Material): m is THREE.MeshStandardMaterial =>
   (m as THREE.MeshStandardMaterial).emissiveIntensity === 0 &&
   !(m as THREE.MeshStandardMaterial).transparent
 
-const normGeo = (g: THREE.BufferGeometry, world: THREE.Matrix4) => {
-  const out = (g.index ? g.toNonIndexed() : g.clone()).applyMatrix4(world)
-  const n = out.getAttribute('position').count
-  if (!out.getAttribute('normal')) out.computeVertexNormals()
-  if (!out.getAttribute('uv')) out.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(n * 2), 2))
-  return out
+/**
+ * Normalise a geometry for merging: non-indexed, world transform applied,
+ * canonical attribute set only (position/normal/uv/color) — GLB extras like
+ * tangents, skin weights and morph targets are what make mergeGeometries()
+ * return null (and a `!` would turn that into a renderer crash).
+ */
+const BAKE_ATTRS = ['position', 'normal', 'uv', 'color']
+const cleanGeo = (g0: THREE.BufferGeometry, world?: THREE.Matrix4) => {
+  const g = g0.index ? g0.toNonIndexed() : g0.clone()
+  if (world) g.applyMatrix4(world)
+  ;(g as unknown as { morphAttributes: Record<string, unknown> }).morphAttributes = {}
+  for (const name of Object.keys(g.attributes)) if (!BAKE_ATTRS.includes(name)) g.deleteAttribute(name)
+  const n = g.getAttribute('position').count
+  if (!g.getAttribute('normal')) g.computeVertexNormals()
+  if (!g.getAttribute('uv')) g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(n * 2), 2))
+  if (!g.getAttribute('color')) g.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(n * 3).fill(1), 3))
+  return g
+}
+
+/** mergeGeometries that can never crash: null result → parts stay unmerged. */
+export { cleanGeo }
+export const mergeSafe = (geos: THREE.BufferGeometry[]) => {
+  if (!geos.length) return null
+  if (geos.length === 1) return geos[0]
+  try { return mergeGeometries(geos, false) } catch { return null }
 }
 
 /**
@@ -279,7 +299,7 @@ export function StaticBake({ children, shadow = true, delay = 0 }: { children: R
         for (let a = o.parent; a && a !== root; a = a.parent) if (!a.visible) return
         m.getWorldScale(ws)
         if (Math.min(Math.abs(ws.x), Math.abs(ws.y), Math.abs(ws.z)) < 0.01) return // shrunk away
-        const geo = normGeo(m.geometry, world.copy(inv).multiply(m.matrixWorld))
+        const geo = cleanGeo(m.geometry, world.copy(inv).multiply(m.matrixWorld))
         const mat = Array.isArray(m.material) ? m.material[0] : m.material
         if (isPlainStandard(mat)) {
           paintGeo(geo, `#${mat.color.getHexString()}`)
@@ -292,8 +312,7 @@ export function StaticBake({ children, shadow = true, delay = 0 }: { children: R
       })
       const out: BakedPart[] = []
       const push = (geos: THREE.BufferGeometry[], mat: THREE.Material) => {
-        if (!geos.length) return
-        const merged = geos.length > 1 ? mergeGeometries(geos, false) : geos[0]
+        const merged = mergeSafe(geos)
         if (merged) out.push({ geo: merged, mat })
         else geos.forEach((g) => out.push({ geo: g, mat }))
       }
