@@ -13,7 +13,7 @@ new build corroborate (first useFrame after Player commit + student.glb +
 first-island chunks). Harness: `scripts/v7/coldload.mjs` (fresh incognito
 context per run; numbers = in-page ms since navigationStart).
 
-## Numbers (median of runs)
+## Numbers (per run)
 
 | run | build | h:playable | fj:playable | notes |
 |-----|-------|-----------:|------------:|-------|
