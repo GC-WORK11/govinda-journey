@@ -67,9 +67,9 @@ export function useSolver(id: string, fn: () => Promise<void>) {
 const PILL_CSS = `
 .gjv5-isla-hint{position:fixed;left:50%;bottom:max(28px,calc(env(safe-area-inset-bottom) + 16px));
   transform:translateX(-50%);z-index:60;pointer-events:none;white-space:nowrap}
-.gjv5-isla-hint span{display:inline-block;font:500 13px Inter,system-ui,sans-serif;color:#4a4038;
+.gjv5-isla-hint span{display:inline-block;font:500 clamp(17px,2vw,21px) Inter,system-ui,sans-serif;color:#4a4038;
   background:rgba(251,246,238,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-  border-radius:999px;padding:8px 16px;letter-spacing:.01em;
+  border-radius:999px;padding:10px 20px;letter-spacing:.01em;
   box-shadow:0 2px 14px rgba(59,51,48,.10);animation:islaHintIn .5s cubic-bezier(.2,.7,.2,1) both}
 @keyframes islaHintIn{from{opacity:0;transform:translateY(8px)}}
 @media (max-width:520px){.gjv5-isla-hint span{font-size:12px;padding:7px 13px}}
