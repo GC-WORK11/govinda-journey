@@ -186,16 +186,16 @@ export function Board() {
     ctx.fillStyle = '#fbf6ee'
     ctx.fillRect(0, 0, 256, 160)
     ctx.fillStyle = '#3b3330'
-    ctx.font = '600 30px Fraunces, Georgia, serif'
+    ctx.font = '600 26px Fraunces, Georgia, serif'
     ctx.textAlign = 'center'
-    ctx.fillText('Sign-Flow', 128, 52)
-    ctx.font = '400 15px Inter, sans-serif'
-    ctx.fillStyle = '#6b5f55'
-    ctx.fillText('teach the laptop', 128, 84)
-    ctx.fillText('your own hand signs', 128, 106)
+    ctx.fillText('Sign-Flow', 128, 36)
+    // the sign to match — the hero glyph, like V4's card
     ctx.strokeStyle = '#c4704f'
-    ctx.lineWidth = 8; ctx.lineCap = 'round'
-    ctx.beginPath(); ctx.moveTo(112, 146); ctx.lineTo(128, 124); ctx.lineTo(144, 146); ctx.stroke()
+    ctx.lineWidth = 13; ctx.lineCap = 'round'; ctx.lineJoin = 'round'
+    ctx.beginPath(); ctx.moveTo(94, 58); ctx.lineTo(128, 128); ctx.lineTo(162, 58); ctx.stroke()
+    ctx.font = '400 13px Inter, sans-serif'
+    ctx.fillStyle = '#6b5f55'
+    ctx.fillText('the hand that matches', 128, 148)
     const tex = new THREE.CanvasTexture(cv)
     tex.colorSpace = THREE.SRGBColorSpace
     return { geo, tex }

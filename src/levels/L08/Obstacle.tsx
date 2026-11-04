@@ -21,6 +21,7 @@ import { SpeakPrompt } from './voiceui.v5'
 import { SignPad, SIGN_V } from './signui.v5'
 import { has, interactables, useBlocker, useV5, type ObstacleProps } from '../../v5/core'
 import { LEVELS } from '../registry'
+import { PillHint } from '../L01/shared.v5'
 
 const L08H = LEVELS.find((l) => l.id === 'L08')!
 
@@ -133,9 +134,6 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
 
   useDomOverlay(
     <>
-      {active && stage !== 'aside' && overlay === 'none' ? (
-        <div className="jov5-pill" data-qa="hint">{L08H.hint}</div>
-      ) : null}
       {overlay === 'speak' ? (
         <SpeakPrompt word="hello" onClose={() => setOverlay('none')}
         onResult={() => {
@@ -191,13 +189,14 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
           <Guardian awake={stage !== 'approach'} />
         </group>
       </group>
+      <PillHint text={active && stage !== 'aside' && overlay === 'none' ? L08H.hint : null} />
       <GateStone x={-1.45} />
       <GateStone x={1.5} />
       <Tablet shown={stage !== 'approach'} />
 
       {/* the sign studio — V4's own diorama (unlocked → its scaffold folds away),
           baked to a handful of merged draws once it settles */}
-      <group position={[1.5, 0, 1.1]} scale={1.3}>
+      <group position={[0.31, 0, 0.56]} rotation={[0, -0.4, 0]} scale={1.3}>
         <StaticBake delay={3200}>
           <DioramaV4 unlocked={true} active={active} />
         </StaticBake>

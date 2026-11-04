@@ -165,9 +165,6 @@ const CSS = `
   background: #fffdf9; font: 400 15px 'Inter', sans-serif; color: #2f2925; outline: none; }
 .jov5-input:focus { border-color: rgba(47,41,37,.55); }
 .jov5-note { font-size: 12px; color: #6b5f55; margin-top: 10px; text-align: center; min-height: 15px; }
-.jov5-pill { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom)); transform: translateX(-50%);
-  background: rgba(251,246,238,.9); color: #4a4038; font: 500 12.5px 'Inter', sans-serif; letter-spacing: .02em;
-  padding: 7px 16px; border-radius: 999px; box-shadow: 0 4px 18px rgba(43,32,22,.14); pointer-events: none; z-index: 59; }
 .jov5-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #c8704a;
   margin-right: 9px; vertical-align: 0; animation: jov5pulse 2.4s ease-in-out infinite; }
 @keyframes jov5pulse { 0%,100% { transform: scale(.6); opacity: .4 } 50% { transform: scale(1.15); opacity: 1 } }
