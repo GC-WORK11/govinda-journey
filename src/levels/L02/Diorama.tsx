@@ -9,15 +9,15 @@ import { Merged, type Prim } from '../L01/shared.v5'
 /* V6: the wrap-cloth dome only belongs to the V4 route — V5 shows the gates. */
 const IS_V4 = typeof location !== 'undefined' && new URLSearchParams(location.search).has('v4')
 
-/* pillars + caps + wall wings — the gate line's statics as ONE mesh */
+/* pillars + caps — the gate line's statics as ONE mesh. V4's wall wings are
+   dropped on V5: at D_SCALE they reach x 1.64..3.2 island-local, exactly where
+   the obstacle's letter steps grow — they interpenetrated visibly. */
 const GATE_LINE: Prim[] = (() => {
   const p: Prim[] = []
   for (const s of [-1, 1]) {
     p.push(
       { g: 'box', p: [s * 0.8, 0.9, -0.8], s: [0.5, 1.8, 0.5], c: C.stone },
       { g: 'cyl', p: [s * 0.8, 1.84, -0.8], s: [0.56, 0.12, 0.64], c: C.sand },
-      { g: 'box', p: [s * 1.55, 0.58, -0.8], s: [1.0, 1.15, 0.26], c: C.stone },
-      { g: 'box', p: [s * 1.55, 1.2, -0.8], s: [1.06, 0.12, 0.32], c: C.sand },
     )
   }
   return p
@@ -110,7 +110,7 @@ export default function Diorama({ unlocked }: DioramaProps) {
       <Letter position={[0, 0.008, -0.5]} rotation={[0, 0.12, 0]} />
       <Letter position={[-0.8, 0.09, -0.47]} rotation={[-0.5, 0.08, 0.06]} />
       <Letter position={[-1.35, 0.01, -0.2]} rotation={[0, 0.65, 0]} />
-      <group position={[1.3, 0, -0.42]}>
+      <group position={[1.3, 0, -0.25]}>
         <Letter position={[0, 0.009, 0]} rotation={[0, -0.35, 0]} />
         <Letter position={[0.03, 0.027, -0.02]} rotation={[0, -0.2, 0]} seal={C.brick} />
       </group>
@@ -123,8 +123,9 @@ export default function Diorama({ unlocked }: DioramaProps) {
           <Merged items={POND} />
         </group>
       )}
-      {/* a small heap of letters that never got through */}
-      <group position={[1.05, 0, -0.55]}>
+      {/* a small heap of letters that never got through (kept clear of the
+          obstacle's stone-step run that grows along x≈1.6..2.8, z≈-0.7..-2.4) */}
+      <group position={[1.05, 0, -0.28]}>
         <Letter position={[0, 0.008, 0]} rotation={[0, 0.4, 0]} />
         <Letter position={[0.04, 0.026, -0.03]} rotation={[0, -0.3, 0.04]} seal={C.brick} />
         <Letter position={[-0.05, 0.044, 0.04]} rotation={[0, 0.9, -0.03]} />

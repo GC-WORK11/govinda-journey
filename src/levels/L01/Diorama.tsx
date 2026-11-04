@@ -2,7 +2,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { DioramaProps } from '../types'
-import { C, clay, Scaffold, Rock, Fence } from '../../world/kit'
+import { C, clay, Scaffold, Rock } from '../../world/kit'
 import { LAMP_POS, HEAD_Y, Lantern, lampLit, lampDark, haloTexture } from './lanterns'
 import { Merged, mergePrims, type Prim } from './shared.v5'
 
@@ -148,8 +148,9 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
 
       <Rock position={[1.72, 0.05, -0.85]} s={0.16} />
 
-      {/* low fence curving around the back-left rim */}
-      <Fence pts={[new THREE.Vector3(-2.35, 0, -0.7), new THREE.Vector3(-2.15, 0, -1.55), new THREE.Vector3(-1.45, 0, -2.15)]} seed={4} />
+      {/* V5: the back-left rim is now the real campus block + obstacle fences —
+          V4's little rim fence landed inside the building; dropped (was:
+          pts (-2.35,-0.7) (-2.15,-1.55) (-1.45,-2.15)) */}
     </group>
   )
 }

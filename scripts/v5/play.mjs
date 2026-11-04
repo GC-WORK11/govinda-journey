@@ -574,7 +574,7 @@ for (const [size, vp] of VIEWPORTS) {
     try { await page.close() } catch {}
   }
 }
-}) // withChrome
+}, { maxWaitMs: 3600000 }) // withChrome — shared box can queue for a while
 
 // ---- report -----------------------------------------------------------------
 const outFile = path.join(outdir, 'last-run.json')
