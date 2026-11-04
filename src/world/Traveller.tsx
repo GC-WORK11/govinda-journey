@@ -35,6 +35,13 @@ function Model({ anim }: { anim: Anim }) {
             skin.wrapS = mat.map.wrapS; skin.wrapT = mat.map.wrapT; skin.needsUpdate = true
             mat.map = skin; mat.needsUpdate = true
           }
+          // same self-lit floor as the V5 player (see src/v5/player/Player.tsx)
+          if (!mat.emissiveMap && mat.map) {
+            mat.emissiveMap = mat.map
+            mat.emissive.set('#fff4e4')
+            mat.emissiveIntensity = 0.16
+            mat.needsUpdate = true
+          }
         }
       }
     })
