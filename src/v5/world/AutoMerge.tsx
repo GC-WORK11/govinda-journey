@@ -107,7 +107,9 @@ export function AutoMerge({ children, deps = [] }: { children: ReactNode; deps?:
     s.poll = 0
     const g = root.current
     if (!g) return
-    if (count(g) !== s.n) bake()
+    // re-bake on new eligible meshes, or when a wrapped child unmounted
+    // (its hidden originals leave the tree, so the merged mesh must too)
+    if (count(g) !== s.n || s.hidden.some((m) => !m.parent)) bake()
   })
 
   return <group ref={root}>{children}</group>
