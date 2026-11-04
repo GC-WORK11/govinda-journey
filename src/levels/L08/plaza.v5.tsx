@@ -219,6 +219,7 @@ export function BoardCard({ onClose }: { onClose: () => void }) {
       <div className="jov5-center" data-qa="board-card">
         <div className="jov5-title">{L08.title}</div>
         <div className="jov5-sub" style={{ marginTop: 10 }}>{L08.line}</div>
+        <div className="jov5-sub" style={{ marginTop: 12 }}>{L08.story}</div>
         <div className="jov5-sub" style={{ marginTop: 12 }}>{L08.tech}</div>
         <div className="jov5-row" style={{ justifyContent: 'center' }}>
           {L08.links.map((l) => (
