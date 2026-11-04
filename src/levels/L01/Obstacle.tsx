@@ -8,9 +8,7 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import * as core from '../../v5/core'
-import { Gate, LowWall, PathStones, PillHint, Prop, Rock, tpLocal, sleep, useLocalPlayer, useSolver } from './shared.v5'
-import { Bush } from '../../world/kit'
-import { Scatter } from '../../v5/art/Dressing'
+import { Gate, LowWall, PathStones, PillHint, Prop, Rock, tpLocal, sleep, useLocalPlayer, useSolver, BloomField, Merged, type Prim } from './shared.v5'
 import { BigTree, CampusBlock, LaptopDesk } from './campus.v5'
 
 const DESK = new THREE.Vector3(2.35, 0, -0.6)
@@ -84,6 +82,23 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   }, [id])
   useSolver(id, solve)
 
+  // four bushes merged into ONE vertex-coloured mesh (was ~12 draws)
+  const bushes = useMemo<Prim[]>(() => {
+    const spots: [number, number, number][] = [
+      [-3.9, WALL_Z + 0.45, 1.15], [3.95, WALL_Z + 0.4, 1.05],
+      [-3.4, -0.6, 1.1], [3.55, -2.7, 1.2],
+    ]
+    const prims: Prim[] = []
+    spots.forEach(([x, z, s], i) => {
+      prims.push(
+        { g: 'dod', p: [x, 0.42 * s, z], s: [1.05 * s, 0.9 * s, 1.05 * s], r: [0, i, 0], c: i % 2 ? '#8fae6a' : '#7fa25e' },
+        { g: 'dod', p: [x + 0.32 * s, 0.6 * s, z + 0.12 * s], s: [0.62 * s, 0.56 * s, 0.62 * s], r: [0, i * 2, 0], c: '#9cba74' },
+        { g: 'dod', p: [x - 0.3 * s, 0.55 * s, z - 0.14 * s], s: [0.55 * s, 0.5 * s, 0.55 * s], r: [0, i * 3, 0], c: '#8fae6a' },
+      )
+    })
+    return prims
+  }, [])
+
   const warm = open
   return (
     <group ref={root}>
@@ -96,8 +111,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       <LowWall position={[0, 0, WALL_Z]} len={9} h={0.56} />
       <Rock position={[-4.25, 0.05, WALL_Z]} s={0.62} yaw={0.7} variant={1} />
       <Rock position={[4.25, 0.05, WALL_Z]} s={0.58} yaw={2.1} variant={2} />
-      <Bush position={[-3.9, 0, WALL_Z + 0.45]} s={1.15} />
-      <Bush position={[3.95, 0, WALL_Z + 0.4]} s={1.05} />
+      <Merged items={bushes} />
 
       {/* the way out */}
       <Gate position={[0, 0, -3.9]} open={open} instant={done} width={2.0} height={1.42} />
@@ -112,12 +126,10 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       {/* dressing */}
       <Prop name="fence_planks" position={[-4.25, 0, -0.9]} rotation={[0, 1.15, 0]} scale={1.3} />
       <Prop name="fence_planks" position={[-4.45, 0, -2.0]} rotation={[0, 1.62, 0]} scale={1.3} />
-      <Bush position={[-3.4, 0, -0.6]} s={1.1} />
-      <Bush position={[3.55, 0, -2.7]} s={1.2} />
       <Rock position={[-3.3, 0.04, 1.9]} s={0.3} block={false} variant={2} />
       <Rock position={[3.4, 0.04, 2.1]} s={0.24} block={false} yaw={1.2} variant={1} />
-      {/* seeded rim dressing (flowers only — the spiky tufts were cut) */}
-      <Scatter seed={11} density={0.55} kinds={['flower']}
+      {/* seeded rim dressing (grass + flower blobs, ONE merged mesh) */}
+      <BloomField seed={11} density={0.55}
         avoid={[[-2.3, -2.85, 2.6], [2.6, -1.0, 2.0], [0, -3.9, 2.2], [0, 4.2, 1.4]]} />
 
       {/* quiet teaching line */}

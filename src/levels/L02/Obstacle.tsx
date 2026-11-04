@@ -10,9 +10,7 @@ import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import * as core from '../../v5/core'
-import { C, clay, Gate, Mound, PaperLetter, PathStones, PillHint, Prop, REDUCED, Rock, tpLocal, sleep, useLocalPlayer, useSolver } from '../L01/shared.v5'
-import { Bush } from '../../world/kit'
-import { Scatter } from '../../v5/art/Dressing'
+import { C, clay, Gate, Mound, PaperLetter, PathStones, PillHint, Prop, REDUCED, Rock, tpLocal, sleep, useLocalPlayer, useSolver, BloomField, Merged, type Prim } from '../L01/shared.v5'
 
 /** Where the five letters lie (island-local). */
 const LETTERS = [
@@ -39,40 +37,35 @@ type Slot = {
 }
 
 /** V4's stream: a shallow earthen bed with a warm pond surface, five stepping
- *  stones across it, and carved posts at each bank — all opaque clay. */
+ *  stones across it, and carved posts at each bank — all opaque clay,
+ *  merged into ONE draw call. */
 function Stream() {
+  const prims = useMemo<Prim[]>(() => {
+    const p: Prim[] = [
+      { g: 'sph', p: [0, 0.0, 0], s: [2.5, 0.1, 0.85], c: C.earth },        // carved bed
+      { g: 'sph', p: [0, 0.02, 0], s: [2.32, 0.1, 0.7], c: C.water },       // opaque water
+      { g: 'sph', p: [0, 0.035, 0], s: [2.12, 0.1, 0.58], c: C.waterLight },// light heart
+    ]
+    ;[-0.8, -0.4, 0, 0.4, 0.8].forEach((x, i) => {
+      const z = Math.sin(i * 1.2) * 0.14
+      p.push(
+        { g: 'cyl', p: [x, 0.06, z], s: [0.38, 0.12, 0.44], c: C.stone },
+        { g: 'cyl', p: [x, 0.125, z], s: [0.33, 0.02, 0.33], c: C.sand },
+      )
+    })
+    ;[-1.32, 1.32].forEach((x, i) => {
+      const z = i ? 0.06 : -0.06
+      p.push(
+        { g: 'cyl', p: [x, 0.24, z], s: [0.09, 0.5, 0.12], c: C.wood },
+        { g: 'sph', p: [x, 0.53, z], s: [0.14, 0.14, 0.14], c: C.woodLight },
+        { g: 'cone', p: [x, 0.6, z], s: [0.1, 0.08, 0.1], c: C.terracotta },
+      )
+    })
+    return p
+  }, [])
   return (
     <group position={[2.0, 0, 3.05]} rotation={[0, -0.08, 0]}>
-      {/* stream bed */}
-      <mesh position={[0, 0.03, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[1.25, 0.42, 1]} material={clay(C.earth)} receiveShadow>
-        <circleGeometry args={[1, 40]} />
-      </mesh>
-      {/* opaque clay water, like the V4 diorama pond */}
-      <mesh position={[0, 0.045, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[1.16, 0.35, 1]} material={clay(C.water)}>
-        <circleGeometry args={[1, 40]} />
-      </mesh>
-      <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[1.06, 0.29, 1]} material={clay(C.waterLight)}>
-        <circleGeometry args={[1, 40]} />
-      </mesh>
-      {/* stepping stones across */}
-      {[-0.8, -0.4, 0, 0.4, 0.8].map((x, i) => (
-        <group key={i} position={[x, 0, Math.sin(i * 1.2) * 0.14]}>
-          <mesh position={[0, 0.06, 0]} material={clay(C.stone)} castShadow receiveShadow>
-            <cylinderGeometry args={[0.19, 0.22, 0.12, 14]} />
-          </mesh>
-          <mesh position={[0, 0.125, 0]} material={clay(C.sand)}>
-            <cylinderGeometry args={[0.165, 0.165, 0.012, 14]} />
-          </mesh>
-        </group>
-      ))}
-      {/* carved bank posts, one at each end of the stream */}
-      {[-1.32, 1.32].map((x, i) => (
-        <group key={i} position={[x, 0, i ? 0.06 : -0.06]}>
-          <mesh position={[0, 0.24, 0]} material={clay(C.wood)} castShadow><cylinderGeometry args={[0.045, 0.06, 0.5, 7]} /></mesh>
-          <mesh position={[0, 0.53, 0]} material={clay(C.woodLight)} castShadow><sphereGeometry args={[0.07, 9, 7]} /></mesh>
-          <mesh position={[0, 0.6, 0]} material={clay(C.terracotta)} castShadow><coneGeometry args={[0.05, 0.08, 7]} /></mesh>
-        </group>
-      ))}
+      <Merged items={prims} />
     </group>
   )
 }
@@ -164,6 +157,13 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   const openRef = useRef(done)
   const reserved = useRef(0)
   const yawJ = useMemo(() => [0.06, -0.09, 0.04, -0.05, 0.08], [])
+  // two shrubs as ONE merged mesh (was ~6 draws)
+  const bushes = useMemo<Prim[]>(() => [
+    { g: 'dod', p: [-3.5, 0.45, 2.4], s: [1.15, 0.95, 1.15], c: '#8fae6a' },
+    { g: 'dod', p: [-3.15, 0.6, 2.55], s: [0.6, 0.55, 0.6], r: [0, 0.9, 0], c: '#9cba74' },
+    { g: 'dod', p: [3.6, 0.38, 1.9], s: [0.95, 0.8, 0.95], r: [0, 1.7, 0], c: '#8fae6a' },
+    { g: 'dod', p: [3.85, 0.52, 2.05], s: [0.5, 0.45, 0.5], r: [0, 0.4, 0], c: '#7fa25e' },
+  ], [])
   const slots = useMemo<Slot[]>(() =>
     LETTERS.map((pos, i) => ({
       pos, state: done ? 'gone' : 'idle', t: 0, seat: -1,
@@ -262,10 +262,9 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       <PathStones pts={[[0.7, 1.95], [1.6, 1.25]]} seed={11} />
       <Prop name="fence_simple" position={[-4.15, 0, -0.4]} rotation={[0, 1.35, 0]} scale={1.35} />
       <Prop name="fence_simple" position={[-4.05, 0, -1.65]} rotation={[0, 1.85, 0]} scale={1.35} />
-      <Bush position={[-3.5, 0, 2.4]} s={1.1} />
-      <Bush position={[3.6, 0, 1.9]} s={0.9} />
-      {/* seeded rim dressing (flowers only), kept clear of letters, steps and the ledge */}
-      <Scatter seed={12} density={0.5} kinds={['flower']}
+      <Merged items={bushes} />
+      {/* seeded rim dressing (grass + flower blobs, ONE merged mesh) */}
+      <BloomField seed={12} density={0.5}
         avoid={[[1.6, 2.7, 1.1], [-2.5, 0.9, 1.6], [2.05, 0.95, 1.4], [-2.9, -1.5, 1.1], [2.5, -1.3, 1.2], [2.1, -1.7, 1.5], [0, -3.55, 2.4], [0, 4.2, 1.4]]} />
 
       <PillHint text={hint} />

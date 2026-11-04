@@ -13,6 +13,11 @@ import { carryAnchor, carryQuat } from '../../v5/player/anchor'
 import { Prop } from '../../v5/art/Dressing'
 
 export { C, clay, Prop }
+/* merged-static helpers live in ISL-A's shared file (same kit seam) */
+export { Merged, mergePrims, BloomField } from '../L01/shared.v5'
+export type { Prim } from '../L01/shared.v5'
+import { Merged } from '../L01/shared.v5'
+import type { Prim } from '../L01/shared.v5'
 
 export const REDUCED =
   typeof window !== 'undefined' &&
@@ -171,15 +176,15 @@ export function PathStones({ pts, seed = 1, gap = 0.6 }: { pts: [number, number]
     }
     return out
   }, [pts, seed, gap])
-  return (
-    <group>
-      {items.map((p, i) => (
-        <Prop key={i} name={i % 2 ? 'path_stone' : 'rock_path_round'}
-          position={[p.x, 0.02, p.z]} rotation={[0, p.r, 0]}
-          scale={i % 2 ? p.s * 0.34 : p.s * 0.26} />
-      ))}
-    </group>
-  )
+  // seeded paver trail as ONE vertex-coloured mesh (was ~2 GLB draws per stone)
+  const prims = useMemo<Prim[]>(() => items.map((p, i) => ({
+    g: 'cyl' as const,
+    p: [p.x, 0.04, p.z] as [number, number, number],
+    s: [p.s * (i % 2 ? 0.6 : 0.46), 0.08, p.s * (i % 2 ? 0.68 : 0.5)] as [number, number, number],
+    r: [0, p.r, 0] as [number, number, number],
+    c: i % 2 ? C.stone : '#d9c9a8',
+  })), [items])
+  return <Merged items={prims} />
 }
 
 /** Pack boulder (Kenney small / Quaternius big), optionally a blocker + walkable cap. */
@@ -203,9 +208,8 @@ export function Rock({ position, s = 0.5, yaw = 0, block = true, variant = 0, wa
   return (
     <group position={position} rotation={[0, yaw, 0]}>
       <Prop name={name} scale={scale} />
-      <mesh ref={ref} position={[0, s * 0.62, 0]}>
+      <mesh ref={ref} position={[0, s * 0.62, 0]} visible={false}>
         <boxGeometry args={[s * 1.5, s * 1.24, s * 1.4]} />
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
     </group>
   )

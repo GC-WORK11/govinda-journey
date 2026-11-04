@@ -3,18 +3,16 @@
  * and the desk + laptop the tutorial ends at.
  * The campus block is a clay assembly (cream walls, terracotta hip roof,
  * arched windows that warm); desk + tree use ART pack props.
+ * Static clay is merged into one vertex-coloured mesh to keep draw calls low.
  */
 import { useMemo, useRef, type RefObject } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import * as core from '../../v5/core'
-import { C, clay, Prop, REDUCED } from './shared.v5'
+import { C, clay, Prop, REDUCED, Merged, mergePrims, type Prim } from './shared.v5'
 
-const invisible = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })
 const winLit = new THREE.MeshStandardMaterial({ color: '#ffd489', emissive: '#ffb04e', emissiveIntensity: 0.9, roughness: 0.5 })
 const winDark = new THREE.MeshStandardMaterial({ color: '#9db6b3', roughness: 0.92 })
-const archGeo = new THREE.CapsuleGeometry(0.13, 0.24, 4, 10)
 
 /** Cream campus block with a terracotta hip roof + arched windows. Windows warm up once solved. */
 export function CampusBlock({ position, yaw = 0, warm }: {
@@ -28,6 +26,22 @@ export function CampusBlock({ position, yaw = 0, warm }: {
   const puffMats = useMemo(
     () => [0, 1, 2].map(() => new THREE.MeshStandardMaterial({ color: '#f1e7d7', transparent: true, opacity: 0, roughness: 1 })),
     [])
+  // static clay → one mesh; windows → one mesh sharing the lit/dark material
+  const statics = useMemo<Prim[]>(() => [
+    { g: 'box', p: [0, 0.08, 0], s: [2.7, 0.16, 1.8], c: C.stone },           // plinth
+    { g: 'box', p: [0, 0.72, 0], s: [2.4, 1.15, 1.6], c: C.cream },          // main volume
+    { g: 'box', p: [0, 1.33, 0], s: [2.5, 0.12, 1.7], c: C.sand },           // sand band
+    { g: 'pyr', p: [0, 2.08, 0], s: [3.6, 0.72, 2.6], r: [0, Math.PI / 4, 0], c: C.terracotta }, // hip roof
+    { g: 'box', p: [0, 0.56, 0.78], s: [0.34, 0.62, 0.1], c: C.wood },       // door
+    { g: 'box', p: [0, 0.05, 0.9], s: [0.64, 0.08, 0.26], c: C.sand },       // threshold step
+    { g: 'box', p: [0.78, 1.98, -0.2], s: [0.2, 0.46, 0.2], c: C.brick },    // chimney
+  ], [])
+  const winGeo = useMemo(() => mergePrims([
+    { g: 'box', p: [-0.72, 0.78, 0.79], s: [0.24, 0.46, 0.08], c: '#fff' },
+    { g: 'box', p: [0.72, 0.78, 0.79], s: [0.24, 0.46, 0.08], c: '#fff' },
+    { g: 'box', p: [1.2, 0.78, -0.2], s: [0.24, 0.46, 0.08], r: [0, Math.PI / 2, 0], c: '#fff' },
+    { g: 'box', p: [-1.2, 0.78, -0.2], s: [0.24, 0.46, 0.08], r: [0, Math.PI / 2, 0], c: '#fff' },
+  ]), [])
   useFrame((s) => {
     const t = s.clock.elapsedTime
     if (!REDUCED) winLit.emissiveIntensity = warm ? 0.9 + Math.sin(t * 2.4) * 0.07 : 0
@@ -42,25 +56,8 @@ export function CampusBlock({ position, yaw = 0, warm }: {
   const win = warm ? winLit : winDark
   return (
     <group position={position} rotation={[0, yaw, 0]}>
-      {/* plinth + main volume + sand band + hip roof */}
-      <RoundedBox args={[2.7, 0.16, 1.8]} radius={0.06} position={[0, 0.08, 0]} material={clay(C.stone)} castShadow receiveShadow />
-      <RoundedBox args={[2.4, 1.15, 1.6]} radius={0.08} position={[0, 0.72, 0]} material={clay(C.cream)} castShadow receiveShadow />
-      <RoundedBox args={[2.5, 0.12, 1.7]} radius={0.05} position={[0, 1.33, 0]} material={clay(C.sand)} castShadow />
-      <mesh position={[0, 1.72, 0]} rotation={[0, Math.PI / 4, 0]} scale={[1, 1, 0.72]} material={clay(C.terracotta)} castShadow>
-        <coneGeometry args={[1.8, 0.72, 4]} />
-      </mesh>
-      {/* arched door + threshold step */}
-      <mesh position={[0, 0.56, 0.78]} scale={[1, 1, 0.4]} material={clay(C.wood)} castShadow>
-        <capsuleGeometry args={[0.19, 0.42, 4, 10]} />
-      </mesh>
-      <RoundedBox args={[0.64, 0.08, 0.26]} radius={0.03} position={[0, 0.05, 0.9]} material={clay(C.sand)} castShadow receiveShadow />
-      {/* arched windows */}
-      <mesh geometry={archGeo} position={[-0.72, 0.78, 0.79]} scale={[1, 1, 0.32]} material={win} />
-      <mesh geometry={archGeo} position={[0.72, 0.78, 0.79]} scale={[1, 1, 0.32]} material={win} />
-      <mesh geometry={archGeo} position={[1.2, 0.78, -0.2]} rotation={[0, Math.PI / 2, 0]} scale={[1, 1, 0.32]} material={win} />
-      <mesh geometry={archGeo} position={[-1.2, 0.78, -0.2]} rotation={[0, Math.PI / 2, 0]} scale={[1, 1, 0.32]} material={win} />
-      {/* chimney + quiet smoke once warm */}
-      <RoundedBox args={[0.2, 0.46, 0.2]} radius={0.04} position={[0.78, 1.98, -0.2]} material={clay(C.brick)} castShadow />
+      <Merged items={statics} />
+      <mesh geometry={winGeo} material={win} />
       {[0, 1, 2].map((i) => (
         <mesh key={i} position={[0.78, 2.34, -0.2]} material={puffMats[i]}
           ref={(m) => { puffs.current[i] = m }}>
@@ -68,7 +65,7 @@ export function CampusBlock({ position, yaw = 0, warm }: {
         </mesh>
       ))}
       {/* collider */}
-      <mesh ref={blk} position={[0, 1.05, 0]} material={invisible}>
+      <mesh ref={blk} position={[0, 1.05, 0]} visible={false}>
         <boxGeometry args={[2.5, 2.1, 1.75]} />
       </mesh>
       {/* porch glow once warm */}
@@ -84,7 +81,7 @@ export function BigTree({ position, s = 1 }: { position: [number, number, number
   return (
     <group position={position} scale={s}>
       <Prop name="tree_oak" scale={1.9} />
-      <mesh ref={blk} position={[0, 0.9, 0]} material={invisible}>
+      <mesh ref={blk} position={[0, 0.9, 0]} visible={false}>
         <cylinderGeometry args={[0.26, 0.34, 1.8, 8]} />
       </mesh>
     </group>
@@ -131,7 +128,7 @@ export function LaptopDesk({ position, yaw = 0, lit, laptopRef }: {
         <cylinderGeometry args={[0.04, 0.035, 0.09, 10]} />
       </mesh>
       {/* desk collider */}
-      <mesh ref={blk} position={[0, top / 2, 0.05]} material={invisible}>
+      <mesh ref={blk} position={[0, top / 2, 0.05]} visible={false}>
         <boxGeometry args={[1.15, top, 0.95]} />
       </mesh>
       {/* warm desk light once used */}

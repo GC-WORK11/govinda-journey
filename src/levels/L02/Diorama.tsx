@@ -4,9 +4,44 @@ import { RoundedBox } from '@react-three/drei'
 import type { DioramaProps } from '../types'
 import { Scaffold, clay, C, Letter, Rock } from '../../world/kit'
 import * as THREE from 'three'
+import { Merged, type Prim } from '../L01/shared.v5'
 
 /* V6: the wrap-cloth dome only belongs to the V4 route — V5 shows the gates. */
 const IS_V4 = typeof location !== 'undefined' && new URLSearchParams(location.search).has('v4')
+
+/* pillars + caps + wall wings — the gate line's statics as ONE mesh */
+const GATE_LINE: Prim[] = (() => {
+  const p: Prim[] = []
+  for (const s of [-1, 1]) {
+    p.push(
+      { g: 'box', p: [s * 0.8, 0.9, -0.8], s: [0.5, 1.8, 0.5], c: C.stone },
+      { g: 'cyl', p: [s * 0.8, 1.84, -0.8], s: [0.56, 0.12, 0.64], c: C.sand },
+      { g: 'box', p: [s * 1.55, 0.58, -0.8], s: [1.0, 1.15, 0.26], c: C.stone },
+      { g: 'box', p: [s * 1.55, 1.2, -0.8], s: [1.06, 0.12, 0.32], c: C.sand },
+    )
+  }
+  return p
+})()
+
+/* loose papers + receiving pond + stepping stones (conditional clusters) */
+const PAPERS: Prim[] = [
+  { g: 'box', p: [-1.4, 0.01, -0.3], s: [0.22, 0.01, 0.16], r: [0, 0.3, 0], c: '#f4e6c4' },
+  { g: 'box', p: [1.2, 0.01, 0.2], s: [0.22, 0.01, 0.16], r: [0, -0.5, 0], c: '#f4e6c4' },
+  { g: 'box', p: [0.3, 0.01, 0.8], s: [0.22, 0.01, 0.16], r: [0, 1.2, 0], c: '#f4e6c4' },
+]
+const POND: Prim[] = (() => {
+  const p: Prim[] = [
+    { g: 'cyl', p: [0, 0.005, 0], s: [3.2, 0.02, 3.2], c: C.water },
+    { g: 'cyl', p: [0, 0.015, 0], s: [2.8, 0.02, 2.8], c: C.sky },
+  ]
+  ;[-0.8, -0.4, 0, 0.4, 0.8].forEach((x, i) => {
+    p.push(
+      { g: 'cyl', p: [x, 0.06, Math.sin(i * 1.2) * 0.15], s: [0.36, 0.08, 0.4], c: C.stone },
+      { g: 'cyl', p: [x, 0.1, Math.sin(i * 1.2) * 0.15], s: [0.32, 0.02, 0.32], c: C.sand },
+    )
+  })
+  return p
+})()
 
 export default function Diorama({ unlocked }: DioramaProps) {
   const leftGateRef = useRef<THREE.Group>(null)
@@ -28,31 +63,8 @@ export default function Diorama({ unlocked }: DioramaProps) {
 
   return (
     <group>
-      {/* Stone pillars */}
-      <RoundedBox
-        args={[0.5, 1.8, 0.5]}
-        radius={0.08}
-        position={[-0.8, 0.9, -0.8]}
-        material={clay(C.stone)}
-        castShadow
-        receiveShadow
-      />
-      <RoundedBox
-        args={[0.5, 1.8, 0.5]}
-        radius={0.08}
-        position={[0.8, 0.9, -0.8]}
-        material={clay(C.stone)}
-        castShadow
-        receiveShadow
-      />
-
-      {/* Pillar tops */}
-      <mesh position={[-0.8, 1.84, -0.8]} material={clay(C.sand)} castShadow>
-        <cylinderGeometry args={[0.28, 0.32, 0.12, 8]} />
-      </mesh>
-      <mesh position={[0.8, 1.84, -0.8]} material={clay(C.sand)} castShadow>
-        <cylinderGeometry args={[0.28, 0.32, 0.12, 8]} />
-      </mesh>
+      {/* Stone pillars + caps + wall wings — ONE merged mesh */}
+      <Merged items={GATE_LINE} />
 
       {/* Left gate */}
       <group ref={leftGateRef} position={[-0.55, 0, -0.8]}>
@@ -88,35 +100,8 @@ export default function Diorama({ unlocked }: DioramaProps) {
         </group>
       </group>
 
-      {/* Scattered letters on ground (before unlock) */}
-      {!unlocked && (
-        <>
-          <RoundedBox
-            args={[0.22, 0.01, 0.16]}
-            radius={0.01}
-            position={[-1.4, 0.01, -0.3]}
-            rotation={[0, 0.3, 0]}
-            material={clay(C.paper)}
-            castShadow
-          />
-          <RoundedBox
-            args={[0.22, 0.01, 0.16]}
-            radius={0.01}
-            position={[1.2, 0.01, 0.2]}
-            rotation={[0, -0.5, 0]}
-            material={clay(C.paper)}
-            castShadow
-          />
-          <RoundedBox
-            args={[0.22, 0.01, 0.16]}
-            radius={0.01}
-            position={[0.3, 0.01, 0.8]}
-            rotation={[0, 1.2, 0]}
-            material={clay(C.paper)}
-            castShadow
-          />
-        </>
-      )}
+      {/* Scattered letters on ground (before unlock) — one mesh */}
+      {!unlocked && <Merged items={PAPERS} />}
 
       {/* letters that never got through — one slipped under the closed gate, a few kept by the pillars */}
       <Letter position={[0, 0.008, -0.5]} rotation={[0, 0.12, 0]} />
@@ -129,38 +114,12 @@ export default function Diorama({ unlocked }: DioramaProps) {
       <Rock position={[-1.9, 0.05, -0.9]} s={0.15} />
       <Rock position={[1.85, 0.04, 0.35]} s={0.11} color={C.earthDark} />
 
-      {/* Stepping stones pond (after unlock) */}
+      {/* Stepping stones pond (after unlock) — one mesh */}
       {unlocked && (
         <group position={[0, -0.05, 0.6]}>
-          {/* Water surface */}
-          <mesh rotation={[-Math.PI / 2, 0, 0]} material={clay(C.water)} receiveShadow>
-            <circleGeometry args={[1.6, 32]} />
-          </mesh>
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]} material={clay(C.sky)}>
-            <circleGeometry args={[1.4, 32]} />
-          </mesh>
-
-          {/* Stepping stones */}
-          {[-0.8, -0.4, 0, 0.4, 0.8].map((x, i) => (
-            <group key={i} position={[x, 0.02, Math.sin(i * 1.2) * 0.15]}>
-              <mesh material={clay(C.stone)} castShadow>
-                <cylinderGeometry args={[0.18, 0.2, 0.08, 16]} />
-              </mesh>
-              <mesh position={[0, 0.04, 0]} material={clay(C.sand)}>
-                <cylinderGeometry args={[0.16, 0.16, 0.01, 16]} />
-              </mesh>
-            </group>
-          ))}
+          <Merged items={POND} />
         </group>
       )}
-
-      {/* short wall wings closing the gate line left + right */}
-      {[-1.55, 1.55].map((x, i) => (
-        <group key={i} position={[x, 0, -0.8]}>
-          <RoundedBox args={[1.0, 1.15, 0.26]} radius={0.07} position={[0, 0.58, 0]} material={clay(C.stone)} castShadow receiveShadow />
-          <RoundedBox args={[1.06, 0.12, 0.32]} radius={0.05} position={[0, 1.2, 0]} material={clay(C.sand)} castShadow />
-        </group>
-      ))}
       {/* a small heap of letters that never got through */}
       <group position={[1.05, 0, -0.55]}>
         <Letter position={[0, 0.008, 0]} rotation={[0, 0.4, 0]} />

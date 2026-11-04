@@ -9,8 +9,10 @@ import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import * as core from '../../v5/core'
-import { C, clay } from '../../world/kit'
+import { C, clay, paint, clayVC } from '../../world/kit'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { Prop } from '../../v5/art/Dressing'
+import { topY } from '../../v5/art/IslandBase'
 
 export { C, clay, Prop }
 
@@ -114,36 +116,111 @@ export function PillHint({ text }: { text: string | null }) {
   return null
 }
 
+/* ---------- merged static dressing (one draw call per cluster) ---------- */
+
+/** A low-poly prim for mergePrims. `s` is the full size [x,y,z] of the shape
+ * (box-ish dims); `cyl` is the exception: [topDiameter, height, botDiameter]. */
+export type Prim = {
+  g: 'box' | 'cyl' | 'sph' | 'cone' | 'pyr' | 'dod'
+  p: [number, number, number]
+  s: [number, number, number]
+  r?: [number, number, number]
+  c: string
+}
+
+const _pv = new THREE.Vector3()
+const _qv = new THREE.Quaternion()
+const _ev = new THREE.Euler()
+const _sv = new THREE.Vector3()
+const _mv = new THREE.Matrix4()
+
+export function mergePrims(items: Prim[]): THREE.BufferGeometry {
+  const geos: THREE.BufferGeometry[] = []
+  for (const it of items) {
+    const [a, b, c] = it.s
+    const g =
+      it.g === 'box' ? new THREE.BoxGeometry(1, 1, 1) :
+      it.g === 'cone' ? new THREE.ConeGeometry(0.5, 1, 8) :
+      it.g === 'pyr' ? new THREE.ConeGeometry(0.707, 1, 4) :
+      it.g === 'dod' ? new THREE.DodecahedronGeometry(0.5, 0) :
+      it.g === 'cyl' ? new THREE.CylinderGeometry(a / 2, c / 2, b, 9) :
+      new THREE.SphereGeometry(0.5, 14, 10)
+    _ev.set(...(it.r ?? [0, 0, 0]) as [number, number, number])
+    _qv.setFromEuler(_ev)
+    it.g === 'cyl' ? _sv.set(1, 1, 1) : _sv.set(a, b, c)
+    _mv.compose(_pv.set(...it.p), _qv, _sv)
+    g.applyMatrix4(_mv)
+    paint(g, it.c, undefined, 0.05)
+    geos.push(g)
+  }
+  const merged = mergeGeometries(geos, false)!
+  for (const g of geos) g.dispose()
+  return merged
+}
+
+const _vc = clayVC()
+/** A cluster of static prims rendered as ONE vertex-coloured mesh. */
+export function Merged({ items, ...p }: { items: Prim[] } & import('react').ComponentProps<'mesh'>) {
+  const geo = useMemo(() => mergePrims(items), [items])
+  return <mesh geometry={geo} material={_vc} castShadow receiveShadow {...p} />
+}
+
+/** Seeded rim scatter rendered as ONE merged mesh (grass cones + flower blobs). */
+export function BloomField({ radius = 5, seed = 1, band = [0.55, 0.93] as [number, number],
+  corridorX = 1.1, density = 1, avoid = [] as [number, number, number][] }: {
+  radius?: number; seed?: number; band?: [number, number]; corridorX?: number
+  density?: number; avoid?: [number, number, number][]
+}) {
+  const items = useMemo(() => {
+    const rnd = (n: number) => { const x = Math.sin(seed * 91.7 + n * 12.9898) * 43758.5453; return x - Math.floor(x) }
+    const prims: Prim[] = []
+    const want = Math.round(26 * density)
+    let n = 0
+    for (let tries = 0; tries < want * 8 && prims.length < want * 3; tries++) {
+      const a = rnd(n * 3 + 1) * Math.PI * 2
+      const d = (band[0] + rnd(n * 3 + 2) * (band[1] - band[0])) * radius
+      const x = Math.cos(a) * d, z = Math.sin(a) * d
+      n++
+      if (Math.abs(x) < corridorX && Math.abs(z) < radius) continue
+      if (d > radius * 0.94) continue
+      if (avoid.some(([ax, az, ar]) => (x - ax) ** 2 + (z - az) ** 2 < ar * ar)) continue
+      const y = topY(d, radius) - 0.02
+      const i = prims.length
+      if (rnd(n * 7) < 0.55) {
+        const h = 0.22 + rnd(i * 3) * 0.2
+        prims.push({ g: 'cone', p: [x, y + h / 2, z], s: [0.14, h, 0.14], c: i % 2 ? C.moss : C.leaf })
+      } else {
+        const h = 0.14 + rnd(i * 3) * 0.12
+        prims.push({ g: 'cone', p: [x, y + h / 2, z], s: [0.06, h, 0.06], c: C.moss })
+        prims.push({ g: 'sph', p: [x, y + h + 0.04, z], s: [0.11, 0.09, 0.11], c: i % 2 ? C.tulip : C.meadow })
+      }
+    }
+    return prims
+  }, [radius, seed, band, corridorX, density, avoid])
+  return <Merged items={items} />
+}
+
 /* ---------- path stones ---------- */
 
 export function PathStones({ pts, seed = 1 }: { pts: [number, number][]; seed?: number }) {
   const items = useMemo(() => {
     const rnd = (n: number) => { const x = Math.sin(seed * 91.7 + n * 12.9898) * 43758.5453; return x - Math.floor(x) }
-    const out: { x: number; z: number; r: number; s: number }[] = []
+    const prims: Prim[] = []
     for (let i = 0; i < pts.length - 1; i++) {
       const [x0, z0] = pts[i], [x1, z1] = pts[i + 1]
       const len = Math.hypot(x1 - x0, z1 - z0), n = Math.max(1, Math.round(len / 0.62))
       for (let j = 0; j < n; j++) {
-        const t = j / n, k = out.length
-        out.push({
-          x: x0 + (x1 - x0) * t + (rnd(k * 3) - 0.5) * 0.16,
-          z: z0 + (z1 - z0) * t + (rnd(k * 3 + 1) - 0.5) * 0.16,
-          r: rnd(k * 3 + 2) * Math.PI,
-          s: 0.8 + rnd(k * 7) * 0.4,
-        })
+        const t = j / n, k = prims.length
+        const x = x0 + (x1 - x0) * t + (rnd(k * 3) - 0.5) * 0.16
+        const z = z0 + (z1 - z0) * t + (rnd(k * 3 + 1) - 0.5) * 0.16
+        const s = 0.8 + rnd(k * 7) * 0.4
+        const d = (i + j) % 2 ? 0.34 * s : 0.26 * s
+        prims.push({ g: 'cyl', p: [x, 0.045, z], s: [d * 1.8, 0.09, d * 2.1], r: [0, rnd(k * 3 + 2) * Math.PI, 0], c: j % 2 ? C.stone : '#d9c9a8' })
       }
     }
-    return out
+    return prims
   }, [pts, seed])
-  return (
-    <group>
-      {items.map((p, i) => (
-        <Prop key={i} name={i % 2 ? 'path_stone' : 'rock_path_round'}
-          position={[p.x, 0.02, p.z]} rotation={[0, p.r, 0]}
-          scale={i % 2 ? p.s * 0.34 : p.s * 0.26} />
-      ))}
-    </group>
-  )
+  return <Merged items={items} />
 }
 
 /* ---------- swinging gate (closed until `open`) ---------- */
@@ -189,9 +266,8 @@ export function Gate({ position, yaw = 0, open, instant, width = 2.0, height = 1
       </group>
       <RoundedBox args={[width + 0.7, 0.06, 0.5]} radius={0.03} position={[0, 0.03, 0]}
         material={clay(C.sand)} receiveShadow castShadow />
-      <mesh ref={blk} position={[0, height / 2 + 0.1, 0]}>
+      <mesh ref={blk} position={[0, height / 2 + 0.1, 0]} visible={false}>
         <boxGeometry args={[width + 0.7, height + 0.9, 0.2]} />
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
     </group>
   )
@@ -236,9 +312,8 @@ export function Rock({ position, s = 0.5, yaw = 0, block = true, variant }: {
   return (
     <group position={position} rotation={[0, yaw, 0]}>
       <Prop name={name} scale={scale} />
-      <mesh ref={ref} position={[0, s * 0.62, 0]}>
+      <mesh ref={ref} position={[0, s * 0.62, 0]} visible={false}>
         <boxGeometry args={[s * 1.5, s * 1.24, s * 1.4]} />
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
     </group>
   )

@@ -16,6 +16,7 @@ import * as core from '../../v5/core'
 import {
   C, clay, REDUCED, useLocalPlayer, tpLocal, tpWorld, useSolver, useAt, Hint,
   PathStones, Rock, Mound, RopeFence, StoneLantern, Prop, carryWorld, sleep, waitTp,
+  Merged, type Prim,
 } from './shared.v5'
 
 /* --------------------------------- layout --------------------------------- */
@@ -408,6 +409,25 @@ function LedgeWall() {
   const top = useRef<THREE.Mesh>(null)
   core.useBlocker(side)
   core.useWalkable(top)
+  // knoll + crown + tuft + pebble as ONE mesh
+  const knoll = useMemo<Prim[]>(() => [
+    { g: 'sph', p: [-0.04, 0.2, 0.04], s: [2.1, 0.8, 1.96], c: '#dcc9a2' },
+    { g: 'sph', p: [0.1, 0.58, -0.02], s: [1.64, 0.68, 1.52], c: '#e7d6b0' },
+    { g: 'cyl', p: [0, LEDGE_TOP - 0.1, 0], s: [1.12, 0.22, 1.4], c: '#a7bd80' },
+    { g: 'cone', p: [-0.3, LEDGE_TOP + 0.05, -0.2], s: [0.18, 0.16, 0.18], c: C.leafDark },
+    { g: 'dod', p: [0.15, LEDGE_TOP + 0.03, -0.35], s: [0.18, 0.15, 0.18], c: C.stone },
+  ], [])
+  // handholds + vine rope as ONE mesh (in wall-group local coords)
+  const holds = useMemo<Prim[]>(() => [
+    ...([[-0.18, 0.3], [0.12, 0.48], [-0.1, 0.64], [0.16, 0.78], [-0.05, 0.9]] as const).map(([x, y]): Prim => (
+      { g: 'cyl', p: [x, y, -0.02], s: [0.044, 0.16, 0.056], r: [Math.PI / 2.4, 0, 0], c: C.woodLight }
+    )),
+    ...([[-0.3, 0.28], [0.3, 0.18]] as const).map(([x, r]): Prim => (
+      { g: 'cyl', p: [x, LEDGE_TOP / 2, -0.04], s: [0.032, LEDGE_TOP, 0.052], r: [0, 0, r], c: C.leafDark }
+    )),
+    { g: 'sph', p: [-0.3, LEDGE_TOP - 0.08, -0.02], s: [0.14, 0.12, 0.14], c: C.leaf },
+    { g: 'sph', p: [0.28, LEDGE_TOP - 0.2, -0.02], s: [0.14, 0.12, 0.14], c: C.leaf },
+  ], [])
   return (
     <group position={[LEDGE.x, 0, LEDGE.z]}>
       {/* invisible collider: the climb face the player pushes against */}
@@ -418,62 +438,30 @@ function LedgeWall() {
       <mesh ref={top} position={[0, LEDGE_TOP - 0.02, 0]} visible={false}>
         <cylinderGeometry args={[0.68, 0.68, 0.08, 20]} />
       </mesh>
-      {/* a low two-stone knoll — smallest form that still reads as a climbable tor */}
-      <mesh position={[-0.04, 0.2, 0.04]} scale={[1.05, 0.4, 0.98]} material={clay('#dcc9a2')} castShadow receiveShadow>
-        <sphereGeometry args={[1, 20, 13]} />
-      </mesh>
-      <mesh position={[0.1, 0.58, -0.02]} scale={[0.82, 0.34, 0.76]} material={clay('#e7d6b0')} castShadow receiveShadow>
-        <sphereGeometry args={[1, 18, 12]} />
-      </mesh>
-      {/* grassy crown echoing the island top */}
-      <mesh position={[0, LEDGE_TOP - 0.1, 0]} material={clay('#a7bd80')} castShadow receiveShadow>
-        <cylinderGeometry args={[0.56, 0.7, 0.22, 18]} />
-      </mesh>
-      {/* handholds + a vine rope down the SW face */}
+      {/* a low two-stone knoll + crown + tuft + pebble — ONE merged mesh */}
+      <Merged items={knoll} />
+      {/* handholds + a vine rope down the SW face — ONE merged mesh */}
       <group position={[WALL_AT.x - LEDGE.x, 0, WALL_AT.z - LEDGE.z]} rotation={[0, Math.atan2(WALL_AT.x - LEDGE.x, WALL_AT.z - LEDGE.z) + Math.PI, 0]}>
-        {[[-0.18, 0.3], [0.12, 0.48], [-0.1, 0.64], [0.16, 0.78], [-0.05, 0.9]].map(([x, y], i) => (
-          <mesh key={i} position={[x, y, -0.02]} rotation={[Math.PI / 2.4, 0, 0]} material={clay(C.woodLight)} castShadow>
-            <cylinderGeometry args={[0.022, 0.028, 0.16, 6]} />
-          </mesh>
-        ))}
-        {[[-0.3, 0.28], [0.3, 0.18]].map(([x, r], i) => (
-          <mesh key={i} position={[x, LEDGE_TOP / 2, -0.04]} rotation={[0, 0, r]} material={clay(C.leafDark)} castShadow>
-            <cylinderGeometry args={[0.016, 0.026, LEDGE_TOP, 5]} />
-          </mesh>
-        ))}
-        {[[-0.3, LEDGE_TOP - 0.08], [0.28, LEDGE_TOP - 0.2]].map(([x, y], i) => (
-          <mesh key={i} position={[x, y, -0.02]} material={clay(C.leaf)} castShadow>
-            <sphereGeometry args={[0.07, 8, 6]} />
-          </mesh>
-        ))}
+        <Merged items={holds} />
       </group>
-      {/* grass tuft + pebble on top */}
-      <mesh position={[-0.3, LEDGE_TOP + 0.05, -0.2]} material={clay(C.leafDark)}><coneGeometry args={[0.09, 0.16, 5]} /></mesh>
-      <mesh position={[0.15, LEDGE_TOP + 0.03, -0.35]} material={clay(C.stone)}><dodecahedronGeometry args={[0.09, 0]} /></mesh>
     </group>
   )
 }
 
-/** Wooden rack holding the loose pages on the ledge top. */
+/** Wooden rack holding the loose pages on the ledge top — ONE merged mesh. */
 function Rack() {
+  const prims = useMemo<Prim[]>(() => [
+    { g: 'box', p: [-0.55, 0.3, -0.2], s: [0.05, 0.66, 0.06], r: [-0.28, 0, 0], c: C.wood },
+    { g: 'box', p: [0.55, 0.3, -0.2], s: [0.05, 0.66, 0.06], r: [-0.28, 0, 0], c: C.wood },
+    { g: 'cyl', p: [0, 0.5, -0.32], s: [0.04, 1.2, 0.04], r: [0, 0, Math.PI / 2], c: C.wood },
+    { g: 'box', p: [0, 0.04, 0.02], s: [1.24, 0.06, 0.34], c: C.wood },
+    { g: 'box', p: [-0.34, 0.075, 0.02], s: [0.03, 0.06, 0.34], c: C.woodLight },
+    { g: 'box', p: [0, 0.075, 0.02], s: [0.03, 0.06, 0.34], c: C.woodLight },
+    { g: 'box', p: [0.34, 0.075, 0.02], s: [0.03, 0.06, 0.34], c: C.woodLight },
+  ], [])
   return (
     <group position={[RACK.x, RACK.y, RACK.z]} rotation={[0, RACK_YAW, 0]}>
-      {[-0.55, 0.55].map((x) => (
-        <mesh key={x} position={[x, 0.3, -0.2]} rotation={[-0.28, 0, 0]} material={clay(C.wood)} castShadow>
-          <boxGeometry args={[0.05, 0.66, 0.06]} />
-        </mesh>
-      ))}
-      <mesh position={[0, 0.5, -0.32]} rotation={[0, 0, Math.PI / 2]} material={clay(C.wood)} castShadow>
-        <cylinderGeometry args={[0.02, 0.02, 1.2, 6]} />
-      </mesh>
-      <mesh position={[0, 0.04, 0.02]} material={clay(C.wood)} castShadow>
-        <boxGeometry args={[1.24, 0.06, 0.34]} />
-      </mesh>
-      {[-0.34, 0, 0.34].map((x) => (
-        <mesh key={x} position={[x, 0.075, 0.02]} material={clay(C.woodLight)} castShadow>
-          <boxGeometry args={[0.03, 0.06, 0.34]} />
-        </mesh>
-      ))}
+      <Merged items={prims} />
     </group>
   )
 }
@@ -608,13 +596,19 @@ function SiteFence() {
     return [new THREE.TubeGeometry(new THREE.CatmullRomCurve3(a), 40, 0.024, 5),
             new THREE.TubeGeometry(new THREE.CatmullRomCurve3(b), 40, 0.02, 5)]
   }, [posts])
+  // all pickets as ONE merged mesh (was 27 draws)
+  const pickets = useMemo<Prim[]>(() => posts.map((p, i) => ({
+    g: 'box', p: [p.x, p.h / 2, p.z], s: [0.07, p.h, 0.05], c: i % 3 ? C.wood : C.woodLight,
+  })), [posts])
+  const sign = useMemo<Prim[]>(() => [
+    { g: 'cyl', p: [0, 0.3, 0], s: [0.05, 0.6, 0.064], c: C.wood },
+    { g: 'box', p: [0, 0.62, 0], s: [0.5, 0.26, 0.035], r: [0, 0, -0.06], c: '#f4e6c4' },
+    { g: 'box', p: [0.05, 0.62, 0.025], s: [0.22, 0.045, 0.012], c: C.terracotta },
+    { g: 'box', p: [0.17, 0.62, 0.025], s: [0.1, 0.045, 0.012], r: [0, 0, -Math.PI / 4], c: C.terracotta },
+  ], [])
   return (
     <group>
-      {posts.map((p, i) => (
-        <mesh key={i} position={[p.x, p.h / 2, p.z]} material={clay(i % 3 ? C.wood : C.woodLight)} castShadow>
-          <boxGeometry args={[0.07, p.h, 0.05]} />
-        </mesh>
-      ))}
+      <Merged items={pickets} />
       {rail.map((g, i) => <mesh key={i} geometry={g} material={clay(C.woodLight)} castShadow />)}
       {/* invisible wall the whole chord */}
       <mesh ref={blk} position={[0, 0.6, FENCE_Z - 0.15]} visible={false}>
@@ -625,12 +619,9 @@ function SiteFence() {
       <Rock position={[-3.6, 0.08, -3.5]} s={0.4} yaw={1.9} />
       <Rock position={[4.05, 0.12, -3.1]} s={0.6} yaw={0.3} />
       <Rock position={[3.7, 0.07, -3.55]} s={0.38} yaw={2.4} />
-      {/* a little leaning site sign by the path */}
+      {/* a little leaning site sign by the path — ONE merged mesh */}
       <group position={[3.15, 0, -2.45]} rotation={[0, -0.5, 0.04]}>
-        <mesh position={[0, 0.3, 0]} material={clay(C.wood)} castShadow><cylinderGeometry args={[0.025, 0.032, 0.6, 6]} /></mesh>
-        <RoundedBox args={[0.5, 0.26, 0.035]} radius={0.02} position={[0, 0.62, 0]} rotation={[0, 0, -0.06]} material={clay(C.paper)} castShadow />
-        <mesh position={[0.05, 0.62, 0.025]} material={clay(C.terracotta)}><boxGeometry args={[0.22, 0.045, 0.012]} /></mesh>
-        <mesh position={[0.17, 0.62, 0.025]} rotation={[0, 0, -Math.PI / 4]} material={clay(C.terracotta)}><boxGeometry args={[0.1, 0.045, 0.012]} /></mesh>
+        <Merged items={sign} />
       </group>
     </group>
   )
@@ -638,77 +629,86 @@ function SiteFence() {
 
 /* --------------------------------- studio ---------------------------------- */
 
-/** The weekend studio: workbench, the V4 browser-frame easel, awning, stool, crates. */
+/** The weekend studio: workbench, the V4 browser-frame easel, awning, stool, crates.
+ *  Static clay merged into THREE meshes (studio/easel/frame) — was ~35 draws. */
 function Studio({ position, yaw = 0 }: { position: [number, number, number]; yaw?: number }) {
+  const studio = useMemo<Prim[]>(() => {
+    const p: Prim[] = []
+    // awning: four posts + warm cloth + stripes
+    for (const [x, z] of [[-0.95, -0.75], [0.95, -0.75], [-0.95, 0.75], [0.95, 0.75]] as const) {
+      p.push({ g: 'cyl', p: [x, 0.7, z], s: [0.07, 1.4, 0.09], c: C.wood })
+    }
+    p.push(
+      { g: 'box', p: [0, 1.44, 0], s: [2.2, 0.05, 1.8], r: [0, 0, 0.02], c: '#f4e6c4' },
+      { g: 'box', p: [-0.7, 1.4, 0], s: [0.3, 0.055, 1.82], c: '#f4e6c4' },
+      { g: 'box', p: [0, 1.4, 0], s: [0.3, 0.055, 1.82], c: '#eecfb0' },
+      { g: 'box', p: [0.7, 1.4, 0], s: [0.3, 0.055, 1.82], c: '#f4e6c4' },
+      // workbench (at [-0.2,0,0.15])
+      { g: 'box', p: [-0.2, 0.58, 0.15], s: [1.5, 0.07, 0.62], c: C.woodLight },
+      { g: 'box', p: [-0.82, 0.29, 0.15], s: [0.08, 0.58, 0.5], c: C.wood },
+      { g: 'box', p: [0.42, 0.29, 0.15], s: [0.08, 0.58, 0.5], c: C.wood },
+      // little pages mid-ship + flat sheet
+      { g: 'box', p: [-0.58, 0.65, 0.1], s: [0.34, 0.05, 0.26], r: [0, 0.2, 0], c: '#f4e6c4' },
+      { g: 'box', p: [-0.56, 0.7, 0.11], s: [0.3, 0.04, 0.24], r: [0, 0.12, 0], c: '#efe4cd' },
+      { g: 'box', p: [-0.15, 0.66, 0.23], s: [0.4, 0.008, 0.3], r: [0, 0.3, 0], c: '#e8d6b8' },
+      // mug + tool pot + tools
+      { g: 'cyl', p: [0.3, 0.67, 0.01], s: [0.09, 0.09, 0.076], c: C.terracotta },
+      { g: 'cyl', p: [0.42, 0.66, 0.27], s: [0.1, 0.1, 0.084], c: C.brick },
+      { g: 'cyl', p: [0.4, 0.76, 0.25], s: [0.018, 0.18, 0.024], r: [0, 0, 0.2], c: C.wood },
+      { g: 'cyl', p: [0.45, 0.75, 0.29], s: [0.018, 0.18, 0.024], r: [0, 0, -0.25], c: C.wood },
+      // crates
+      { g: 'box', p: [-1.05, 0.12, 0.55], s: [0.3, 0.24, 0.3], r: [0, 0.4, 0], c: C.earth },
+      { g: 'box', p: [-1.0, 0.33, 0.5], s: [0.24, 0.18, 0.24], r: [0, 0.9, 0], c: C.earthDark },
+    )
+    return p
+  }, [])
+  const easel = useMemo<Prim[]>(() => [
+    { g: 'box', p: [-0.67, 0.74, -0.03], s: [0.1, 1.52, 0.1], r: [0, 0, 0.1], c: C.wood },
+    { g: 'box', p: [0.67, 0.74, -0.03], s: [0.1, 1.52, 0.1], r: [0, 0, -0.1], c: C.wood },
+    { g: 'box', p: [0, 0.34, -0.05], s: [1.2, 0.08, 0.08], c: C.woodLight },
+    { g: 'box', p: [0, 0.6, -0.38], s: [0.1, 1.4, 0.1], r: [-0.3, 0, 0], c: C.wood },
+    { g: 'box', p: [0, 0.49, 0.06], s: [1.36, 0.08, 0.18], c: C.woodLight },
+  ], [])
+  const frame = useMemo<Prim[]>(() => {
+    const p: Prim[] = [
+      { g: 'box', p: [0, 1.13, 0], s: [1.52, 1.2, 0.09], c: C.cream },
+      { g: 'box', p: [0, 1.62, 0.005], s: [1.5, 0.22, 0.1], c: C.sand },
+      { g: 'sph', p: [-0.63, 1.63, 0.06], s: [0.068, 0.068, 0.068], c: C.brick },
+      { g: 'sph', p: [-0.51, 1.63, 0.06], s: [0.068, 0.068, 0.068], c: '#e0b26a' },
+      { g: 'sph', p: [-0.39, 1.63, 0.06], s: [0.068, 0.068, 0.068], c: C.leaf },
+      { g: 'box', p: [0.27, 1.63, 0.055], s: [0.72, 0.09, 0.02], c: '#f4e6c4' },
+      // the shipped page — all three pieces seated, warm
+      { g: 'box', p: [0, 1.06, 0.052], s: [1.34, 0.9, 0.02], c: '#f4e6c4' },
+      { g: 'box', p: [0, 1.36, 0.068], s: [1.06, 0.22, 0.015], c: C.terracotta },
+      { g: 'box', p: [-0.42, 0.98, 0.068], s: [0.56, 0.52, 0.015], c: C.water },
+      { g: 'sph', p: [-0.5, 0.86, 0.075], s: [0.45, 0.26, 0.13], c: C.moss },
+      { g: 'cyl', p: [0.42, 0.85, 0.068], s: [0.5, 0.02, 0.5], r: [Math.PI / 2, 0, 0], c: C.leaf },
+      { g: 'sph', p: [0.42, 0.85, 0.08], s: [0.09, 0.09, 0.09], c: '#f4e6c4' },
+    ]
+    // little people who came to see it
+    ;[-0.55, -0.18, 0.18, 0.55].forEach((x, i) => {
+      p.push(
+        { g: 'cyl', p: [x, 0.13, 1.02], s: [0.12, 0.22, 0.12], c: [C.terracotta, C.leafDark, C.water, C.brick][i] },
+        { g: 'sph', p: [x, 0.27, 1.02], s: [0.124, 0.124, 0.124], c: C.cream },
+      )
+    })
+    return p
+  }, [])
   return (
     <group position={position} rotation={[0, yaw, 0]}>
-      {/* awning: four posts + warm cloth */}
-      {[[-0.95, -0.75], [0.95, -0.75], [-0.95, 0.75], [0.95, 0.75]].map(([x, z], i) => (
-        <mesh key={i} position={[x, 0.7, z]} material={clay(C.wood)} castShadow>
-          <cylinderGeometry args={[0.035, 0.045, 1.4, 7]} />
-        </mesh>
-      ))}
-      <RoundedBox args={[2.2, 0.05, 1.8]} radius={0.04} position={[0, 1.44, 0]} rotation={[0, 0, 0.02]} material={clay(C.paper)} castShadow />
-      {[-0.7, 0, 0.7].map((x, i) => (
-        <mesh key={i} position={[x, 1.4, 0]} material={clay(i === 1 ? '#eecfb0' : C.paper)} castShadow>
-          <boxGeometry args={[0.3, 0.055, 1.82]} />
-        </mesh>
-      ))}
-      {/* workbench */}
-      <group position={[-0.2, 0, 0.15]}>
-        <RoundedBox args={[1.5, 0.07, 0.62]} radius={0.025} position={[0, 0.58, 0]} material={clay(C.woodLight)} castShadow receiveShadow />
-        {[-0.62, 0.62].map((x) => (
-          <RoundedBox key={x} args={[0.08, 0.58, 0.5]} radius={0.02} position={[x, 0.29, 0]} material={clay(C.wood)} castShadow />
-        ))}
-        {/* little pages mid-ship */}
-        <RoundedBox args={[0.34, 0.05, 0.26]} radius={0.015} position={[-0.38, 0.65, -0.05]} rotation={[0, 0.2, 0]} material={clay(C.paper)} castShadow />
-        <RoundedBox args={[0.3, 0.04, 0.24]} radius={0.012} position={[-0.36, 0.7, -0.04]} rotation={[0, 0.12, 0]} material={clay('#efe4cd')} castShadow />
-        <mesh position={[0.05, 0.66, 0.08]} rotation={[-Math.PI / 2, 0, 0.3]} material={clay('#e8d6b8')}><planeGeometry args={[0.4, 0.3]} /></mesh>
-        {/* a small laptop + book stack — the weekend shipping rig */}
-        <Prop name="laptop" position={[0.16, 0.615, -0.08]} rotation={[0, -0.4, 0]} fit={0.14} />
-        <Prop name="book_set" position={[-0.6, 0.615, 0.12]} rotation={[0, 0.5, 0]} fit={0.1} />
-        {/* mug + tool pot */}
-        <mesh position={[0.5, 0.67, -0.14]} material={clay(C.terracotta)} castShadow><cylinderGeometry args={[0.045, 0.038, 0.09, 10]} /></mesh>
-        <mesh position={[0.62, 0.66, 0.12]} material={clay(C.brick)} castShadow><cylinderGeometry args={[0.05, 0.042, 0.1, 8]} /></mesh>
-        {[[0.6, 0.76, 0.1, 0.2], [0.65, 0.75, 0.14, -0.25]].map(([x, y, z, r], i) => (
-          <mesh key={i} position={[x, y, z]} rotation={[0, 0, r]} material={clay(C.wood)}><cylinderGeometry args={[0.009, 0.012, 0.18, 5]} /></mesh>
-        ))}
-      </group>
+      <Merged items={studio} />
+      {/* a small laptop + book stack — the weekend shipping rig */}
+      <Prop name="laptop" position={[-0.04, 0.615, 0.07]} rotation={[0, -0.4, 0]} fit={0.14} />
+      <Prop name="book_set" position={[-0.8, 0.615, 0.27]} rotation={[0, 0.5, 0]} fit={0.1} />
       {/* the V4 easel: a giant clay browser window, page shipped and lit */}
       <group position={[0.9, 0, -0.42]} rotation={[0, -0.5, 0]} scale={1.15}>
-        {[-0.67, 0.67].map((x) => (
-          <RoundedBox key={x} args={[0.1, 1.52, 0.1]} radius={0.04} position={[x, 0.74, -0.03]} rotation={[0, 0, -x * 0.15]} material={clay(C.wood)} castShadow />
-        ))}
-        <RoundedBox args={[1.2, 0.08, 0.08]} radius={0.03} position={[0, 0.34, -0.05]} material={clay(C.woodLight)} />
-        <RoundedBox args={[0.1, 1.4, 0.1]} radius={0.04} position={[0, 0.6, -0.38]} rotation={[-0.3, 0, 0]} material={clay(C.wood)} castShadow />
-        <RoundedBox args={[1.36, 0.08, 0.18]} radius={0.03} position={[0, 0.49, 0.06]} material={clay(C.woodLight)} castShadow />
+        <Merged items={easel} />
         <group rotation={[-0.08, 0, 0]}>
-          <RoundedBox args={[1.52, 1.2, 0.09]} radius={0.07} position={[0, 1.13, 0]} material={clay(C.cream)} castShadow receiveShadow />
-          <RoundedBox args={[1.5, 0.22, 0.1]} radius={0.06} position={[0, 1.62, 0.005]} material={clay(C.sand)} castShadow />
-          {[-0.63, -0.51, -0.39].map((x, i) => (
-            <mesh key={i} position={[x, 1.63, 0.06]} material={clay([C.brick, '#e0b26a', C.leaf][i])}><sphereGeometry args={[0.034, 10, 8]} /></mesh>
-          ))}
-          <RoundedBox args={[0.72, 0.09, 0.02]} radius={0.045} position={[0.27, 1.63, 0.055]} material={clay(C.paper)} />
-          {/* the shipped page — all three pieces seated, warm */}
-          <RoundedBox args={[1.34, 0.9, 0.02]} radius={0.03} position={[0, 1.06, 0.052]} material={clay(C.paper)} receiveShadow />
-          <RoundedBox args={[1.06, 0.22, 0.015]} radius={0.04} position={[0, 1.36, 0.068]} material={clay(C.terracotta)} castShadow />
-          <RoundedBox args={[0.56, 0.52, 0.015]} radius={0.05} position={[-0.42, 0.98, 0.068]} material={clay(C.water)} castShadow />
-          <mesh position={[-0.5, 0.86, 0.075]} scale={[1.4, 0.8, 0.4]} material={clay(C.moss)} castShadow><sphereGeometry args={[0.16, 12, 9]} /></mesh>
-          <mesh position={[0.42, 0.85, 0.068]} rotation={[Math.PI / 2, 0, 0]} material={clay(C.leaf)} castShadow><cylinderGeometry args={[0.25, 0.25, 0.02, 24]} /></mesh>
-          <mesh position={[0.42, 0.85, 0.08]} material={clay(C.paper)}><sphereGeometry args={[0.045, 10, 8]} /></mesh>
-          {/* little people who came to see it */}
-          {[-0.55, -0.18, 0.18, 0.55].map((x, i) => (
-            <group key={i} position={[x, 0.0, 1.02]}>
-              <mesh position={[0, 0.13, 0]} material={clay([C.terracotta, C.leafDark, C.water, C.brick][i])} castShadow><capsuleGeometry args={[0.06, 0.1, 4, 10]} /></mesh>
-              <mesh position={[0, 0.27, 0]} material={clay(C.cream)} castShadow><sphereGeometry args={[0.062, 12, 10]} /></mesh>
-            </group>
-          ))}
+          <Merged items={frame} />
         </group>
       </group>
-      {/* stool + crates */}
+      {/* stool */}
       <Prop name="stool" position={[0.1, 0, 0.85]} rotation={[0, 0.5, 0]} fit={0.42} />
-      <RoundedBox args={[0.3, 0.24, 0.3]} radius={0.03} position={[-1.05, 0.12, 0.55]} rotation={[0, 0.4, 0]} material={clay(C.earth)} castShadow />
-      <RoundedBox args={[0.24, 0.18, 0.24]} radius={0.025} position={[-1.0, 0.33, 0.5]} rotation={[0, 0.9, 0]} material={clay(C.earthDark)} castShadow />
     </group>
   )
 }
@@ -716,21 +716,29 @@ function Studio({ position, yaw = 0 }: { position: [number, number, number]; yaw
 /* --------------------------------- tufts ----------------------------------- */
 
 function Tufts() {
-  const items = useMemo(() => {
+  // seeded grass + flowers as ONE merged mesh (was 26 GLB draws)
+  const items = useMemo<Prim[]>(() => {
     const rnd = (n: number) => { const x = Math.sin(n * 12.9898 + 7.3) * 43758.5453; return x - Math.floor(x) }
-    const out: { x: number; z: number; s: number; r: number; n: string }[] = []
-    const kinds = ['grass', 'grass', 'plant_flat_short', 'flower_yellow_a', 'flower_red_b']
+    const out: Prim[] = []
+    const kinds = ['grass', 'grass', 'plant', 'flower_yellow', 'flower_red']
     for (let i = 0; i < 26; i++) {
       const a = rnd(i * 3) * Math.PI * 2, d = 1.2 + rnd(i * 3 + 1) * 3.3
       const x = Math.cos(a) * d, z = Math.sin(a) * d
       if (z < -2.4 || (x > 1.8 && z > 1.4) || Math.hypot(x - 0.5, z - 3.2) < 1.6) continue
-      out.push({ x, z, s: 0.16 + rnd(i) * 0.14, r: rnd(i * 7) * 3, n: kinds[i % kinds.length] })
+      const s = 0.16 + rnd(i) * 0.14, r = rnd(i * 7) * 3, k = kinds[i % kinds.length]
+      if (k === 'grass') {
+        out.push({ g: 'cone', p: [x, s * 0.55, z], s: [s * 0.8, s * 1.1, s * 0.8], r: [0, r, 0], c: i % 2 ? C.moss : '#a7bd80' })
+      } else if (k === 'plant') {
+        out.push({ g: 'cone', p: [x, s * 0.35, z], s: [s, s * 0.7, s], r: [0, r, 0], c: C.leafDark })
+      } else {
+        const head = k === 'flower_yellow' ? '#e8c25e' : '#c96a4e'
+        out.push(
+          { g: 'cone', p: [x, s * 0.5, z], s: [s * 0.22, s, s * 0.22], c: C.moss },
+          { g: 'sph', p: [x, s * 1.05, z], s: [s * 0.5, s * 0.42, s * 0.5], c: head },
+        )
+      }
     }
     return out
   }, [])
-  return (
-    <group>
-      {items.map((t, i) => <Prop key={i} name={t.n} position={[t.x, 0, t.z]} rotation={[0, t.r, 0]} fit={t.s} />)}
-    </group>
-  )
+  return <Merged items={items} />
 }
