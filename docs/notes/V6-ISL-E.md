@@ -33,6 +33,9 @@ Check at 1440x900 and 390x844:
 5. No stuck states: E mid-flight flies home and re-docks; the home pad only
    re-lands after the heli has left and returned low+slow (leftPad latch —
    fixed a bug where it landed straight after takeoff).
+Perf pass (unverified by me): towers merged into ONE atlas-textured mesh,
+street/roofs/pads/vignette into 4 vertex-coloured baked meshes, each ring one
+merged mesh. L06 obstacle draw calls ~153 → ~55; same look intended.
 Known-partial: my real-input run reached pad + boarded + flew (phase fly),
 but pre-fix it re-docked home early; the far landing path needs one live
 confirm pass.

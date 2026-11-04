@@ -16,7 +16,7 @@ import { input, isDown, now } from '../../v5/player/input'
 import { Prop } from '../../v5/art/Dressing'
 import { LEVELS } from '../registry'
 import { PillHint } from '../L01/shared.v5'
-import { C, clay, VoxelTower, AcBox, Antenna, Heli, RouteRing, HeliPad, PadRock, BlockBox, Laptop, PhoneOnStand, Desk } from './kit.v5'
+import { C, clay, CityTowers, Baked, Heli, RouteRing, HeliPad, PadRock, BlockBox, DESK_P, LAPTOP_P, PHONE_P, type BPart } from './kit.v5'
 
 const V3 = THREE.Vector3
 type V3T = [number, number, number]
@@ -71,6 +71,51 @@ const TOWERS: [number, number, number, number, number, string, number][] = [
   [-2.6, 3.4, 1.0, 0.9, 1.3, C.facade3, 19],
   [4.35, 1.6, 0.9, 0.9, 1.5, C.facade4, 23],
 ]
+
+/** Everything static bakes into ONE vertex-coloured mesh (see kit's Baked):
+    street + curbs + plaza, tower roofs/parapets, ACs, antennas, both pads. */
+const CITY_PARTS: BPart[] = (() => {
+  const parts: BPart[] = [
+    { g: 'box', p: [-1.7, 0.012, 0.3], s: [1.3, 0.024, 6.6], c: C.asphalt },
+    { g: 'box', p: [-2.42, 0.014, 0.3], s: [0.14, 0.028, 6.6], c: C.curb },
+    { g: 'box', p: [-0.98, 0.014, 0.3], s: [0.14, 0.028, 6.6], c: C.curb },
+    { g: 'cyl', p: [1.7, 0.014, 2.4], s: [3.4, 0.028, 3.4], c: C.curb },
+  ]
+  for (const [x, z, w, d, h] of TOWERS) {
+    parts.push(
+      { g: 'box', p: [x, h + 0.02, z], s: [w * 0.94, 0.05, d * 0.94], c: C.roof },
+      { g: 'box', p: [x - (w / 2 - 0.02), h + 0.06, z], s: [0.04, 0.09, d * 0.9], c: C.roofDark },
+      { g: 'box', p: [x + (w / 2 - 0.02), h + 0.06, z], s: [0.04, 0.09, d * 0.9], c: C.roofDark },
+      { g: 'box', p: [x, h + 0.06, z - (d / 2 - 0.02)], s: [w * 0.9, 0.09, 0.04], c: C.roofDark },
+      { g: 'box', p: [x, h + 0.06, z + (d / 2 - 0.02)], s: [w * 0.9, 0.09, 0.04], c: C.roofDark },
+    )
+  }
+  // rooftop AC units (body + flat fan disc)
+  for (const [x, y, z, s] of [[2.95, 2.28, 1.1, 1], [3.75, 1.58, -0.9, 1.2], [-3.5, 1.86, 1.75, 0.9]] as const) {
+    parts.push(
+      { g: 'box', p: [x, y, z], s: [0.3 * s, 0.18 * s, 0.24 * s], c: C.stone },
+      { g: 'cyl', p: [x, y + 0.1 * s, z], s: [0.14 * s, 0.015, 0.14 * s], c: C.roofDark },
+    )
+  }
+  // rooftop antennas (mast + crossbar + warm beacon)
+  for (const [x, y, z, h] of [[3.5, 1.04, -2.5, 0.9], [-3.4, 1.06, -2.55, 0.7]] as const) {
+    parts.push(
+      { g: 'cyl', p: [x, y + h / 2, z], s: [0.024, h, 0.04], c: C.ink2 },
+      { g: 'cyl', p: [x, y + h * 0.72, z], s: [0.016, 0.24, 0.016], r: [0, 0, Math.PI / 2], c: C.ink2 },
+      { g: 'sph', p: [x, y + h + 0.03, z], s: [0.07, 0.07, 0.07], c: C.warm },
+    )
+  }
+  // both helipads' paving + corner stones (the lit marker ring stays a mesh)
+  for (const [cx, cy, cz, r] of [[PAD_HOME.x, PAD_HOME.y, PAD_HOME.z, 0.95], [ROCK.x, ROCK.y + 0.09, ROCK.z, 0.8]] as const) {
+    parts.push(
+      { g: 'cyl', p: [cx, cy, cz], s: [r * 2, 0.045, r * 2 + 0.12], c: C.curb },
+      { g: 'cyl', p: [cx, cy + 0.027, cz], s: [r, 0.006, r], c: C.stoneLight },
+    )
+    for (const [sx, sz] of [[-0.8, -0.8], [0.8, -0.8], [-0.8, 0.8], [0.8, 0.8]] as const)
+      parts.push({ g: 'box', p: [cx + sx * r * 0.98, cy + 0.045, cz + sz * r * 0.98], s: [0.08, 0.05, 0.08], c: C.stone })
+  }
+  return parts
+})()
 
 const ACCEL = 8.0, DAMP = 2.3, VMAX = 4.4, ALT_K = 3.2
 const BOUND = 11.5, Y_MIN = 0.4, Y_MAX = 5.6
@@ -362,34 +407,14 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   /* ---------------------------------- render ---------------------------------- */
   return (
     <group ref={root}>
-      {/* ------- the city ------- */}
-      {/* paved street along the west side */}
-      <mesh position={[-1.7, 0.012, 0.3]} material={clay(C.asphalt)} receiveShadow>
-        <boxGeometry args={[1.3, 0.024, 6.6]} />
-      </mesh>
-      {[-0.68, 0.68].map((s) => (
-        <mesh key={s} position={[-1.7 + s * 0.72, 0.014, 0.3]} material={clay(C.curb)} receiveShadow>
-          <boxGeometry args={[0.14, 0.028, 6.6]} />
-        </mesh>
-      ))}
-      {/* plaza paving under the pad */}
-      <mesh position={[1.7, 0.014, 2.4]} material={clay(C.curb)} receiveShadow>
-        <cylinderGeometry args={[1.7, 1.7, 0.028, 30]} />
-      </mesh>
-
-      {TOWERS.map(([x, z, w, d, h, tone, seed], i) => (
-        <group key={i}>
-          <VoxelTower position={[x, 0, z]} w={w} d={d} h={h} tone={tone} seed={seed} />
-          <BlockBox position={[x, h / 2, z]} args={[w, h + 0.4, d]} kind="block" />
-        </group>
+      {/* ------- the city — towers as one atlas mesh, statics as one vc mesh ------- */}
+      <CityTowers towers={TOWERS} />
+      <Baked parts={CITY_PARTS} />
+      {TOWERS.map(([x, z, w, d, h], i) => (
+        <BlockBox key={i} position={[x, h / 2, z]} args={[w, h + 0.4, d]} kind="block" />
       ))}
       {/* rooftops */}
       <Prop name="water_tower" position={[-3.75, 1.54, -0.9]} fit={0.75} />
-      <AcBox position={[2.95, 2.28, 1.1]} />
-      <AcBox position={[3.75, 1.58, -0.9]} s={1.2} />
-      <Antenna position={[3.5, 1.04, -2.5]} h={0.9} />
-      <AcBox position={[-3.5, 1.86, 1.75]} s={0.9} />
-      <Antenna position={[-3.4, 1.06, -2.55]} h={0.7} />
       {/* street life */}
       <Prop name="streetlight" position={[-1.05, 0.03, 1.9]} fit={0.95} />
       <Prop name="streetlight" position={[-2.35, 0.03, -0.6]} fit={0.95} rotation={[0, Math.PI, 0]} />
@@ -402,23 +427,14 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
 
       {/* ------- the Remote vignette: desk + laptop + phone, beside the path ------- */}
       <group position={[3.0, 0, 3.0]} rotation={[0, -0.55, 0]}>
-        <Desk w={1.05} />
+        <Baked parts={DESK_P} />
         <group position={[0, 0.49, -0.06]} rotation={[0, -0.15, 0]}>
-          <Laptop s={1.7} open={0.34}>
-            <mesh position={[0, 0, 0.001]}>
-              <planeGeometry args={[0.5, 0.32]} />
-              <meshBasicMaterial color="#2f2a26" />
-            </mesh>
-            <mesh position={[-0.1, 0.05, 0.002]}>
-              <planeGeometry args={[0.22, 0.14]} />
-              <meshBasicMaterial color="#8fb36b" />
-            </mesh>
-          </Laptop>
+          <Baked parts={LAPTOP_P} scale={1.7} />
         </group>
       </group>
       <BlockBox position={[3.0, 0.3, 3.0]} args={[1.2, 0.62, 0.7]} kind="block" />
       <group position={[1.15, 0, 3.75]} rotation={[0, -0.4, 0]} scale={1.6}>
-        <PhoneOnStand />
+        <Baked parts={PHONE_P} />
       </group>
 
       {/* ------- home helipad + parked helicopter ------- */}

@@ -5,6 +5,7 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import * as THREE from 'three'
 import * as core from '../../v5/core'
 import { toon } from '../../v5/art/material'
@@ -42,127 +43,120 @@ export function makeCanvasTexture(w: number, h: number, draw: (ctx: CanvasRender
 
 const _rnd = (n: number) => { const x = Math.sin(n * 12.9898) * 43758.5453; return x - Math.floor(x) }
 
-/** Building facade: warm cladding + a soft window grid (opaque, matte). */
-function facadeTexture(base: string, win: string, floors: number, cols: number, seed: number) {
-  const kit = makeCanvasTexture(64, 128, (ctx) => {
-    ctx.fillStyle = base; ctx.fillRect(0, 0, 64, 128)
-    // faint floor bands
-    ctx.fillStyle = 'rgba(0,0,0,0.05)'
-    for (let f = 1; f < floors; f++) ctx.fillRect(0, Math.round((f / floors) * 128), 64, 2)
-    // parapet
-    ctx.fillStyle = 'rgba(0,0,0,0.12)'; ctx.fillRect(0, 0, 64, 6)
-    ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(0, 6, 64, 2)
-    const fh = 128 / floors, cw = 64 / (cols + 1)
-    for (let f = 0; f < floors; f++) {
-      for (let c = 0; c < cols; c++) {
-        const r = _rnd(seed * 31 + f * 7 + c * 13)
-        ctx.fillStyle = r < 0.18 ? '#a8b5b4' : win // a few lit-warm panes
-        const w = cw * 0.52, h = fh * 0.42
-        ctx.fillRect(Math.round((c + 0.7) * cw - w / 2), Math.round(f * fh + fh * 0.3), Math.max(2, w), Math.max(2, h))
-      }
+/** Paints one facade tile (64×128) into an atlas context at x-offset `ox`. */
+function paintFacade(ctx: CanvasRenderingContext2D, ox: number, base: string, win: string, floors: number, cols: number, seed: number) {
+  ctx.fillStyle = base; ctx.fillRect(ox, 0, 64, 128)
+  // faint floor bands
+  ctx.fillStyle = 'rgba(0,0,0,0.05)'
+  for (let f = 1; f < floors; f++) ctx.fillRect(ox, Math.round((f / floors) * 128), 64, 2)
+  // parapet
+  ctx.fillStyle = 'rgba(0,0,0,0.12)'; ctx.fillRect(ox, 0, 64, 6)
+  ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(ox, 6, 64, 2)
+  const fh = 128 / floors, cw = 64 / (cols + 1)
+  for (let f = 0; f < floors; f++) {
+    for (let c = 0; c < cols; c++) {
+      const r = _rnd(seed * 31 + f * 7 + c * 13)
+      ctx.fillStyle = r < 0.18 ? '#a8b5b4' : win // a few lit-warm panes
+      const w = cw * 0.52, h = fh * 0.42
+      ctx.fillRect(ox + Math.round((c + 0.7) * cw - w / 2), Math.round(f * fh + fh * 0.3), Math.max(2, w), Math.max(2, h))
     }
-  })
-  kit.tex.wrapS = kit.tex.wrapT = THREE.RepeatWrapping
-  return kit.tex
+  }
+}
+
+/* --------------------------- merged statics --------------------------- */
+/* One vertex-coloured mesh instead of dozens — the whole city (minus props)
+   bakes into a handful of draw calls. cyl s = [topDiam, height, botDiam],
+   torus s = [radius, tube], cone/sph s = [diam, height]. */
+
+const _vcMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.93 })
+const _mc = new THREE.Matrix4(), _mq = new THREE.Quaternion(), _me = new THREE.Euler()
+const _mv = new THREE.Vector3(), _ms = new THREE.Vector3(1, 1, 1), _col = new THREE.Color()
+
+export type BPart = { g: 'box' | 'cyl' | 'sph' | 'cone' | 'torus'; p: V3; s: V3; r?: V3; c: string }
+
+export function bake(parts: BPart[]) {
+  const geos: THREE.BufferGeometry[] = []
+  for (const it of parts) {
+    const [a, b, c] = it.s
+    const g =
+      it.g === 'cyl' ? new THREE.CylinderGeometry(a / 2, c / 2, b, 10) :
+      it.g === 'sph' ? new THREE.SphereGeometry(a / 2, 12, 9) :
+      it.g === 'cone' ? new THREE.ConeGeometry(a / 2, b, 6) :
+      it.g === 'torus' ? new THREE.TorusGeometry(a, b, 10, 30) :
+      new THREE.BoxGeometry(a, b, c)
+    _me.set(...(it.r ?? [0, 0, 0])); _mq.setFromEuler(_me)
+    _mc.compose(_mv.set(...it.p), _mq, _ms)
+    g.applyMatrix4(_mc)
+    _col.set(it.c)
+    const n = (g.attributes.position as THREE.BufferAttribute).count
+    const arr = new Float32Array(n * 3)
+    for (let i = 0; i < n; i++) { arr[i * 3] = _col.r; arr[i * 3 + 1] = _col.g; arr[i * 3 + 2] = _col.b }
+    g.setAttribute('color', new THREE.BufferAttribute(arr, 3))
+    geos.push(g)
+  }
+  const merged = mergeGeometries(geos, false)!
+  for (const g of geos) g.dispose()
+  return merged
+}
+
+/** A cluster of baked prims rendered as ONE vertex-coloured mesh. */
+export function Baked({ parts, ...p }: { parts: BPart[] } & P) {
+  const geo = useMemo(() => bake(parts), [parts])
+  return <mesh geometry={geo} material={_vcMat} castShadow receiveShadow {...p} />
+}
+
+/** All tower bodies as ONE mesh: every facade baked into a single 8-tile atlas,
+    each box's UVs remapped onto its tile. */
+export function CityTowers({ towers, ...p }: { towers: [number, number, number, number, number, string, number][] } & P) {
+  const geo = useMemo(() => {
+    const cv = document.createElement('canvas'); cv.width = 512; cv.height = 128
+    const ctx = cv.getContext('2d')!
+    towers.forEach(([, , w, , h, tone, seed], i) =>
+      paintFacade(ctx, i * 64, tone, C.glass, Math.max(2, Math.round(h / 0.55)), Math.max(2, Math.round(w / 0.34)), seed))
+    const geos = towers.map(([x, z, w, d, h], i) => {
+      const g = new THREE.BoxGeometry(w, h, d)
+      const uv = g.attributes.uv as THREE.BufferAttribute
+      for (let j = 0; j < uv.count; j++) uv.setXY(j, (i + uv.getX(j)) / 8, uv.getY(j))
+      g.translate(x, h / 2, z)
+      return g
+    })
+    const merged = mergeGeometries(geos, false)!
+    for (const g of geos) g.dispose()
+    ;(merged.userData as any).tex = Object.assign(new THREE.CanvasTexture(cv), { colorSpace: THREE.SRGBColorSpace })
+    return merged
+  }, [towers])
+  const mat = useMemo(() => {
+    const m = toon({ color: '#fff' }); m.map = (geo.userData as any).tex as THREE.Texture; return m
+  }, [geo])
+  return <mesh geometry={geo} material={mat} castShadow receiveShadow {...p} />
 }
 
 /* ---------------------------------- props ---------------------------------- */
 
-/** Laptop: base + angled screen. `screen` slot for a custom material/texture mesh. */
-export function Laptop({ children, open = 0.32, s = 1, ...p }: P & { children?: React.ReactNode; open?: number; s?: number }) {
-  return (
-    <group {...p} scale={[s, s, s]}>
-      <RoundedBox args={[0.62, 0.035, 0.44]} radius={0.012} position={[0, 0.018, 0]} material={clay(C.stoneLight)} castShadow />
-      <RoundedBox args={[0.5, 0.012, 0.3]} radius={0.01} position={[0, 0.041, 0.02]} material={clay(C.stone)} />
-      <group position={[0, 0.04, -0.2]} rotation={[-open, 0, 0]}>
-        <RoundedBox args={[0.62, 0.42, 0.024]} radius={0.012} position={[0, 0.21, 0]} material={clay(C.stoneLight)} castShadow />
-        <group position={[0, 0.21, 0.016]}>{children}</group>
-      </group>
-    </group>
-  )
-}
-
-/** Smartphone standing on a wooden easel stand. */
-export function PhoneOnStand({ glow = false, ...p }: P & { glow?: boolean }) {
-  return (
-    <group {...p}>
-      <mesh position={[0, 0.21, -0.07]} rotation={[0.36, 0, 0]} material={clay(C.wood)} castShadow>
-        <boxGeometry args={[0.22, 0.42, 0.035]} />
-      </mesh>
-      <mesh position={[0, 0.06, 0.02]} rotation={[0.42, 0, 0]} material={clay(C.wood)} castShadow>
-        <boxGeometry args={[0.26, 0.13, 0.06]} />
-      </mesh>
-      <RoundedBox args={[0.25, 0.44, 0.028]} radius={0.035} position={[0, 0.26, -0.04]} rotation={[0.36, 0, 0]} material={clay(C.ink)} castShadow />
-      <mesh position={[0, 0.263, -0.024]} rotation={[0.36, 0, 0]}>
-        <planeGeometry args={[0.21, 0.38]} />
-        <meshBasicMaterial color={glow ? '#dff0d8' : '#e6ddc8'} />
-      </mesh>
-    </group>
-  )
-}
-
-/** Work desk: plank top + legs. */
-export function Desk({ w = 1.15, ...p }: P & { w?: number }) {
-  return (
-    <group {...p}>
-      <RoundedBox args={[w, 0.055, 0.5]} radius={0.015} position={[0, 0.46, 0]} material={clay(C.woodLight)} castShadow receiveShadow />
-      {[-1, 1].map((s) => (
-        <group key={s}>
-          <mesh position={[s * (w / 2 - 0.07), 0.22, 0.17]} material={clay(C.wood)} castShadow><boxGeometry args={[0.05, 0.44, 0.05]} /></mesh>
-          <mesh position={[s * (w / 2 - 0.07), 0.22, -0.17]} material={clay(C.wood)} castShadow><boxGeometry args={[0.05, 0.44, 0.05]} /></mesh>
-        </group>
-      ))}
-      <RoundedBox args={[w - 0.24, 0.03, 0.36]} radius={0.01} position={[0, 0.14, 0]} material={clay(C.wood)} castShadow />
-    </group>
-  )
-}
-
-/** Voxel tower: chamfered box + baked facade; roof slab + parapet. */
-export function VoxelTower({ w = 1, d = 1, h = 2.4, tone = C.facade1, win = C.glass, seed = 1, ...p }: P & { w?: number; d?: number; h?: number; tone?: string; win?: string; seed?: number }) {
-  const tex = useMemo(() => facadeTexture(tone, win, Math.max(2, Math.round(h / 0.55)), Math.max(2, Math.round(w / 0.34)), seed), [w, h, tone, win, seed])
-  const mat = useMemo(() => { const m = toon({ color: '#fff' }); m.map = tex; return m }, [tex])
-  return (
-    <group {...p}>
-      <RoundedBox args={[w, h, d]} radius={0.03} smoothness={2} position={[0, h / 2, 0]} material={mat} castShadow receiveShadow />
-      <mesh position={[0, h + 0.02, 0]} material={clay(C.roof)} castShadow>
-        <boxGeometry args={[w * 0.94, 0.05, d * 0.94]} />
-      </mesh>
-      {[-1, 1].map((s) => (
-        <group key={s}>
-          <mesh position={[s * (w / 2 - 0.02), h + 0.06, 0]} material={clay(C.roofDark)}>
-            <boxGeometry args={[0.04, 0.09, d * 0.9]} />
-          </mesh>
-          <mesh position={[0, h + 0.06, s * (d / 2 - 0.02)]} material={clay(C.roofDark)}>
-            <boxGeometry args={[w * 0.9, 0.09, 0.04]} />
-          </mesh>
-        </group>
-      ))}
-    </group>
-  )
-}
-
-/** Rooftop AC unit. */
-export function AcBox({ s = 1, ...p }: P & { s?: number }) {
-  return (
-    <group {...p} scale={[s, s, s]}>
-      <RoundedBox args={[0.3, 0.18, 0.24]} radius={0.02} material={clay(C.stone)} castShadow />
-      <mesh position={[0, 0.1, 0]} rotation={[-Math.PI / 2, 0, 0]} material={clay(C.roofDark)}>
-        <circleGeometry args={[0.07, 12]} />
-      </mesh>
-    </group>
-  )
-}
-
-/** Rooftop antenna with a tiny warm beacon. */
-export function Antenna({ h = 0.8, ...p }: P & { h?: number }) {
-  return (
-    <group {...p}>
-      <mesh position={[0, h / 2, 0]} material={clay(C.ink2)}><cylinderGeometry args={[0.012, 0.02, h, 6]} /></mesh>
-      <mesh position={[0, h * 0.72, 0]} rotation={[0, 0, Math.PI / 2]} material={clay(C.ink2)}><cylinderGeometry args={[0.008, 0.008, 0.24, 5]} /></mesh>
-      <mesh position={[0, h + 0.03, 0]} material={clay(C.warm)}><sphereGeometry args={[0.035, 10, 8]} /></mesh>
-    </group>
-  )
-}
+/** The Remote vignette as baked prims — desk+laptop+phone in their group-local
+   spaces (3 draw calls total, was ~17). */
+export const DESK_P: BPart[] = [
+  { g: 'box', p: [0, 0.46, 0], s: [1.05, 0.055, 0.5], c: C.woodLight },
+  { g: 'box', p: [-0.455, 0.22, 0.17], s: [0.05, 0.44, 0.05], c: C.wood },
+  { g: 'box', p: [0.455, 0.22, 0.17], s: [0.05, 0.44, 0.05], c: C.wood },
+  { g: 'box', p: [-0.455, 0.22, -0.17], s: [0.05, 0.44, 0.05], c: C.wood },
+  { g: 'box', p: [0.455, 0.22, -0.17], s: [0.05, 0.44, 0.05], c: C.wood },
+  { g: 'box', p: [0, 0.14, 0], s: [0.81, 0.03, 0.36], c: C.wood },
+]
+/** Laptop baked open (lid rotated -0.34 about the hinge at [0,0.04,-0.2]). */
+export const LAPTOP_P: BPart[] = [
+  { g: 'box', p: [0, 0.018, 0], s: [0.62, 0.035, 0.44], c: C.stoneLight },
+  { g: 'box', p: [0, 0.041, 0.02], s: [0.5, 0.012, 0.3], c: C.stone },
+  { g: 'box', p: [0, 0.238, -0.27], s: [0.62, 0.42, 0.024], r: [-0.34, 0, 0], c: C.stoneLight },
+  { g: 'box', p: [0, 0.2437, -0.2541], s: [0.5, 0.32, 0.003], r: [-0.34, 0, 0], c: '#2f2a26' },
+  { g: 'box', p: [-0.1, 0.2912, -0.2698], s: [0.22, 0.14, 0.003], r: [-0.34, 0, 0], c: '#8fb36b' },
+]
+export const PHONE_P: BPart[] = [
+  { g: 'box', p: [0, 0.21, -0.07], s: [0.22, 0.42, 0.035], r: [0.36, 0, 0], c: C.wood },
+  { g: 'box', p: [0, 0.06, 0.02], s: [0.26, 0.13, 0.06], r: [0.42, 0, 0], c: C.wood },
+  { g: 'box', p: [0, 0.26, -0.04], s: [0.25, 0.44, 0.028], r: [0.36, 0, 0], c: C.ink },
+  { g: 'box', p: [0, 0.263, -0.024], s: [0.21, 0.38, 0.003], r: [0.36, 0, 0], c: '#e6ddc8' },
+]
 
 /** The clay helicopter — stub visual until PLAYER's src/v5/player/Heli.tsx lands.
  * Exposes rotor refs so the obstacle can spin up/down. Faces -z. */
@@ -218,40 +212,25 @@ export function Heli({ rotorRef, ...p }: P & { rotorRef?: React.Ref<THREE.Group>
   )
 }
 
-/** A route ring the helicopter flies through. Soft opaque clay, gentle bob. */
+/** A route ring the helicopter flies through — torus + pennants merged into
+   ONE vertex-coloured mesh (still animated per-ring by the obstacle). */
 export function RouteRing({ r = 0.85, live = true, ...p }: P & { r?: number; live?: boolean }) {
-  return (
-    <group {...p}>
-      <mesh material={clay(live ? C.warm : C.stoneLight)} castShadow>
-        <torusGeometry args={[r, 0.055, 10, 30]} />
-      </mesh>
-      {/* tiny pennants on top */}
-      {[-0.5, 0.5].map((s, i) => (
-        <mesh key={i} position={[s * r, r * 0.95, 0]} rotation={[0, 0, s * 0.2]} material={clay(i ? C.leaf : C.terracotta)}>
-          <coneGeometry args={[0.05, 0.14, 4]} />
-        </mesh>
-      ))}
-    </group>
-  )
+  const geo = useMemo(() => bake([
+    { g: 'torus', p: [0, 0, 0], s: [r, 0.055, 0], c: live ? C.warm : C.stoneLight },
+    { g: 'cone', p: [-0.5 * r, r * 0.95, 0], s: [0.1, 0.14, 0], r: [0, 0, -0.1], c: C.terracotta },
+    { g: 'cone', p: [0.5 * r, r * 0.95, 0], s: [0.1, 0.14, 0], r: [0, 0, 0.1], c: C.leaf },
+  ]), [r, live])
+  return <mesh geometry={geo} material={_vcMat} castShadow {...p} />
 }
 
-/** Helipad: paved disc + painted circle + corner stones. `lit` warms the ring. */
-export function HeliPad({ r = 0.95, lit = false, ...p }: P & { r?: number; lit?: boolean }) {
+/** Helipad marker ring — the one bit that changes colour (`lit`). Everything
+   else about the pad lives in the baked statics (see Obstacle's CITY_PARTS). */
+export function HeliPad({ r = 0.95, lit = false, position, ...p }: P & { r?: number; lit?: boolean }) {
+  const [x, y, z] = position ?? [0, 0, 0]
   return (
-    <group {...p}>
-      <mesh material={clay(C.curb)} receiveShadow><cylinderGeometry args={[r, r + 0.06, 0.045, 26]} /></mesh>
-      <mesh position={[0, 0.026, 0]} rotation={[-Math.PI / 2, 0, 0]} material={clay(lit ? C.warm : C.terracotta)}>
-        <ringGeometry args={[r * 0.62, r * 0.74, 32]} />
-      </mesh>
-      <mesh position={[0, 0.027, 0]} rotation={[-Math.PI / 2, 0, 0]} material={clay(C.stoneLight)}>
-        <circleGeometry args={[r * 0.5, 24]} />
-      </mesh>
-      {[[-0.8, -0.8], [0.8, -0.8], [-0.8, 0.8], [0.8, 0.8]].map(([x, z], i) => (
-        <mesh key={i} position={[x * r * 0.98, 0.045, z * r * 0.98]} material={clay(C.stone)}>
-          <boxGeometry args={[0.08, 0.05, 0.08]} />
-        </mesh>
-      ))}
-    </group>
+    <mesh position={[x, y + 0.026, z]} rotation={[-Math.PI / 2, 0, 0]} material={clay(lit ? C.warm : C.terracotta)} {...p}>
+      <ringGeometry args={[r * 0.62, r * 0.74, 32]} />
+    </mesh>
   )
 }
 
