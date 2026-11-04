@@ -4,6 +4,7 @@ import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import type { DioramaProps } from '../types'
 import { C, clay, Scaffold, Tree, Rock } from '../../world/kit'
+import { AutoMerge } from '../../v5/world/AutoMerge'
 
 const POND_X = 0
 const POND_Z = -0.75
@@ -92,6 +93,7 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
   const padGeo = useMemo(() => new THREE.CircleGeometry(1, 24, 0.5, 5.55), [])
   return (
     <group>
+      <AutoMerge>
       {/* pond bank and water */}
       <mesh position={[POND_X, 0.018, POND_Z]} material={clay(C.sand)} receiveShadow>
         <cylinderGeometry args={[POND_R + 0.17, POND_R + 0.21, 0.05, 44]} />
@@ -147,6 +149,7 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
       <Tree position={[-1.85, 0, -0.5]} h={0.95} />
       <Rock position={[1.55, 0.06, -1.35]} s={0.2} />
       <Rock position={[-1.5, 0.04, 0.55]} s={0.13} color={C.earthDark} />
+      </AutoMerge>
 
       <Ripples on={unlocked} />
       <Fireflies on={unlocked} active={active} />

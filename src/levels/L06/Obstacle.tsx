@@ -17,6 +17,7 @@ import { Prop } from '../../v5/art/Dressing'
 import { LEVELS } from '../registry'
 import { PillHint } from '../L01/shared.v5'
 import { C, clay, CityTowers, Baked, Heli, RouteRing, HeliPad, PadRock, BlockBox, DESK_P, LAPTOP_P, PHONE_P, type BPart } from './kit.v5'
+import { AutoMerge } from '../../v5/world/AutoMerge'
 
 const V3 = THREE.Vector3
 type V3T = [number, number, number]
@@ -433,6 +434,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       {TOWERS.map(([x, z, w, d, h], i) => (
         <BlockBox key={i} position={[x, h / 2, z]} args={[w, h + 0.4, d]} kind="block" />
       ))}
+      <AutoMerge>
       {/* rooftops */}
       <Prop name="water_tower" position={[-3.75, 1.54, -0.9]} fit={0.75} />
       {/* street life */}
@@ -444,6 +446,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       <Prop name="city_bush" position={[2.3, 0.02, 0.4]} fit={0.36} />
       <Prop name="box_a" position={[-0.6, 0.02, -3.7]} fit={0.4} />
       <Prop name="box_a" position={[1.3, 0.02, -3.85]} fit={0.32} rotation={[0, 0.7, 0]} />
+      </AutoMerge>
 
       {/* ------- the Remote vignette: desk + laptop + phone, beside the path ------- */}
       <group position={[3.0, 0, 3.0]} rotation={[0, -0.55, 0]}>

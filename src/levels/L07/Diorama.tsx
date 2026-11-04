@@ -12,6 +12,7 @@ import type { DioramaProps } from '../types'
 import { C, clay, BlockBox, makeCanvasTexture } from './kit.v5'
 import { HUT, HUT_SIZE, DOOR_X, TABLE, SCREEN, SCREEN_YAW, MIC_BASE, MIC_HEAD } from './layout'
 import { studio } from './studio'
+import { AutoMerge, NoMerge } from '../../v5/world/AutoMerge'
 
 const RM = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches
 const RIBBON = [C.moss, C.water, C.cream]
@@ -86,6 +87,7 @@ export default function Diorama({ unlocked }: DioramaProps) {
 
   return (
     <group>
+      <AutoMerge>
       {/* studio hut: wall, pyramid roof, round window, door that swings open, foam on the front */}
       <RoundedBox args={HUT_SIZE} radius={0.07} smoothness={3} position={[HUT[0], HUT_SIZE[1] / 2, HUT[2]]} material={clay(C.sand)} castShadow receiveShadow />
       <mesh position={[HUT[0], HUT_SIZE[1] + 0.21, HUT[2]]} rotation={[0, Math.PI / 4, 0]} material={clay(C.terracotta)} castShadow>
@@ -98,9 +100,9 @@ export default function Diorama({ unlocked }: DioramaProps) {
       <mesh position={[HUT[0], 0.36, HUT[2] + HUT_SIZE[2] / 2 + 0.01]} material={clay(C.wood)}>
         <torusGeometry args={[0.12, 0.02, 6, 20]} />
       </mesh>
-      <group ref={door} position={[DOOR_X + 0.01, 0, HUT[2] - 0.18]}>
+      <NoMerge><group ref={door} position={[DOOR_X + 0.01, 0, HUT[2] - 0.18]}>
         <RoundedBox args={[0.05, 0.5, 0.36]} radius={0.02} position={[0, 0.25, 0.19]} material={clay(C.wood)} castShadow />
-      </group>
+      </group></NoMerge>
       <mesh position={[DOOR_X + 0.03, 0.57, HUT[2]]}>
         <sphereGeometry args={[0.035, 10, 8]} />
         <meshBasicMaterial ref={lamp} color="#8a7f6d" />
@@ -149,6 +151,7 @@ export default function Diorama({ unlocked }: DioramaProps) {
       </mesh>
 
       {/* sound-wave ribbons: arcs rippling out from the mic, waves over the studio roof */}
+      </AutoMerge>
       <group ref={arcs} position={MIC_HEAD}>
         {geo.arcs.map((g, i) => (
           <mesh key={i} geometry={g} material={clay(RIBBON[i])} scale={[1, 1, 0.4]} />
@@ -159,6 +162,7 @@ export default function Diorama({ unlocked }: DioramaProps) {
           <mesh key={i} geometry={g} material={clay(i ? C.moss : C.water)} scale={[1, 1, 0.4]} />
         ))}
       </group>
+      <AutoMerge>
 
       {/* planting kept off the hut, the table and the traveller's spot */}
       <mesh position={[-2.4, 0.2, 1.35]} material={clay(C.leaf)} castShadow>
@@ -178,6 +182,7 @@ export default function Diorama({ unlocked }: DioramaProps) {
       <BlockBox position={[HUT[0], HUT_SIZE[1] / 2, HUT[2]]} args={HUT_SIZE} />
       <BlockBox position={[TABLE[0], 0.2, TABLE[2]]} args={[0.46, 0.4, 0.66]} />
       <BlockBox position={[MIC_BASE.x, 0.45, MIC_BASE.z]} args={[0.2, 0.9, 0.2]} />
+      </AutoMerge>
     </group>
   )
 }

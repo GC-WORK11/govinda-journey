@@ -13,6 +13,7 @@ import * as core from '../../v5/core'
 import { C, clay, PathStones, sleep, tpLocal, useIslandFrame } from '../L04/shared.v5'
 import { Bush, ClayPot, Tree, Rock } from '../../world/kit'
 import { Bench, Churn, Luggage, Nameboard, Platform, Siding, StationLamp, TeaStall, Train, useTrack } from './station.v5'
+import { AutoMerge } from '../../v5/world/AutoMerge'
 
 /** Causeway behind the island's right shoulder — kept x>=2.2 clear of the exit-bridge corridor. */
 const TRACK_PTS: [number, number, number][] = [
@@ -84,9 +85,9 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   return (
     <group ref={root}>
       {/* the floating line behind the island + the station siding that meets it */}
+      <AutoMerge>
       <mesh geometry={track.geo} material={trackMat} castShadow receiveShadow />
       <Siding position={[3.35, 0, -3.05]} yaw={-0.73} />
-      <Train track={track} uRef={u} />
 
       {/* platform + furniture on the back-left, clear of the walk line */}
       <Platform position={[-1.6, 0, -2.3]} w={2.0} />
@@ -112,6 +113,8 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       <Bush position={[3.85, 0, 1.1]} s={0.85} color={C.leaf} />
       <ClayPot position={[-2.9, 0, 0.9]} s={0.9} />
       <ClayPot position={[1.6, 0, -3.6]} s={0.8} />
+      </AutoMerge>
+      <Train track={track} uRef={u} />
     </group>
   )
 }

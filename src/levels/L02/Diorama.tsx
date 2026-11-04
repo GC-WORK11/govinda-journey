@@ -5,6 +5,7 @@ import type { DioramaProps } from '../types'
 import { Scaffold, clay, C, Letter, Rock } from '../../world/kit'
 import * as THREE from 'three'
 import { Merged, type Prim } from '../L01/shared.v5'
+import { AutoMerge, NoMerge } from '../../v5/world/AutoMerge'
 
 /* V6: the wrap-cloth dome only belongs to the V4 route — V5 shows the gates. */
 const IS_V4 = typeof location !== 'undefined' && new URLSearchParams(location.search).has('v4')
@@ -63,13 +64,14 @@ export default function Diorama({ unlocked }: DioramaProps) {
 
   return (
     <group>
+      <AutoMerge>
       {/* V5: squat the gate line so it reads as a gate, not a wall over the island (visual only) */}
       <group scale={[1, IS_V4 ? 1 : 0.6, 1]}>
       {/* Stone pillars + caps + wall wings — ONE merged mesh */}
       <Merged items={GATE_LINE} />
 
       {/* Left gate */}
-      <group ref={leftGateRef} position={[-0.55, 0, -0.8]}>
+      <NoMerge><group ref={leftGateRef} position={[-0.55, 0, -0.8]}>
         <group position={[0.275, 0, 0]}>
           <RoundedBox
             args={[0.55, 1.6, 0.1]}
@@ -83,10 +85,10 @@ export default function Diorama({ unlocked }: DioramaProps) {
           <RoundedBox args={[0.5, 0.08, 0.12]} radius={0.02} position={[0, 0.8, 0]} material={clay(C.woodLight)} castShadow />
           <RoundedBox args={[0.5, 0.08, 0.12]} radius={0.02} position={[0, 1.2, 0]} material={clay(C.woodLight)} castShadow />
         </group>
-      </group>
+      </group></NoMerge>
 
       {/* Right gate */}
-      <group ref={rightGateRef} position={[0.55, 0, -0.8]}>
+      <NoMerge><group ref={rightGateRef} position={[0.55, 0, -0.8]}>
         <group position={[-0.275, 0, 0]}>
           <RoundedBox
             args={[0.55, 1.6, 0.1]}
@@ -100,7 +102,7 @@ export default function Diorama({ unlocked }: DioramaProps) {
           <RoundedBox args={[0.5, 0.08, 0.12]} radius={0.02} position={[0, 0.8, 0]} material={clay(C.woodLight)} castShadow />
           <RoundedBox args={[0.5, 0.08, 0.12]} radius={0.02} position={[0, 1.2, 0]} material={clay(C.woodLight)} castShadow />
         </group>
-      </group>
+      </group></NoMerge>
 
       {/* Scattered letters on ground (before unlock) — one mesh */}
       {!unlocked && <Merged items={PAPERS} />}
@@ -129,6 +131,7 @@ export default function Diorama({ unlocked }: DioramaProps) {
         <Letter position={[0.04, 0.026, -0.03]} rotation={[0, -0.3, 0.04]} seal={C.brick} />
         <Letter position={[-0.05, 0.044, 0.04]} rotation={[0, 0.9, -0.03]} />
       </group>
+      </AutoMerge>
 
       {/* Scaffold (V4 route only — the V6 island keeps its gates bare) */}
       {IS_V4 && <Scaffold open={unlocked} position={[0, 0, -0.8]} size={[2, 2.2, 1.2]} />}

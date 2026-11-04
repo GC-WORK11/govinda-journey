@@ -10,6 +10,7 @@ import * as THREE from 'three'
 import * as core from '../../v5/core'
 import { Gate, LowWall, PathStones, PillHint, Prop, Rock, tpLocal, sleep, useLocalPlayer, useSolver, BloomField, Merged, type Prim } from './shared.v5'
 import { BigTree, CampusBlock, LaptopDesk } from './campus.v5'
+import { AutoMerge } from '../../v5/world/AutoMerge'
 
 const DESK = new THREE.Vector3(2.35, 0, -0.6)
 const WALL_Z = 0.55
@@ -104,6 +105,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   const warm = open
   return (
     <group ref={root}>
+      <AutoMerge>
       {/* courtyard landmark + the desk under the tree */}
       <CampusBlock position={[-2.3, 0, -2.85]} yaw={0.55} warm={warm} />
       <BigTree position={[2.9, 0, -1.45]} s={1.1} />
@@ -116,10 +118,8 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       <Merged items={bushes} />
 
       {/* the way out */}
-      <Gate position={[0, 0, -3.9]} open={open} instant={done} width={2.0} height={1.42} />
       <Prop name="streetlight" position={[-1.55, 0, -3.62]} scale={1.55} />
       <Prop name="streetlight" position={[1.55, 0, -3.62]} rotation={[0, Math.PI, 0]} scale={1.55} />
-      {warm && <pointLight position={[0, 1.3, -3.6]} color="#ffc27e" intensity={2.4} distance={4.5} decay={2} />}
 
       {/* a spur of stones leading off the main path to the desk (the z-corridor
           stones are drawn by WORLD) */}
@@ -133,6 +133,10 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       {/* seeded rim dressing (grass + flower blobs, ONE merged mesh) */}
       <BloomField seed={11} density={0.55}
         avoid={[[-2.3, -2.85, 2.6], [2.6, -1.0, 2.0], [0, -3.9, 2.2], [0, 4.2, 1.4]]} />
+      </AutoMerge>
+
+      <Gate position={[0, 0, -3.9]} open={open} instant={done} width={2.0} height={1.42} />
+      {warm && <pointLight position={[0, 1.3, -3.6]} color="#ffc27e" intensity={2.4} distance={4.5} decay={2} />}
 
       {/* quiet teaching line */}
       <PillHint text={hint} />

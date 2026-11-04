@@ -5,6 +5,7 @@ import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import type { DioramaProps } from '../types'
 import { C, clay, Scaffold, Tree, Rock, LampPost } from '../../world/kit'
+import { AutoMerge, NoMerge } from '../../v5/world/AutoMerge'
 
 const TRACK_Z = -0.12
 const CAR: [number, number, number] = [0.1, 0, TRACK_Z]
@@ -61,6 +62,7 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
 
   return (
     <group>
+      <AutoMerge>
       {/* track */}
       <mesh geometry={sleepers} material={clay(C.woodLight)} castShadow receiveShadow />
       {[-0.17, 0.17].map((dz) => (
@@ -154,6 +156,7 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
       </group>
 
       {/* the carriage, in front of the platform */}
+      </AutoMerge>
       <group ref={car} position={CAR}>
         <RoundedBox args={[1.16, 0.44, 0.42]} radius={0.06} smoothness={3} position={[0, 0.4, 0]} material={clay(C.terracotta)} castShadow receiveShadow />
         <RoundedBox args={[1.24, 0.1, 0.48]} radius={0.045} smoothness={3} position={[0, 0.65, 0]} material={clay(C.cream)} castShadow />
@@ -177,10 +180,12 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
         ))}
       </group>
 
+      <AutoMerge>
       <Tree position={[-1.88, 0, 1.02]} h={0.78} />
       <Tree position={[1.72, 0, 0.55]} h={0.7} color={C.leaf} />
       <Rock position={[1.95, 0.05, -1.05]} s={0.19} />
       <Rock position={[-1.72, 0.04, -1.3]} s={0.14} color={C.earthDark} />
+      </AutoMerge>
 
       <KettleSteam on={unlocked} active={active} />
       <Scaffold open={unlocked} position={CAR} size={[1.38, 1.0, 0.64]} />

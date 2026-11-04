@@ -14,6 +14,7 @@ import {
   C, clay, REDUCED, useLocalPlayer, tpLocal, tpWorld, useSolver, useAt, Hint,
   PathStones, Rock, Mound, StoneLantern, Prop, sleep, waitTp,
 } from '../L03/shared.v5'
+import { AutoMerge, NoMerge } from '../../v5/world/AutoMerge'
 
 /* --------------------------------- layout --------------------------------- */
 
@@ -110,38 +111,40 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
 
   return (
     <group ref={root}>
-      {/* path along the west shore */}
-      <PathStones pts={[[0, 4.2], [-0.5, 3.4], [-1.3, 2.4], [-1.65, 1.2], [-1.75, 0], [-1.6, -1.4], [-1.0, -2.6], [-0.3, -3.6], [0, -4.2]]} seed={4} />
+      <AutoMerge>
+        {/* path along the west shore */}
+        <PathStones pts={[[0, 4.2], [-0.5, 3.4], [-1.3, 2.4], [-1.65, 1.2], [-1.75, 0], [-1.6, -1.4], [-1.0, -2.6], [-0.3, -3.6], [0, -4.2]]} seed={4} />
 
-      {/* pond: sandy bank, shallow water, ripple rings */}
-      <mesh position={[POND.x, 0.015, POND.z]} scale={[1, 1, POND_RZ / POND_RX]} material={clay(C.sand)} receiveShadow>
-        <cylinderGeometry args={[POND_RX + 0.32, POND_RX + 0.38, 0.05, 48]} />
-      </mesh>
-      <mesh position={[POND.x, 0.055, POND.z]} scale={[1, 1, POND_RZ / POND_RX]}>
-        <cylinderGeometry args={[POND_RX, POND_RX + 0.05, 0.07, 48]} />
-        <meshStandardMaterial color="#8fc1c9" roughness={0.35} metalness={0} transparent opacity={0.92} />
-      </mesh>
+        {/* pond: sandy bank, shallow water, ripple rings */}
+        <mesh position={[POND.x, 0.015, POND.z]} scale={[1, 1, POND_RZ / POND_RX]} material={clay(C.sand)} receiveShadow>
+          <cylinderGeometry args={[POND_RX + 0.32, POND_RX + 0.38, 0.05, 48]} />
+        </mesh>
+        <mesh position={[POND.x, 0.055, POND.z]} scale={[1, 1, POND_RZ / POND_RX]}>
+          <cylinderGeometry args={[POND_RX, POND_RX + 0.05, 0.07, 48]} />
+          <meshStandardMaterial color="#8fc1c9" roughness={0.35} metalness={0} transparent opacity={0.92} />
+        </mesh>
+        <LilyPads />
+
+        {/* stepping stones into the shallows */}
+        {[[-0.4, 0.85], [0.35, 1.15], [1.1, 1.1]].map(([x, z], i) => (
+          <SteppingStone key={i} i={i} position={[POND.x + x - 1.0, 0, POND.z + z - 0.6]} s={0.38 - i * 0.05} />
+        ))}
+
+        <Bench pos={BENCH} yaw={BENCH_YAW} />
+        <Willow pos={WILLOW} />
+        <Reeds />
+
+        {/* dressing */}
+        <StoneLantern position={[0.6, 0, -3.3]} lit={done} />
+        <Rock position={[-3.3, 0.09, 1.4]} s={0.5} yaw={0.7} />
+        <Rock position={[-2.9, 0.06, -2.2]} s={0.32} yaw={1.8} block={false} />
+        <Rock position={[3.9, 0.1, -1.9]} s={0.44} yaw={2.6} />
+        <Mound position={[-3.4, 0, -0.6]} r={1.0} h={0.36} />
+        <Mound position={[2.2, 0, -3.3]} r={0.85} h={0.28} />
+        <Tufts />
+      </AutoMerge>
       <Ripples />
-      <LilyPads />
-
-      {/* stepping stones into the shallows */}
-      {[[-0.4, 0.85], [0.35, 1.15], [1.1, 1.1]].map(([x, z], i) => (
-        <SteppingStone key={i} i={i} position={[POND.x + x - 1.0, 0, POND.z + z - 0.6]} s={0.38 - i * 0.05} />
-      ))}
-
-      <Bench pos={BENCH} yaw={BENCH_YAW} />
-      <Willow pos={WILLOW} />
-      <Reeds />
       <Fireflies active={active} />
-
-      {/* dressing */}
-      <StoneLantern position={[0.6, 0, -3.3]} lit={done} />
-      <Rock position={[-3.3, 0.09, 1.4]} s={0.5} yaw={0.7} />
-      <Rock position={[-2.9, 0.06, -2.2]} s={0.32} yaw={1.8} block={false} />
-      <Rock position={[3.9, 0.1, -1.9]} s={0.44} yaw={2.6} />
-      <Mound position={[-3.4, 0, -0.6]} r={1.0} h={0.36} />
-      <Mound position={[2.2, 0, -3.3]} r={0.85} h={0.28} />
-      <Tufts />
 
       <Hint text="sit a while" position={[BENCH.x, 0.95, BENCH.z]}
         show={() => active && !sitting && (lp.x - BENCH.x) ** 2 + (lp.z - BENCH.z) ** 2 < 6.5} size={0.28} />
@@ -178,7 +181,7 @@ function Willow({ pos }: { pos: THREE.Vector3 }) {
       <mesh position={[0.28, 1.35, 0]} rotation={[0, 0, 0.34]} material={clay(C.earthDark)} castShadow>
         <cylinderGeometry args={[0.05, 0.08, 0.9, 6]} />
       </mesh>
-      <group ref={canopy} position={[0.42, 1.95, 0]}>
+      <NoMerge><group ref={canopy} position={[0.42, 1.95, 0]}>
         <mesh material={clay(C.leafDark)} castShadow><sphereGeometry args={[0.95, 16, 12]} /></mesh>
         <mesh position={[-0.7, -0.15, 0.2]} material={clay(C.leaf)} castShadow><sphereGeometry args={[0.6, 14, 10]} /></mesh>
         <mesh position={[0.5, -0.3, -0.45]} material={clay(C.leaf)} castShadow><sphereGeometry args={[0.55, 12, 10]} /></mesh>
@@ -188,7 +191,7 @@ function Willow({ pos }: { pos: THREE.Vector3 }) {
             <cylinderGeometry args={[0.012, 0.026, 0.7, 5]} />
           </mesh>
         ))}
-      </group>
+      </group></NoMerge>
     </group>
   )
 }
