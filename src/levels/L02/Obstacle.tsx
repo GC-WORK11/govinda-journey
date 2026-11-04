@@ -239,7 +239,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       <Rock position={[2.55, 1.62, -4.3]} s={0.34} yaw={1.9} variant={2} />
 
       {/* the closed gate on the ledge */}
-      <Gate position={[0, 1.62, -3.78]} open={open} instant={done} width={1.85} height={1.5} />
+      <Gate position={[0, 1.62, -3.78]} open={open} instant={done} width={1.7} height={1.05} />
       {open && <pointLight position={[0, 2.6, -3.5]} color="#ffc27e" intensity={2.0} distance={4.5} decay={2} />}
 
       {/* V4's stream across the front grass — the letters drifted down from it */}

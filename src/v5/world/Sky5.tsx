@@ -50,6 +50,7 @@ const STOPS5: Stop[] = [
   // the full night stop at p = 1.
   { at: 0.76, top: '#6f669a', mid: '#e29f8d', bot: '#a97e78', hs: '#d4bfc2', hg: '#6f6872', hi: 0.88, sun: '#ffc6a4', si: 0.92, so: [10.5, 3.4, 2], fill: '#8b86ac', fi: 0.34, glow: '#ff9e76', gi: 0.30, night: 0.5 },
   { at: 0.90, top: '#6f669a', mid: '#e29f8d', bot: '#a97e78', hs: '#d4bfc2', hg: '#6f6872', hi: 0.88, sun: '#ffc6a4', si: 0.92, so: [10.5, 3.4, 2], fill: '#8b86ac', fi: 0.34, glow: '#ff9e76', gi: 0.30, night: 0.55 },
+  { at: 0.95, top: '#322e50', mid: '#514360', bot: '#3c3550', hs: '#76709e', hg: '#37324a', hi: 0.66, sun: '#c9cdee', si: 0.55, so: [-5, 13, -7], fill: '#5c5a86', fi: 0.3, glow: '#8a78b0', gi: 0.14, night: 1 },
   { at: 1.00, top: '#322e50', mid: '#514360', bot: '#3c3550', hs: '#76709e', hg: '#37324a', hi: 0.66, sun: '#c9cdee', si: 0.55, so: [-5, 13, -7], fill: '#5c5a86', fi: 0.3, glow: '#8a78b0', gi: 0.14, night: 1 },
 ]
 
