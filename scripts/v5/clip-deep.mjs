@@ -228,8 +228,9 @@ await withChrome(async (browser) => {
   await page.setViewport(DESKTOP)
   page.setDefaultTimeout(120000)
   const errors = []
-  page.on('pageerror', (e) => errors.push(e.message.slice(0, 160)))
+  page.on('pageerror', (e) => errors.push('PAGEERR ' + e.message.slice(0, 160)))
   page.on('console', (m) => { if (m.type() === 'error' && !/favicon|WebGL|swiftshader|GPU stall|deprecation/i.test(m.text())) errors.push(m.text().slice(0, 160)) })
+  page.on('requestfailed', (r) => errors.push('REQFAIL ' + r.url().slice(-70) + ' ' + (r.failure()?.errorText || '')))
 
   const ready = async () => {
     for (let t = 0; t < 240; t++) {
@@ -270,10 +271,14 @@ await withChrome(async (browser) => {
     for (const pr of (r.pairs || []).slice(0, 3)) { shotN++; await markAndShot(page, pr.at, `clip-${String(shotN).padStart(2, '0')}-${r.phase}-pair.png`) }
   }
 
-  console.log('[audit] goto', `${BASE}?qa&fresh&nomerge&lite`)
-  await page.goto(`${BASE}?qa&fresh&nomerge&lite`, { waitUntil: 'domcontentloaded' }).catch((e) => console.log('goto fail', e.message))
-  console.log('[audit] loaded, waiting for world')
-  if (!(await ready())) { console.log('never ready'); process.exit(2) }
+  for (let boot = 0; boot < 2; boot++) {
+    console.log('[audit] goto', `${BASE}?qa&fresh&nomerge&lite`)
+    await page.goto(`${BASE}?qa&fresh&nomerge&lite`, { waitUntil: 'domcontentloaded' }).catch((e) => console.log('goto fail', e.message))
+    console.log('[audit] loaded, waiting for world')
+    if (await ready()) break
+    console.log(`[audit] never ready (boot ${boot}); errors:`, errors.slice(0, 10).join(' ;; ') || 'none')
+    if (boot === 1) process.exit(2)
+  }
   console.log('[audit] world ready')
 
   const NAV_DEAD = /Execution context was destroyed|Cannot find name|Session closed/
