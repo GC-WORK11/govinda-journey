@@ -55,6 +55,14 @@ export const ArtEffects = take(artMods, '../art/Effects5.tsx', 'Effects5')
 export const Player = take(playerMods, '../player/Player.tsx')
 export const Controls = take(playerMods, '../player/Controls.tsx')
 
+/** Warm the PLAYER chunks at World5 eval — several beats before their Suspense
+ * boundaries would ask. Same loaders React awaits, so this only pulls the
+ * fetch forward. */
+export const warmPlayer = () => {
+  playerMods['../player/Player.tsx']?.()
+  playerMods['../player/Controls.tsx']?.()
+}
+
 /** One module's bug must never take the world down — render `fallback`, log once. */
 export class Guard extends Component<
   { children: React.ReactNode; fallback?: React.ReactNode; onError?: () => void },

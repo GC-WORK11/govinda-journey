@@ -16,7 +16,7 @@ import { V5_ORDER, useV5, player, cinematic, type IslandId } from './core'
 import { ISLAND_POS, ENTRY, PATH_MID, islandIndex, islandPos } from './world/layout'
 import { Island5, purgeCorridors } from './world/Island5'
 import { Bridge5 } from './world/Bridge5'
-import { hasObstacle, Player, ArtWater, Guard, whenIsland } from './world/modules'
+import { hasObstacle, Player, ArtWater, Guard, whenIsland, warmPlayer } from './world/modules'
 import { useWorldUI } from './world/progress'
 import { input, now } from './player/input'
 import Sky5, { skyDebug } from './world/Sky5'
@@ -42,10 +42,11 @@ mark('fj:world5')
 // loader cache hands the same pending load to useGLTF/useTexture in Player.
 useGLTF.preload('./models/student.glb')
 useTexture.preload('./models/student-skin.png')
+warmPlayer()
 // ?at=<ID> deep-links stand on another island — gate playable on that one.
 const AT_ISLE = (typeof location !== 'undefined' ? new URLSearchParams(location.search).get('at') : null) as IslandId | null
 const FIRST_ISLE: IslandId = AT_ISLE && (V5_ORDER as readonly string[]).includes(AT_ISLE) ? AT_ISLE : 'L01'
-whenIsland(FIRST_ISLE).then(() => { fj.l01 = true })
+whenIsland(FIRST_ISLE).finally(() => { fj.l01 = true })
 
 // ?qa&fresh — start from a clean journey (before persist state is read anywhere)
 if (QA && new URLSearchParams(location.search).has('fresh')) {

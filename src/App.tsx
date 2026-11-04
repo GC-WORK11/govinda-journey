@@ -2,7 +2,12 @@
 import { lazy, Suspense, useEffect } from 'react'
 
 const World = lazy(() => import('./world/World'))
-const World5 = lazy(() => import('./v5/World5'))
+// Fire the V5 import at module eval, not at first render — React's commit
+// would otherwise sit between entry eval and the chunk request on the cold path.
+const wantWorld5 = !new URLSearchParams(location.search).has('v4')
+  && !new URLSearchParams(location.search).has('sandbox') && webglOk()
+const world5Promise = wantWorld5 ? import('./v5/World5') : null
+const World5 = lazy(() => world5Promise ?? import('./v5/World5'))
 // V4-only chrome — keep it (and registry/store) off the V5 cold path.
 const Overlay = lazy(() => import('./ui/Overlay'))
 
