@@ -132,7 +132,9 @@ async function audit(page, phase) {
           const h = Math.max(0.01, m.box.max.y - m.box.min.y)
           const minFrac = Math.min(...insidePts.map((ip) => (isl.pos.y + ip.w[1] - m.box.min.y) / h))
           if (top.depth < 0.08) continue
-          if (minFrac < 0.35 && top.depth < 0.3 && !/^bridge/.test(m.owner)) continue
+          // planted = inside verts only in the bottom third of a TALL prop and
+          // shallow — a thin plank fully inside still gets reported
+          if (minFrac < 0.35 && top.depth < 0.3 && h > 0.3) continue
           const wp = isl.body.localToWorld(new THREE.Vector3(top.w[0], top.w[1], top.w[2]))
           clips.push({
             island: isl.id, mesh: m.label, owner: m.owner, meshIsland: islandOf(m),
