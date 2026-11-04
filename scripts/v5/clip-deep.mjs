@@ -1,244 +1,291 @@
-// node scripts/v5/clip-audit.mjs [baseUrl] --only=I02,L06,L07 [--shots] [--done] [--size=1440|390] [--lite]
-// Clip-audit for one level at a time:
-//   * loads /?qa&fresh&at=<ID>&unlock, waits for the island subtree to mount
-//   * computes world Box3 for every mesh under island-<ID> (and bridge meshes at its mouths)
-//   * reports: prop-vs-prop box overlaps, props floating above / sunk into the island
-//     top surface, solid meshes sitting on the walk corridor, and bridge rope/plank
-//     vertices buried inside the island rock volume
-//   * --shots: multi-angle screenshots (teleport + camDX orbit) into proofs/v7/clipC/
+// node scripts/v5/clip-audit.mjs [baseUrl] [--only=L01,L02] [--shots]
+// CLIP audit: ropes / bridges / props must never pass through islands or each other.
+//
+// Loads ?qa&nomerge once (nomerge keeps per-prop meshes so Box3s are granular),
+// then for each island in V5 order teleports the player to it, audits the
+// UNSOLVED scene, completes the island, lets the bridge build, and audits the
+// SOLVED scene. Finally loads ?qa&finale for a fully-mounted chain audit.
+//
+// Two detectors, geometry-real (not just AABB):
+//   1. ISLAND CLIP — for every mesh whose Box3 touches an island body Box3,
+//      sample its vertices and down-raycast against the island's lathe body:
+//      a vertex is INSIDE the solid when an odd number of surface hits sit
+//      above it. Reports inside-vertex count, worst depth, world point.
+//   2. PROP-VS-PROP — Box3 overlaps across different prop owners within the
+//      same island (or bridge-vs-island), filtered by depth/volume to kill
+//      resting-contact and planted-base false positives.
+//
+// Output: proofs/v5/clip-audit.json + summary lines. --shots drops a red
+// Box3 marker at each finding, teleports the player so the follow cam frames
+// it, and writes proofs/v5/clip-<n>-<phase>-<id>.png.
 import { writeFileSync, mkdirSync } from 'fs'
 import { fileURLToPath } from 'url'
 import path from 'path'
-import { withChrome } from '../chrome.mjs'
+import { withChrome, DESKTOP } from '../chrome.mjs'
 
 const argv = process.argv.slice(2)
-const base = (argv.find((a) => !a.startsWith('--')) || 'http://localhost:5206/').replace(/\/?$/, '/')
-const opt = (n) => (argv.find((a) => a.startsWith('--' + n + '=')) || '').split('=')[1]
+const BASE = (argv.find((a) => !a.startsWith('--')) || 'http://localhost:5304/').replace(/\/?$/, '/')
 const flag = (n) => argv.includes('--' + n)
-const ONLY = (opt('only') || 'I02,L06,L07').split(',')
-const SIZE = opt('size') || '1440'
+const opt = (n) => (argv.find((a) => a.startsWith('--' + n + '=')) || '').split('=')[1]
+const ONLY = opt('only') ? opt('only').split(',') : null
 const SHOTS = flag('shots')
-const DONE = flag('done')
-const LITE = flag('lite') ? '&lite' : ''
 
 const here = path.dirname(fileURLToPath(import.meta.url))
-const root = path.resolve(here, '..', '..')
-const outdir = path.join(root, 'proofs', 'v7', 'clipC')
+const outdir = path.resolve(here, '..', '..', 'proofs', 'v5')
 mkdirSync(outdir, { recursive: true })
-
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
-const VP = SIZE === '390' ? { width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true } : { width: 1440, height: 900 }
+setTimeout(() => { console.log('clip-audit hard timeout'); process.exit(3) }, 1200000).unref()
 
-/* Audit library — evaluated once inside the page; defines window.__clipAudit.
- * Everything works off live objects (no THREE import needed): Vector3/Box3
- * constructors are grabbed from a walkable mesh. */
-const PAGE_LIB = `
-window.__clipAudit = (id) => {
-  const T = window.__clipT, core = T.core, layout = T.layout
-  const idx = core.V5_ORDER.indexOf(id)
-  const isl = T.isl[id] || null
-  if (!isl) return { err: 'island-' + id + ' not mounted' }
-  const center = layout.ISLAND_POS[idx], R = layout.ISLAND_R
-  const V3 = T.V3, B3 = T.B3
+const CORE = `/src/v5/core.ts`
 
-  // island top surface approx (lathe profile, in island radii)
-  const prof = [[0, 0.04], [0.34, 0.036], [0.68, 0.022], [0.95, 0], [1.0, -0.05], [1.04, -0.18], [1.2, -0.35]]
-  const surfY = (d) => {
-    const u = d / R
-    for (let i = 0; i < prof.length - 1; i++) { const [a, ya] = prof[i], [b, yb] = prof[i + 1]; if (u <= b) return ya + (yb - ya) * ((u - a) / (b - a)) }
-    return -0.35
-  }
-  // island radial bound at local height y (lip + underside envelope)
-  const rimR = (y) => y >= -0.02 ? R * 0.96 : y >= -0.25 ? R * 1.06 : y >= -0.55 ? R * 1.0 :
-    y >= -0.95 ? R * 0.86 : y >= -1.35 ? R * 0.72 : y >= -1.8 ? R * 0.62 : y >= -2.2 ? R * 0.52 :
-    y >= -2.7 ? R * 0.4 : y >= -3.3 ? R * 0.22 : 0.02
-
-  const B = new B3(), v = new V3()
-  // layer roots: direct children of island-<ID>; diorama = the ×1.5625 group
-  const layerRootOf = (ch) => (Math.abs((ch.scale?.x || 1) - 1.5625) < 0.01 && ch.children[0]) || ch
-  const kinds = isl.children.map((ch, ci) => {
-    let hasWalk = false, hasGate = false
-    ch.traverse((o) => { if ((o.name || '').startsWith('walk-')) hasWalk = true; if ((o.name || '').startsWith('gate-')) hasGate = true })
-    if (hasWalk) return 'base'
-    if (hasGate) return 'gate'
-    if (Math.abs((ch.scale?.x || 1) - 1.5625) < 0.01) return 'diorama'
-    let meshN = 0, hasBlock = false
-    ch.traverse((o) => { if (o.isMesh) meshN++ })
-    for (const b of core.blockers) { let n = b; while (n.parent) { if (n.parent === ch) { hasBlock = true; break } n = n.parent } }
-    return (meshN > 12 || hasBlock) ? 'obstacle' : 'deco'
-  })
-
-  const meshes = []
-  isl.traverse((o) => {
-    if (!o.isMesh && !o.isInstancedMesh) return
-    const mat = Array.isArray(o.material) ? o.material[0] : o.material
-    const ghost = !o.visible || (mat && (mat.visible === false || mat.opacity === 0 || mat.colorWrite === false))
-    B.setFromObject(o)
-    if (B.isEmpty()) return
-    // walk up: mesh -> ... -> prop -> layerRoot -> child -> isl
-    let child = o; while (child.parent && child.parent !== isl) child = child.parent
-    const ci = isl.children.indexOf(child)
-    const lr = layerRootOf(child)
-    let prop = o; while (prop.parent && prop.parent !== lr && prop !== lr) prop = prop.parent
-    const cx = (B.min.x + B.max.x) / 2 - center.x, cz = (B.min.z + B.max.z) / 2 - center.z
-    const d = Math.hypot(cx, cz)
-    meshes.push({
-      i: meshes.length, name: o.name || '', geo: o.geometry?.type || '?', child: ci, prop,
-      ghost, box: { min: B.min.toArray().map((x) => +x.toFixed(3)), max: B.max.toArray().map((x) => +x.toFixed(3)) },
-      c: [+cx.toFixed(2), +cz.toFixed(2)], d: +d.toFixed(2),
-      gap: +(B.min.y - center.y - surfY(d)).toFixed(3),
-    })
-  })
-  for (const m of meshes) m.layer = kinds[m.child] ?? '?'
-  // prop id by subtree position (index inside its layer root)
-  for (const m of meshes) m.pid = m.layer + ':' + (m.prop === m ? 'self' : (m.prop?.uuid || m.prop?.id || '?').toString().slice(-6))
-
-  const out = { island: id, kinds, nMesh: meshes.length, overlaps: [], floats: [], sunk: [], corridor: [], rim: [], ropes: [] }
-
-  const inter = (a, b) => {
-    const ox = Math.min(a.box.max[0], b.box.max[0]) - Math.max(a.box.min[0], b.box.min[0])
-    const oy = Math.min(a.box.max[1], b.box.max[1]) - Math.max(a.box.min[1], b.box.min[1])
-    const oz = Math.min(a.box.max[2], b.box.max[2]) - Math.max(a.box.min[2], b.box.min[2])
-    if (ox <= 0 || oy <= 0 || oz <= 0) return null
-    return { ox: +ox.toFixed(3), oy: +oy.toFixed(3), oz: +oz.toFixed(3), vol: +(ox * oy * oz).toFixed(4) }
-  }
-  for (let i = 0; i < meshes.length; i++) for (let j = i + 1; j < meshes.length; j++) {
-    const a = meshes[i], b = meshes[j]
-    if (a.ghost && b.ghost) continue
-    if (a.prop === b.prop) continue // same assembly
-    const hit = inter(a, b)
-    if (hit && hit.vol > 0.004 && Math.min(hit.ox, hit.oy, hit.oz) > 0.03)
-      out.overlaps.push({ a: a.i, b: b.i, la: a.layer, lb: b.layer, pa: a.pid, pb: b.pid, ga: a.geo, gb: b.geo, ...hit, ca: a.c, cb: b.c })
-  }
-  out.overlaps.sort((x, y) => y.vol - x.vol)
-
-  for (const m of meshes) {
-    if (m.ghost) continue
-    if (m.d < R * 1.04) {
-      if (m.gap > 0.16 && m.box.max[1] - center.y < 2.5) out.floats.push({ i: m.i, layer: m.layer, geo: m.geo, c: m.c, d: m.d, gap: m.gap })
-      if (m.gap < -0.12) out.sunk.push({ i: m.i, layer: m.layer, geo: m.geo, c: m.c, d: m.d, gap: m.gap })
+// ---------- the in-page audit (runs in the live R3F scene) ----------
+async function audit(page, phase) {
+  return page.evaluate(async ({ phase, coreSrc }) => {
+    const c = await import(coreSrc)
+    const THREE = await import('/node_modules/.vite/deps/three.js')
+    let scene = null
+    for (const set of [c.walkables, c.blockers]) {
+      for (const o of set) { let p = o; while (p.parent) p = p.parent; scene = p; break }
+      if (scene) break
     }
-    if (m.d > R * 0.9 && m.d < R * 1.25) out.rim.push({ i: m.i, layer: m.layer, geo: m.geo, c: m.c, d: m.d, gap: m.gap })
-    const x0 = m.box.min[0] - center.x, x1 = m.box.max[0] - center.x, y0 = m.box.min[1] - center.y, y1 = m.box.max[1] - center.y
-    const zc = (m.box.min[2] + m.box.max[2]) / 2 - center.z
-    if (x0 < 1.05 && x1 > -1.05 && y1 > 0.25 && y0 < 1.8 && Math.abs(zc) < 4.4 && m.d < R)
-      out.corridor.push({ i: m.i, layer: m.layer, geo: m.geo, c: m.c, xw: [+x0.toFixed(2), +x1.toFixed(2)], y: [+y0.toFixed(2), +y1.toFixed(2)], zc: +zc.toFixed(2) })
-  }
+    if (!scene) return { phase, error: 'no scene' }
+    scene.updateWorldMatrix(true, true)
 
-  // bridges at this island's mouths: mesh verts buried inside the island volume
-  for (const bi of [idx - 1, idx]) {
-    if (bi < 0 || bi >= core.V5_ORDER.length - 1) continue
-    const bg = T.scene.getObjectByName('bridge-' + bi)
-    if (!bg) continue
-    bg.traverse((o) => {
-      if (!o.isMesh) return
-      const g = o.geometry; if (!g?.attributes?.position) return
-      o.updateWorldMatrix(true, false)
-      const pa = g.attributes.position
-      const step = Math.max(1, Math.floor(pa.count / 600))
-      let buried = 0, tested = 0
-      for (let k = 0; k < pa.count; k += step) {
-        v.fromBufferAttribute(pa, k).applyMatrix4(o.matrixWorld)
-        const lx = v.x - center.x, ly = v.y - center.y, lz = v.z - center.z
-        const d = Math.hypot(lx, lz)
-        if (d > R * 1.25) continue
-        tested++
-        if (ly < surfY(d) - 0.03 && d < rimR(ly)) buried++
-      }
-      if (tested > 0) out.ropes.push({ bridge: 'bridge-' + bi, mesh: o.name || g.type, ghost: (o.name || '').startsWith('walk-'), tested, buried })
+    const _b = new THREE.Box3()
+    const meshes = []
+    scene.traverse((o) => {
+      if (!o.isMesh || !o.visible) return
+      const mat = Array.isArray(o.material) ? o.material[0] : o.material
+      if (mat && mat.visible === false) return // invisible colliders (walk strips, gate walls)
+      if (o.geometry?.type === 'SphereGeometry' && mat?.side === THREE.BackSide) return // sky dome
+      const box = new THREE.Box3().setFromObject(o)
+      if (box.isEmpty()) return
+      const size = box.getSize(new THREE.Vector3())
+      if (Math.max(size.x, size.y, size.z) > 60) return // sea plane / fog cards
+      let p = o; const names = []
+      while (p) { if (p.name) names.push(p.name); p = p.parent }
+      const owner = names.find((n) => /^(island|bridge)-/.test(n)) || names[names.length - 1] || '(scene)'
+      meshes.push({ o, box, owner, label: `${o.name || '?'}[${o.geometry?.type || '?'}]#${o.geometry?.attributes?.position?.count ?? 0}` })
     })
-  }
-  return out
-}
-`
 
+    // ---- island bodies: the lathe mesh under each island-<id> (the one that dips deep)
+    const islands = []
+    const islandGroup = {}
+    scene.traverse((o) => {
+      const m = /^island-(\w+)$/.exec(o.name || '')
+      if (m) islandGroup[m[1]] = o
+    })
+    for (const [id, g] of Object.entries(islandGroup)) {
+      let body = null; const scatter = []
+      const centre = new THREE.Vector3(); g.getWorldPosition(centre)
+      g.traverse((o) => {
+        if (!o.isMesh) return
+        const b = new THREE.Box3().setFromObject(o)
+        const sz = b.getSize(new THREE.Vector3())
+        if (b.min.y < centre.y - 1.5) body = o
+        else if (Math.max(sz.x, sz.z) > 6 && b.min.y > centre.y - 0.6) scatter.push(o)
+      })
+      if (body) islands.push({ id, g, body, box: new THREE.Box3().setFromObject(body), scatter, pos: centre })
+    }
+
+    const islandOf = (m) => {
+      let p = m.o
+      while (p) { const mm = /^island-(\w+)$/.exec(p.name || ''); if (mm) return mm[1]; p = p.parent }
+      return null
+    }
+
+    // ---- detector 1: mesh vertices inside an island body
+    const rc = new THREE.Raycaster()
+    const down = new THREE.Vector3(0, -1, 0)
+    const clips = []
+    const bodySet = new Set(islands.map((i) => i.body))
+    const scatSet = new Set(islands.flatMap((i) => i.scatter))
+    for (const isl of islands) {
+      const probe = _b.copy(isl.box).expandByScalar(0.06)
+      for (const m of meshes) {
+        if (bodySet.has(m.o) || scatSet.has(m.o)) continue
+        if (!m.box.intersectsBox(probe)) continue
+        const pos = m.o.geometry?.attributes?.position
+        if (!pos || !pos.count) continue
+        const stride = Math.max(1, Math.floor(pos.count / 128))
+        const v = new THREE.Vector3()
+        const insidePts = []
+        for (let k = 0; k < pos.count && insidePts.length < 40; k += stride) {
+          v.fromBufferAttribute(pos, k)
+          m.o.localToWorld(v)
+          const lv = isl.body.worldToLocal(v.clone())
+          if (Math.hypot(lv.x, lv.z) > 6.2) continue
+          // raycast in WORLD space (intersectObject is world-space); compare local y
+          rc.set(new THREE.Vector3(v.x, isl.pos.y + 4, v.z), down)
+          rc.far = 10
+          const hits = rc.intersectObject(isl.body, false)
+          if (!hits.length) continue
+          const above = hits.filter((h) => h.point.y - isl.pos.y > lv.y + 1e-4).length
+          if (above % 2 === 1) insidePts.push({ w: [lv.x, lv.y, lv.z], depth: hits[0].point.y - isl.pos.y - lv.y })
+        }
+        if (insidePts.length) {
+          insidePts.sort((a, b) => b.depth - a.depth)
+          const top = insidePts[0]
+          const wp = isl.body.localToWorld(new THREE.Vector3(top.w[0], top.w[1], top.w[2]))
+          // planted bases (post/rock bottom sunk <~0.25) are intended anchors;
+          // inside verts higher in the mesh's own box = piercing through.
+          const h = Math.max(0.01, m.box.max.y - m.box.min.y)
+          const minFrac = Math.min(...insidePts.map((ip) => (isl.pos.y + ip.w[1] - m.box.min.y) / h))
+          clips.push({
+            island: isl.id, mesh: m.label, owner: m.owner, meshIsland: islandOf(m),
+            inside: insidePts.length, maxDepth: +top.depth.toFixed(3), baseFrac: +minFrac.toFixed(2),
+            at: [+wp.x.toFixed(2), +wp.y.toFixed(2), +wp.z.toFixed(2)],
+            local: [+top.w[0].toFixed(2), +top.w[1].toFixed(2), +top.w[2].toFixed(2)],
+          })
+        }
+      }
+    }
+
+    // ---- detector 2: prop-vs-prop Box3 overlaps
+    const pairs = []
+    const cand = meshes.filter((m) => !bodySet.has(m.o) && !scatSet.has(m.o))
+    const inter = new THREE.Box3()
+    for (let a = 0; a < cand.length; a++) {
+      for (let b2 = a + 1; b2 < cand.length; b2++) {
+        const A = cand[a], B = cand[b2]
+        const ia = islandOf(A), ib = islandOf(B)
+        const bridgeA = /^bridge-(\d+)$/.exec(A.owner)
+        const bridgeB = /^bridge-(\d+)$/.exec(B.owner)
+        let near = false
+        if (ia && ib) near = ia === ib
+        else if ((bridgeA && ib) || (ia && bridgeB)) near = true
+        else if (bridgeA && bridgeB) near = bridgeA[1] === bridgeB[1]
+        if (!near) continue
+        if (!A.box.intersectsBox(B.box)) continue
+        // siblings inside one prop cluster commonly touch — only flag deep engulf
+        let shared = false
+        let pa = A.o.parent, pb = B.o.parent
+        if (pa && pa === pb) shared = true
+        inter.copy(A.box).intersect(B.box)
+        const s = inter.getSize(new THREE.Vector3())
+        if (s.x < 0.08 || s.y < 0.08 || s.z < 0.08) continue // grazing contact
+        const va = A.box.getSize(new THREE.Vector3()), vb = B.box.getSize(new THREE.Vector3())
+        const vol = s.x * s.y * s.z
+        const minV = Math.min(va.x * va.y * va.z, vb.x * vb.y * vb.z)
+        const frac = vol / Math.max(minV, 1e-6)
+        if (shared && frac < 0.6) continue
+        if (vol < 0.006 && frac < 0.55) continue
+        const ctr = inter.getCenter(new THREE.Vector3())
+        pairs.push({
+          a: `${A.owner}::${A.label}`, b: `${B.owner}::${B.label}`,
+          shared, frac: +frac.toFixed(2), vol: +vol.toFixed(4),
+          pen: [+s.x.toFixed(2), +s.y.toFixed(2), +s.z.toFixed(2)],
+          at: [+ctr.x.toFixed(2), +ctr.y.toFixed(2), +ctr.z.toFixed(2)],
+        })
+      }
+    }
+    pairs.sort((x, y) => y.vol - x.vol)
+    return { phase, clips, pairs: pairs.slice(0, 60), meshCount: meshes.length }
+  }, { phase, coreSrc: CORE })
+}
+
+// teleport player near a world point + drop a marker box; the follow cam frames it
+async function markAndShot(page, pt, file, lift = 0.8) {
+  await page.evaluate(async ({ pt, coreSrc, lift }) => {
+    const c = await import(coreSrc)
+    const THREE = await import('/node_modules/.vite/deps/three.js')
+    let scene = null
+    for (const o of c.walkables) { let p = o; while (p.parent) p = p.parent; scene = p; break }
+    if (scene) {
+      const b = new THREE.Box3(
+        new THREE.Vector3(pt[0] - 0.5, pt[1] - 0.5, pt[2] - 0.5),
+        new THREE.Vector3(pt[0] + 0.5, pt[1] + 0.5, pt[2] + 0.5))
+      const h = new THREE.Box3Helper(b, new THREE.Color('#ff2222'))
+      h.name = 'clip-marker'; h.renderOrder = 9999
+      h.material.depthTest = false; h.material.transparent = true
+      scene.add(h)
+      setTimeout(() => scene.remove(h), 20000)
+    }
+    c.player.pos.set(pt[0], pt[1] + lift, pt[2] + 1.4)
+    c.player.vel.set(0, 0, 0); c.player.frozen = false
+  }, { pt, coreSrc: CORE, lift })
+  await sleep(1500)
+  await page.screenshot({ path: path.join(outdir, file) }).catch(() => {})
+}
+
+// ---------- run ----------
+const results = []
 await withChrome(async (browser) => {
   const page = await browser.newPage()
-  await page.setViewport(VP)
-  page.on('pageerror', (e) => console.log('  pageerror: ' + e.message.slice(0, 200)))
-  for (const id of ONLY) {
-    const url = `${base}?qa&fresh&at=${id}&unlock${LITE}`
-    console.log(`\n=== ${id} (${SIZE}${LITE ? ' lite' : ''}${DONE ? ' done' : ''}) ===`)
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 90000 })
+  await page.setViewport(DESKTOP)
+  page.setDefaultTimeout(120000)
+  const errors = []
+  page.on('pageerror', (e) => errors.push(e.message.slice(0, 160)))
+  page.on('console', (m) => { if (m.type() === 'error' && !/favicon|WebGL|swiftshader|GPU stall|deprecation/i.test(m.text())) errors.push(m.text().slice(0, 160)) })
+
+  const ready = async () => {
     for (let t = 0; t < 60; t++) {
-      const ok = await page.evaluate(() => !!(window.__journey && window.__journey.v5 && document.querySelector('canvas'))).catch(() => false)
-      if (ok) break
-      await sleep(750)
+      const ok = await page.evaluate(async (src) => { try { const c = await import(src); return c.walkables.size > 0 } catch { return false } }, CORE).catch(() => false)
+      if (ok) return true
+      await sleep(600)
     }
-    // inject audit lib once
-    await page.evaluate((lib) => { eval(lib) }, PAGE_LIB)
-    // self-healing ensure(): (re)grabs modules, constructors, scene root + the island handle
-    const ensure = async () => page.evaluate(async (id, done) => {
-      const T = (window.__clipT = window.__clipT || {})
-      if (!T.core) {
-        const [core, layout] = await Promise.all([import('/src/v5/core.ts'), import('/src/v5/world/layout.ts')])
-        T.core = core; T.layout = layout
-      }
-      if (!T.V3 || !T.B3 || !T.scene) {
-        let any = null
-        for (const o of T.core.walkables) { any = o; break }
-        if (!any) return 0
-        T.V3 = any.position.constructor
-        any.geometry.computeBoundingBox?.()
-        T.B3 = any.geometry.boundingBox ? any.geometry.boundingBox.constructor : null
-        let r = any; while (r.parent) r = r.parent; T.scene = r
-      }
-      if (done && !T.didDone) { T.didDone = true; try { window.__journey.v5.complete(id) } catch {} }
-      T.isl = T.isl || {}
-      const g = T.scene.getObjectByName('island-' + id)
-      if (!g) return 0
-      T.isl[id] = g
-      let n = 0; g.traverse((o) => { if (o.isMesh) n++ })
-      return n
-    }, id, DONE).catch(() => 0)
-    for (let t = 0; t < 40; t++) {
-      await sleep(800)
-      if ((await ensure()) > 8) break
-    }
-    await sleep(2500)
-    const res = await page.evaluate((id) => window.__clipAudit(id), id).catch((e) => ({ err: String(e).slice(0, 300) }))
-    const tag = `${id}${DONE ? '-done' : ''}${SIZE === '390' ? '-390' : ''}`
-    writeFileSync(path.join(outdir, `audit-${tag}.json`), JSON.stringify(res, null, 1))
-    if (res.err) console.log('  ERR ' + res.err)
-    else {
-      console.log(`  kinds: ${JSON.stringify(res.kinds)}  meshes: ${res.nMesh}`)
-      console.log(`  overlaps(${res.overlaps.length}):`)
-      for (const o of res.overlaps.slice(0, 26)) console.log(`    ${o.la}[${o.a}] ${o.ga} x ${o.lb}[${o.b}] ${o.gb} vol=${o.vol} axes=${o.ox},${o.oy},${o.oz} @${o.ca}`)
-      console.log(`  floats(${res.floats.length}):`)
-      for (const f of res.floats.slice(0, 20)) console.log(`    ${f.layer}[${f.i}] ${f.geo} @(${f.c}) d=${f.d} gap=+${f.gap}`)
-      console.log(`  sunk(${res.sunk.length}):`)
-      for (const s of res.sunk.slice(0, 20)) console.log(`    ${s.layer}[${s.i}] ${s.geo} @(${s.c}) d=${s.d} gap=${s.gap}`)
-      console.log(`  corridor(${res.corridor.length}):`)
-      for (const c of res.corridor.slice(0, 22)) console.log(`    ${c.layer}[${c.i}] ${c.geo} x=[${c.xw}] y=[${c.y}] zc=${c.zc}`)
-      console.log(`  rim(${res.rim.length}):`)
-      for (const r of res.rim.slice(0, 14)) console.log(`    ${r.layer}[${r.i}] ${r.geo} @(${r.c}) d=${r.d} gap=${r.gap}`)
-      console.log(`  ropes(${res.ropes.length}):`)
-      for (const r of res.ropes) console.log(`    ${r.bridge} ${r.mesh}${r.ghost ? ' (strip)' : ''} buried=${r.buried}/${r.tested}`)
-    }
-    if (SHOTS && !res.err) {
-      const views = [
-        { n: 'ne', yaw: 0.62, pitch: 0.5, dist: 1 }, { n: 'se', yaw: 2.2, pitch: 0.45, dist: 1 },
-        { n: 'sw', yaw: 3.7, pitch: 0.5, dist: 1 }, { n: 'nw', yaw: 5.2, pitch: 0.45, dist: 1 },
-        { n: 'low', yaw: 0.9, pitch: 0.12, dist: 0.6 }, { n: 'top', yaw: 0.62, pitch: 1.1, dist: 1.5 },
-      ]
-      for (const w of views) {
-        await page.evaluate(async ({ yaw, pitch, dist, id }) => {
-          const [inp, , layout] = await Promise.all([
-            import('/src/v5/player/input.ts'), import('/src/v5/core.ts'), import('/src/v5/world/layout.ts')])
-          const i = layout.V5_ORDER.indexOf(id)
-          const c = layout.ISLAND_POS[i]
-          window.__journey?.player?.teleport?.(c.x + 0.4, c.y + 0.2, c.z + 3.4)
-          const curYaw = window.__clipYaw ?? 0, curPitch = window.__clipPitch ?? 0.42, curZoom = window.__clipZoom ?? 1
-          inp.input.camDX += (curYaw - yaw) / -0.0052
-          inp.input.camDY += (pitch - curPitch) / 0.0044
-          inp.input.zoom += Math.log(dist / curZoom) * 1000
-          window.__clipYaw = yaw; window.__clipPitch = pitch; window.__clipZoom = dist
-        }, { ...w, id })
-        await sleep(1500)
-        await page.screenshot({ path: path.join(outdir, `${tag}-${w.n}.png`) })
-        console.log(`  shot ${tag}-${w.n}`)
-      }
-    }
+    return false
   }
+  const settle = async (ms = 3200) => { await sleep(ms); await page.evaluate(async () => { await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))) }).catch(() => {}) }
+  const gotoIsland = (id) => page.evaluate(async ({ src, id }) => {
+    const c = await import(src)
+    const l = await import('/src/v5/world/layout.ts')
+    const i = c.V5_ORDER.indexOf(id)
+    const p = l.ISLAND_POS[i].clone().add(l.ENTRY)
+    c.player.pos.copy(p); c.player.vel.set(0, 0, 0); c.player.island = id; c.player.frozen = false
+    try { window.__journey?.player?.teleport?.(p.x, p.y, p.z) } catch {}
+    try { (await import('/src/v5/world/progress.ts')).useWorldUI.getState().setIdx(i) } catch {}
+  }, { src: CORE, id })
+
+  const ORDER = ['L01', 'L02', 'L03', 'I01', 'L05', 'L04', 'I02', 'L06', 'L07', 'L08', 'L09']
+  const ids = ONLY || ORDER
+  let shotN = 0
+  const shootFindings = async (r) => {
+    if (!SHOTS) return
+    for (const cl of (r.clips || [])) { shotN++; await markAndShot(page, cl.at, `clip-${String(shotN).padStart(2, '0')}-${r.phase}.png`) }
+    for (const pr of (r.pairs || []).slice(0, 3)) { shotN++; await markAndShot(page, pr.at, `clip-${String(shotN).padStart(2, '0')}-${r.phase}-pair.png`) }
+  }
+
+  console.log('[audit] goto', `${BASE}?qa&fresh&nomerge&lite`)
+  await page.goto(`${BASE}?qa&fresh&nomerge&lite`, { waitUntil: 'domcontentloaded' }).catch((e) => console.log('goto fail', e.message))
+  console.log('[audit] loaded, waiting for world')
+  if (!(await ready())) { console.log('never ready'); process.exit(2) }
+  console.log('[audit] world ready')
+
+  for (const id of ids) {
+    const t0 = Date.now()
+    await gotoIsland(id)
+    await settle(4200) // lazy obstacle/diorama chunks + dressing
+    const pre = await audit(page, `${id}-pre`)
+    results.push(pre)
+    console.log(`${id} pre : clips=${pre.clips?.length ?? '-'} pairs=${pre.pairs?.length ?? '-'} meshes=${pre.meshCount}`)
+    for (const cl of (pre.clips || [])) console.log(`   CLIP ${pre.phase} ${cl.island}: ${cl.owner}::${cl.mesh} inside=${cl.inside} depth=${cl.maxDepth} @${cl.at}`)
+    await shootFindings(pre)
+    await page.evaluate(async ({ src, id }) => { const c = await import(src); c.useV5.getState().complete(id) }, { src: CORE, id }).catch(() => {})
+    await settle(3800) // bridge build anim + scaffold drop
+    const post = await audit(page, `${id}-post`)
+    results.push(post)
+    console.log(`${id} post: clips=${post.clips?.length ?? '-'} pairs=${post.pairs?.length ?? '-'} meshes=${post.meshCount} (${Date.now() - t0}ms)`)
+    for (const cl of (post.clips || [])) console.log(`   CLIP ${post.phase} ${cl.island}: ${cl.owner}::${cl.mesh} inside=${cl.inside} depth=${cl.maxDepth} @${cl.at}`)
+    await shootFindings(post)
+    if (id === 'L09') break
+  }
+
+  // finale: everything mounted + pulled back (wide shot only; cam is cinematic)
+  await page.goto(`${BASE}?qa&finale&nomerge`, { waitUntil: 'domcontentloaded' }).catch(() => {})
+  if (await ready()) {
+    await settle(6500)
+    const fin = await audit(page, 'finale')
+    results.push(fin)
+    console.log(`finale: clips=${fin.clips?.length ?? '-'} pairs=${fin.pairs?.length ?? '-'}`)
+    for (const cl of (fin.clips || [])) console.log(`   CLIP finale ${cl.island}: ${cl.owner}::${cl.mesh} inside=${cl.inside} depth=${cl.maxDepth} @${cl.at}`)
+    await page.screenshot({ path: path.join(outdir, 'clip-finale.png') }).catch(() => {})
+  }
+
+  writeFileSync(path.join(outdir, 'clip-audit.json'), JSON.stringify({ ts: new Date().toISOString(), base: BASE, results, errors }, null, 1))
+  const nClips = results.reduce((a, r) => a + (r.clips?.length || 0), 0)
+  const nPairs = results.reduce((a, r) => a + (r.pairs?.length || 0), 0)
+  console.log(`\n==== clip audit: ${nClips} island-clip findings, ${nPairs} prop pairs ====`)
+  if (errors.length) console.log('console errors:', [...new Set(errors)].slice(0, 6).join(' ;; '))
 })
-console.log('\ndone → ' + outdir)
+process.exit(0)
