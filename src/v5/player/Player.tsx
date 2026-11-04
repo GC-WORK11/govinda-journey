@@ -4,7 +4,7 @@ import { RoundedBox, useAnimations, useGLTF, useTexture } from '@react-three/dre
 import * as THREE from 'three'
 import { clay, C, blobMat } from '../../world/kit'
 import * as core from '../core'
-import { blockers, cinematic, interactables, player, playerEmote, walkables, V5_ORDER } from '../core'
+import { blockers, camKick, cinematic, interactables, player, playerEmote, walkables, V5_ORDER } from '../core'
 import { ISLAND_POS, ENTRY, EXIT, nearestIsland } from '../world/layout'
 import { input, installInput, isDown, now, pressKey } from './input'
 import { heli } from './Heli'
@@ -166,11 +166,11 @@ function DustPool() {
 
 /* ------------------------------------------------------------------ physics */
 
-const WALK = 2.4, RUN = 4.4
+const WALK = 3.0, RUN = 5.6, BRIDGE_GAIN = 1.5, ANIM_V = 2.4
 const GRAV = 24, JUMP_V = 6.6
 const COYOTE = 0.12, BUFFER = 0.12
 const RADIUS = 0.3, STEP = 0.45
-const TURN = 13
+const TURN = 16
 const PITCH_MIN = 0.08, PITCH_MAX = 1.22, DIST_MIN = 3.0, DIST_MAX = 24.0
 // Follow distance that keeps the ~0.95 m student at ~1/8 of the screen height (fov ~38deg).
 const BASE_DIST = 9.5
@@ -440,7 +440,7 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
       const p0 = bridgeAt(L, bd.s)
       const fwdC = THREE.MathUtils.clamp(wish.x * p0.tx + wish.z * p0.tz, -1, 1)
       const latC = THREE.MathUtils.clamp(wish.x * p0.sx + wish.z * p0.sz, -1, 1)
-      const adv = fwdC * speed
+      const adv = fwdC * speed * BRIDGE_GAIN
       bd.s += adv * dtR
       bd.lat += latC * 1.6 * dtR
       bd.lat -= bd.lat * Math.min(1, 2.2 * dtR) // gentle recentring drift
@@ -491,7 +491,7 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
       const h = Math.min(rem, 1 / 30); rem -= h
 
       /* horizontal velocity: accel / decel */
-      const rate = s.grounded ? 15 : 5.5
+      const rate = s.grounded ? 22 : 8
       const k = 1 - Math.exp(-rate * h)
       s.vel.x += (wish.x * speed - s.vel.x) * k
       s.vel.z += (wish.z * speed - s.vel.z) * k
@@ -680,7 +680,7 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
     if (em) want = em
     else if (!s.grounded && s.airT > 0.06) want = 'jump'
     else if (hSpeed > 0.3) want = 'walk'
-    tsRef.current = THREE.MathUtils.clamp(hSpeed / WALK + 0.15, 0.75, 2.0)
+    tsRef.current = THREE.MathUtils.clamp(hSpeed / ANIM_V + 0.15, 0.75, 2.4)
     if (want !== anim) setAnim(want)
 
     /* ---- apply transform + anchor ---- */
@@ -702,12 +702,14 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
     // Portrait screens pull back further so the island still reads (aspect = w/h).
     const aspect = (camera as THREE.PerspectiveCamera).aspect || 1.6
     const baseDist = BASE_DIST * (aspect < 1 ? 1 + (1 - aspect) * 0.45 : 1) * (riding ? 1.5 : 1)
-    s.camDistT = THREE.MathUtils.clamp(baseDist * s.zoomMul, DIST_MIN, DIST_MAX)
+    const kick = camKick.v
+    camKick.v = Math.max(0, kick - dt * 1.8)
+    s.camDistT = THREE.MathUtils.clamp(baseDist * s.zoomMul - kick * 1.6, DIST_MIN, DIST_MAX)
     input.camDX = input.camDY = input.zoom = 0
     if (!cine) {
       _v1.copy(s.pos).add(_v2.set(0, 1.05, 0))
       if (s.first || _v1.distanceToSquared(s.targetSm) > 36) { s.targetSm.copy(_v1); s.first = false }
-      else { s.targetSm.x = THREE.MathUtils.damp(s.targetSm.x, _v1.x, 13, dt); s.targetSm.y = THREE.MathUtils.damp(s.targetSm.y, _v1.y, 13, dt); s.targetSm.z = THREE.MathUtils.damp(s.targetSm.z, _v1.z, 13, dt) }
+      else { s.targetSm.x = THREE.MathUtils.damp(s.targetSm.x, _v1.x, 18, dt); s.targetSm.y = THREE.MathUtils.damp(s.targetSm.y, _v1.y, 18, dt); s.targetSm.z = THREE.MathUtils.damp(s.targetSm.z, _v1.z, 18, dt) }
       // portrait phones: look from higher up so roofs and walls between the camera
       // and the player can't hide them (the narrow frame has no room to show around them)
       const pitch = aspect < 1 ? Math.max(s.camPitch, 0.78) : s.camPitch
@@ -724,7 +726,7 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
         const hit = _ray.intersectObjects(blockCand, true, hits)[0]
         if (hit) eff = THREE.MathUtils.clamp(hit.distance - 0.22, 0.55, s.camDistT)
       }
-      s.camDist = THREE.MathUtils.damp(s.camDist, eff, eff < s.camDist ? 26 : 6, dt)
+      s.camDist = THREE.MathUtils.damp(s.camDist, eff, eff < s.camDist ? 30 : 9, dt)
       camera.position.copy(s.targetSm).addScaledVector(dir, s.camDist)
       camera.lookAt(s.targetSm)
     }

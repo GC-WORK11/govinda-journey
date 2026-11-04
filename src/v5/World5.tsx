@@ -21,6 +21,7 @@ import { useWorldUI } from './world/progress'
 import { input, now } from './player/input'
 import Sky5, { skyDebug } from './world/Sky5'
 import CharLight from './world/CharLight'
+import { Bursts } from '../world/play'
 import { env } from '../world/sky'
 import { Clouds } from '../world/Clouds'
 import { C, clay } from '../world/kit'
@@ -165,9 +166,9 @@ function FinaleCam() {
     if (k.sea) k.sea.visible = env.finale < 0.55
     const az = 2.86 + (RM ? 0 : Math.sin(s.clock.elapsedTime * 0.04) * 0.09)
     _fw.set(PATH_MID.x + Math.sin(az) * 76, PATH_MID.y + 27, PATH_MID.z + Math.cos(az) * 76)
-    k.pos.lerp(_fw, 1 - Math.exp(-dt * 1.1))
+    k.pos.lerp(_fw, 1 - Math.exp(-dt * 1.6))
     _fa.set(PATH_MID.x, PATH_MID.y + 1.5, PATH_MID.z - 10)
-    k.look.lerp(_fa, 1 - Math.exp(-dt * 1.5))
+    k.look.lerp(_fa, 1 - Math.exp(-dt * 2.0))
     camera.position.copy(k.pos)
     camera.lookAt(k.look)
   })
@@ -318,6 +319,7 @@ export default function World5() {
         )}
         <Pet />
         <CharLight />
+        <Bursts />
         <Skybox />
         <FinaleCam />
         {QA && <QaProbe />}

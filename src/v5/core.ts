@@ -98,4 +98,5 @@ export type ObstacleProps = { id: IslandId; active: boolean; complete: () => voi
 /** Optional looping emote the player controller plays instead of locomotion.
  *  Islands/UI set playerEmote.name; clear back to null to resume walking. */
 export const playerEmote = { name: null as null | 'cheer' | 'sit' | 'interact' | 'use' }
+export const camKick = { v: 0 }
 /* ----------------------- end PLAYER section -------------------------------- */
