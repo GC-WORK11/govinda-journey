@@ -90,7 +90,7 @@ function DemoHeli() {
       <mesh position={[4.3, 0.017, 2.9]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[0.78, 0.95, 28]} /><meshStandardMaterial color={C.terracotta} roughness={0.9} />
       </mesh>
-      <Heli id="sandbox-heli" pad={[4.3, 0.02, 2.9]} exit={[4.3, 0.02, 4.4]} seatY={0.6} />
+      <Heli id="sandbox-heli" pad={[4.3, 0.02, 2.9]} exit={[4.3, 0.02, 4.4]} />
     </group>
   )
 }
