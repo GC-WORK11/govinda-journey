@@ -132,6 +132,7 @@ export default function Sky5() {
   const dome = useRef<THREE.ShaderMaterial>(null)
   const { scene, camera } = useThree()
   const cur = useRef<ReturnType<typeof makeSky> | null>(null)
+  const lvlCls = useRef<string>('')
   const fogNow = useRef<{ near: number; far: number } | null>(null)
 
   useFrame((_, rawDt) => {
@@ -140,6 +141,12 @@ export default function Sky5() {
     skyDebug.cIdx = cIdx; skyDebug.p = cIdx / LAST
     const idx = Math.min(LAST, Math.max(0, Math.round(cIdx)))
     useWorldUI.getState().setIdx(idx)
+    // per-level body class for level-specific caption tuning (v5.css body.gj-lvl-*)
+    if (typeof document !== 'undefined' && lvlCls.current !== V5_ORDER[idx]) {
+      const b = document.body.classList
+      if (lvlCls.current) b.remove('gj-lvl-' + lvlCls.current)
+      lvlCls.current = V5_ORDER[idx]; b.add('gj-lvl-' + lvlCls.current)
+    }
     const p = cIdx / LAST
     if (!cur.current) cur.current = sampleSky5(p, makeSky())
     const c = cur.current

@@ -17,6 +17,7 @@ import {
   smooth, tpLocal, useIslandFrame,
 } from './shared.v5'
 import { ClayPot, Bush } from '../../world/kit'
+import { AutoMerge } from '../../v5/world/AutoMerge'
 import { AqiPost, aqiTagTex, CableSpan, Rooftop, SensorPost, SensorTower, STREET_Y, StreetLamp, StreetTree, useStreetGeo, type Lit } from './street.v5'
 
 /* ---------- layout (island-local; entry +z, exit -z) ---------- */
@@ -249,6 +250,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       <group ref={towerRef} position={TOWER}><SensorTower lit={lit} /></group>
 
       {/* Delhi street dressing */}
+      <AutoMerge>
       <Rooftop position={[-3.25, 0, 2.35]} yaw={0.45} lit={lit} />
       <Rooftop position={[3.35, 0, 2.1]} yaw={-0.55} s={0.85} />
       <Rooftop position={[-3.05, 0, -3.5]} yaw={0.95} s={0.9} lit={lit} />
@@ -264,10 +266,13 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       <ClayPot position={[-2.55, 0, 1.9]} s={0.95} />
       <ClayPot position={[1.35, 0, -3.9]} s={0.85} />
       <ClayPot position={[-1.6, 0, 1.3]} s={0.8} plant={false} />
+      </AutoMerge>
 
       {/* stones underfoot on the two banks */}
+      <AutoMerge>
       <PathStones pts={[[0, 4.15], [-0.15, 1.2]]} seed={9} />
       <PathStones pts={[[0.45, -2.85], [0.05, -4.1]]} seed={12} />
+      </AutoMerge>
 
       {/* street-floor crack that blooms under your feet before the fall */}
       <Crack local={local} exposure={exposure} active={active} clearT={clearT} />

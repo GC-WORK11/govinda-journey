@@ -127,3 +127,10 @@ body:has(.v5-how.on) .gjv5-isla-hint { opacity: 0; visibility: hidden; }
 /* night levels: dark-ink fade instead of paper, light text */
 body.gj-night .v5-cap { background: radial-gradient(ellipse 60% 70% at 50% 50%, rgba(22,20,38,.72), rgba(22,20,38,0) 78%); color: #f2ead8; }
 body.gj-night .v5-cap * { color: inherit; }
+
+/* L06: the white dome sits right behind the caption line, so lift it into the sky band
+   and give the text a paper halo + full-ink eyebrow (body class set in Sky5) */
+body.gj-lvl-L06 .v5-cap { top: calc(max(18px, env(safe-area-inset-top)) + 92px);
+  background: radial-gradient(ellipse 62% 74% at 50% 50%, color-mix(in srgb, var(--paper) 94%, transparent), color-mix(in srgb, var(--paper) 0%, transparent) 80%); }
+body.gj-lvl-L06 .v5-cap .eyebrow { color: var(--ink); opacity: 1; }
+body.gj-lvl-L06 .v5-cap .line { text-shadow: 0 0 6px var(--paper), 0 0 12px var(--paper); }

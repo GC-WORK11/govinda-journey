@@ -1,3 +1,4 @@
+import { AutoMerge } from '../../v5/world/AutoMerge'
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
@@ -13,16 +14,19 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
       <Greenhouse position={[0, 0, -1.2]} unlocked={unlocked} />
       <Scaffold open={unlocked} position={[0, 0, -1.2]} size={[1.8, 1.6, 1.4]} />
       
+      <AutoMerge>
       {/* Delhi rooftops left and right */}
       <Rooftop position={[-1.3, 0, 0.2]} />
       <Rooftop position={[1.4, 0, -0.3]} scale={0.85} />
       
       {/* small India Gate arch front-right */}
       <Arch position={[1.1, 0, 1.2]} />
+      </AutoMerge>
 
       {/* street edge: lamp posts, a low brick wall behind the greenhouse, pots by the homes */}
       <LampPost position={[2.32, 0, 0.78]} h={0.7} lit={unlocked} />
       <LampPost position={[-2.18, 0, -0.32]} h={0.64} lit={unlocked} />
+      <AutoMerge>
       <group position={[0.95, 0, -2.15]} rotation={[0, 0.35, 0]}>
         <RoundedBox args={[1.25, 0.2, 0.13]} radius={0.03} position={[0, 0.1, 0]} material={clay(C.brick)} castShadow receiveShadow />
         <RoundedBox args={[1.31, 0.05, 0.17]} radius={0.02} position={[0, 0.22, 0]} material={clay(C.stoneLight)} />
@@ -34,6 +38,7 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
       <ClayPot position={[1.98, 0, -0.42]} s={0.85} />
       <ClayPot position={[0.28, 0, -2.02]} s={0.9} plant={false} />
       <Bush position={[-2.32, 0, 0.45]} s={0.85} />
+      </AutoMerge>
       
       {/* hazy puffs that disappear when unlocked (the mini-game brings its own smog) */}
       {!unlocked && !active && (
