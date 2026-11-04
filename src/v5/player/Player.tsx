@@ -704,7 +704,10 @@ export default function Player({ start }: { start?: THREE.Vector3 }) {
       _v1.copy(s.pos).add(_v2.set(0, 1.05, 0))
       if (s.first || _v1.distanceToSquared(s.targetSm) > 36) { s.targetSm.copy(_v1); s.first = false }
       else { s.targetSm.x = THREE.MathUtils.damp(s.targetSm.x, _v1.x, 13, dt); s.targetSm.y = THREE.MathUtils.damp(s.targetSm.y, _v1.y, 13, dt); s.targetSm.z = THREE.MathUtils.damp(s.targetSm.z, _v1.z, 13, dt) }
-      const cp = Math.cos(s.camPitch), sp = Math.sin(s.camPitch)
+      // portrait phones: look from higher up so roofs and walls between the camera
+      // and the player can't hide them (the narrow frame has no room to show around them)
+      const pitch = aspect < 1 ? Math.max(s.camPitch, 0.78) : s.camPitch
+      const cp = Math.cos(pitch), sp = Math.sin(pitch)
       const dir = _v2.set(Math.sin(s.camYaw) * cp, sp, Math.cos(s.camYaw) * cp)
       // pull-in: ray toward desired camera spot, stop before the first thing in the way
       _v3.copy(s.targetSm).addScaledVector(dir, s.camDistT)
