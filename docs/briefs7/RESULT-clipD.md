@@ -22,8 +22,8 @@ Branch `devin/clipD`, worktree `/workspace/gj7/clipD`, port 5207.
    `/tmp/gj-chrome.lock`. Three audit attempts died on the wait/lottery; one
    won the lock but hit the 30 s Chrome WS-launch timeout, so my worktree's
    `scripts/chrome.mjs` now passes `timeout: 120000` (launch) and
-   `protocolTimeout: 240000`. The audit runs in the background while fixes were
-   applied; remaining browser evidence is listed under *Verification*.
+   `protocolTimeout: 240000`. The audit then won a slot and ran to completion;
+   evidence is listed under *Verification*.
 
 ## Findings & fixes
 
@@ -85,13 +85,32 @@ sweep) are part of `clipD-audit.mjs` — see Verification for status.
   `1440-11-L09-finale.png` — the L08 shot shows the moved sculpture/deck/tablet
   cleanly separated from the guardian; the finale shot shows the full chain.
 - `node scripts/v5/play.mjs http://localhost:5207/ --lite --only=L08,L09 --size=390`
-  — queued on the shared Chrome lock.
-- Box3 audit (`node scripts/clipD-audit.mjs http://localhost:5207/`): four
-  attempts consumed the 20-min lock wait without winning a slot (nine sessions
-  share `/tmp/gj-chrome.lock`); one did win but died on the 30-s Chrome
-  WS-launch timeout — hence the launch-timeout bump in `scripts/chrome.mjs`.
-  The harness is committed and rerunnable; findings above were verified by the
-  static world-space math in *Method* plus the 1440 playthrough screenshots.
+  — **PASS L08 (45.7 s, fps≈11), PASS L09 (308 s, fps≈5), failures: 0**
+  (`proofs/v5/last-run.json`). Evidence: `proofs/v5/390-10-L08.png`,
+  `390-11-L09.png`, `390-11-L09-finale.png` — plaza readable at 390 px,
+  finale card legible.
+- Box3 audit (`node scripts/clipD-audit.mjs http://localhost:5207/`) — **ran to
+  completion** after the chrome.mjs launch-timeout bump; wrote
+  `proofs/v7/clipD/audit.json` plus 29 multi-angle JPEGs:
+  - `L08u-{entry,n,e,s,w,top,low}`, `L08s-*` (7 each),
+    `L09u-{entry,n,e,s,w,top,low}`, `L09s-{n,e,s,w}`,
+    `finale-vista1/2`, `finale-card`, `finale-lite-vista`.
+  - Per-state counts: L08u `meshes=155 pairs=80* sunk=11 hover=12 insideIsle=60* overVoid=2`;
+    L08s `76 / 80* / 7 / 6 / 60* / 5`; L09u `132 / 80* / 11 / 22 / 60* / 2`;
+    L09s `126 / 80* / 7 / 24 / 60* / 2` (* = report cap hit).
+  - Triage of the flags (orbit shots inspected): pairs are dominated by AABB
+    false positives — the island base mesh (`9.2×1.4×9.4`) and the
+    StaticBake-merged prop cluster overlap anything near them, and bridge
+    spans cross island-edge boxes. `sunk` entries are the four scaffold legs
+    mid fold-away animation (poles drop `size*1.1` by design,
+    `kit.tsx:303`) plus gate-stone boulders embedded 0.33–0.44 m (intended
+    half-buried clay look). `hover` is the floating Play-scene hands (game
+    mechanic) and bush crowns (trunk-supported). `insideIsle` is bridge
+    deck/rope ends anchored ~0.11 m into the landing lip; `overVoid` is
+    bridge spans. No genuine prop-vs-prop interpenetration remains in the
+    orbit shots for the moved items.
+  - The audit still wins the lock lottery unreliably on this box (~9 sessions
+    share `/tmp/gj-chrome.lock`); the harness is committed and rerunnable.
 
 ## Remaining known issues
 
@@ -103,3 +122,6 @@ sweep) are part of `clipD-audit.mjs` — see Verification for status.
   contact, visually acceptable.
 - L09 path lanterns at (±0.9, 3.6/2.75) stand at the corridor edge — visual
   margin only, left as-is.
+- Audit-signal noise for future runs: the island base mesh, merged StaticBake
+  clusters and bridge spans should be excluded from `pairs` to shrink the
+  report; flags above were triaged manually against the orbit JPEGs.
