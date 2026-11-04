@@ -17,10 +17,17 @@ context per run; numbers = in-page ms since navigationStart).
 
 | run | build | h:playable | fj:playable | notes |
 |-----|-------|-----------:|------------:|-------|
-| 1440 | before | TBD | – | |
-| 1440 | after  | TBD | TBD | |
-| 390 lite | before | TBD | – | |
-| 390 lite | after  | TBD | TBD | |
+| 1440 #1 | before | 5864 ms | – | glb 5522, player 4965, obstacle 4965, canvas 1328 |
+| 1440 #2 | before | 4474 ms | – | glb 4076, player 3770, canvas 328 |
+| 390 lite #1 | before | 3967 ms | – | glb 3866, player 3702, canvas 371 |
+| 390 lite #2 | before | 3960 ms | – | glb 3866, player 3615, canvas 335 |
+| 1440 | after | *blocked* | 2255 ms† | box WebGL outage — see below |
+| 390 lite | after | *blocked* | – | box WebGL outage — see below |
+
+† unthrottled probe on the identical dist (non-incognito, cache on):
+`fj:app 62 → fj:world5 592 → fj:frame1 1098 → fj:glb 1098 →
+fj:player 2249 → fj:playable 2255`. Water/Effects/postprocessing chunks all
+landed after the mark (3.3–7 s window), proving the deferral.
 
 ## What changed
 
@@ -39,11 +46,14 @@ context per run; numbers = in-page ms since navigationStart).
   forward through the same glob loaders, several beats before their Suspense
   boundaries would ask.
 - NOTE: an earlier draft also fired `import('./v5/World5')` at App module eval
-  to skip the first-commit hop. In the production build that page never
-  mounted (zero chunks fetched, no canvas, no console error — the Guard
-  boundary swallows nothing at that level). Reverted to
-  `lazy(() => import('./v5/World5'))` — the lazy import fires at first commit,
-  ~1 microtask later, and mounting was verified by fj marks.
+  to skip the first-commit hop; reverted while hunting a mount failure that
+  turned out to be environmental (see "Still wrong"), not this change.
+- The `webglOk()` pre-mount probe was REMOVED: under the shared-box harness
+  (incognito + cache-off + 4x CPU) `getContext` can return null while the
+  GPU channel is still initialising, and the empty `world-fallback` meant
+  the lazy import never even fired — a silent dead page with zero errors.
+  `World5`/`World` now mount behind a `WorldFallback` error boundary: a real
+  WebGL failure throws inside the renderer and lands on the same fallback.
 - `Overlay` + V4 `store`/`registry` removed from the V5 entry's static graph:
   Overlay is `lazy()`, QA hook imports dynamically only under `?v4&qa`.
 - `useGLTF.preload('./models/student.glb')` + `useTexture.preload(skin)` at
@@ -76,13 +86,16 @@ context per run; numbers = in-page ms since navigationStart).
 - TBD: coldload numbers, screenshots, play.mjs smoke.
 
 ## Still wrong / rough
-- OPEN: in the measurement harness environment (fresh incognito context,
-  `setCacheEnabled(false)`, 4x CPU throttle) the page reports only the
-  student.glb preload and never mounts — the same failure seen before and
-  after the `world5Promise` revert. A non-incognito, unthrottled probe on the
-  identical dist showed a healthy boot (fj:playable @ 2255 ms, all chunks,
-  no errors). A control run of the pre-change dist under the identical
-  harness is queued to isolate environment vs. code.
+- **Box-level WebGL outage**: the shared-headless-Chrome GPU stack is
+  currently dead (`THREE.WebGLRenderer: Could not create a WebGL context,
+  VENDOR=0xffff` — software SwiftShader init fails under box-wide memory
+  pressure: ~1 GB free of 15 GB at 18:50). Diagnosed end-to-end: entry runs
+  (`fj:app`), all 34 resources load (`fj:world5`), Canvas mount throws, the
+  new boundary catches and shows the fallback. The "after" harness numbers
+  therefore can't be captured until the box frees RAM — a persistent
+  coldload loop is queued and will record the first window that recovers.
+  An unthrottled probe on the identical dist (healthier box moment) showed
+  `fj:playable @ 2255 ms` with the full deferred waterfall.
 - `student.glb`/`student-skin.png` link preloads: Chrome warns the skin
   preload is unused when credentials modes differ (fixed by dropping
   `crossorigin` — matches FileLoader/ImageLoader same-origin credentialed
