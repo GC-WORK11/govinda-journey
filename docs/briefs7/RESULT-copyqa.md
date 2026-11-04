@@ -228,8 +228,8 @@ Columns: surface, `file:line`, string, FACTS verdict (quoted), flag. "n/a" means
 | eyebrow | `registry.ts:119` | Now | n/a | ok |
 | title | `registry.ts:119` | The schoolhouse | n/a | ok |
 | caption line | `registry.ts:120` | Right now I’m building ALive and Remote. | FACTS.md:182 yes (S2) | ok |
-| caption after solve (tech) | `registry.ts:123` | Each project island links to its repo or a live demo. | FACTS.md:186 yes, but the repo/demo table (FACTS.md:189-199) has no L07 or L08 rows | FACTS gap, see section 5 |
-| badge | `registry.ts:124` | Right now | n/a | ok |
+| caption after solve (tech) | `registry.ts:123` | Each project island links to its repo or a live demo. | FACTS.md:186 yes, but the repo/demo table (FACTS.md:189-199) has no L07 or L08 rows | never shown: the finale hides the caption (`Caption.tsx:29`). FACTS gap, see section 5 |
+| badge | `registry.ts:124` | Right now | n/a | never shown (hidden by the finale). After solve it would read "Now · Right now", which is redundant. |
 | finale eyebrow | `Finale.tsx:32` | Now · The schoolhouse | n/a | ok |
 | finale name | `Finale.tsx:33` | Govinda Chauhan | FACTS.md:34 yes (GitHub name; S1) | ok |
 | finale line | `Finale.tsx:34` | = registry.ts:120 | FACTS.md:182 | ok |
@@ -271,7 +271,19 @@ Finale line, not a project: "Right now I’m building ALive and Remote." (FACTS.
 
 ## 4. Broken-looking UI states (390 and 1440)
 
-PENDING. Screenshots queued (see section 6). The Chrome lock was held by another session, so this section will be filled from the captured PNGs under `proofs/v7/copyqa/` (gitignored).
+Status: no PNG captured yet. The shared Chrome lock (`/tmp/gj-chrome.lock`) stayed held by other sessions for 30+ minutes per attempt (section 6). The list below is a static prediction from `src/v5/ui/v5.css` and the components. Each item must be confirmed or struck from the PNGs under `proofs/v7/copyqa/` before the final push.
+
+| # | viewport | surface | predicted problem | source |
+|---|---|---|---|---|
+| 1 | 390 | finale card (`?qa&fresh&finale&lite`) | Likely taller than the viewport. The card is `max-height: 86vh; overflow-y: auto`, so "Keep walking" and "Résumé" may sit below the fold. Six project blocks, five of them with two-sentence tech lines (all but L07), drive the height. | `v5.css:69,82`; `Finale.tsx:36-68` |
+| 2 | 390 | island caption (all islands) | `.v5-cap` is `width: min(520px, 84vw)` with `box-sizing: content-box` and 44px side padding, so the box is about 415px on a 390px screen. Text wraps inside, but the paper halo runs past both edges. | `v5.css:34-37` |
+| 3 | 390 | L06 caption, lifted to top 110px | Sits right under the ribbon ticks (about 86px). Watch for crowding with the ribbon and the L06 scrim. | `v5.css:133` |
+| 4 | 1440 | finale card | `max-width: 700px` with a two-up project grid. L03 and L05 tech lines may still push the card into its own scroll. | `v5.css:99-102` |
+| 5 | 390 | pill hints and touch controls | The bottom pill (`PillHint`) may collide with the use and jump buttons or the stick. | `Controls.tsx:41,146-170` |
+| 6 | both | L08 win | The win burst (`L08/Play.tsx:260`) is confetti-like, which the design rules forbid. | `L08/Play.tsx:260` |
+| 7 | both | L08 pill | "Tap the hand that matches" names an action that does not exist on V5. | `L08/Obstacle.tsx:188` |
+
+Not yet covered by any capture: L01, L02, I01, I02, L04, L07, L08 (arrival at both sizes), the Ent card (L05, needs a click), the L06 phone UI (needs a click), and the sign pad (L08 and L09). Those need an interaction script and are queued after the first screenshot run.
 
 ## 5. Owner flags (not edited, src/levels is owned by the story sessions)
 
