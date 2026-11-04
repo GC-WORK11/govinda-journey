@@ -16,7 +16,7 @@ import {
   DeskFx, RackLeds, YardBulb, CallBulb, LanternBulb, cableCurve, dockLocal,
 } from './parts.v5'
 import { LEVELS } from '../registry'
-import EntCard from './card.v5'
+import EntLinks from './card.v5'
 
 const LREG = LEVELS.find((l) => l.id === 'L05')!
 
@@ -26,6 +26,8 @@ const _a = new THREE.Vector3()
 const sm01 = (x: number) => { const t = Math.min(1, Math.max(0, x)); return t * t * (3 - 2 * t) }
 const ease = (t: number) => 1 - (1 - t) ** 3
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
+const beats = (s: string) => (s.match(/[^.]+\.?/g) ?? []).map((x) => x.trim())
+const _pl = new THREE.Vector3()
 
 /** Idle screens glow warm ember; docked, they take the slab's hue. */
 const SCREEN_WARM = new THREE.Color('#e8a34e')
@@ -168,7 +170,9 @@ export default function Obstacle({ id, active, complete, done }: ObstacleProps) 
   const gapMark = useRef<THREE.Object3D>(null)
   const callMark = useRef<THREE.Object3D>(null)
   const storyMark = useRef<THREE.Object3D>(null)
-  const [cardOpen, setCardOpen] = useState(false)
+  const reading = useRef({ on: false, done: false, tok: 0 })
+  const linksOn = useRef(false)
+  const [links, setLinks] = useState(false)
   const [poweredUI, setPoweredUI] = useState(done)
   const [completedUI, setCompletedUI] = useState(done)
   const [, force] = useState(0)
@@ -253,12 +257,24 @@ export default function Obstacle({ id, active, complete, done }: ObstacleProps) 
     if (im.instanceColor) im.instanceColor.needsUpdate = true
   }, [SCR_DARK])
 
+  const rest = () => useV5.getState().setCaption(S.completed ? null : LREG.line)
   const say = (s: string) => {
     useV5.getState().setCaption(s)
     const tok = ++S.capTok
     setTimeout(() => {
-      if (S.capTok === tok && useV5.getState().caption === s) useV5.getState().setCaption(null)
+      if (S.capTok === tok && useV5.getState().caption === s) rest()
     }, 3400)
+  }
+  const talk = (lines: string[]) => {
+    const R = reading.current, tok = ++R.tok
+    R.on = true
+    const step = (i: number) => {
+      if (R.tok !== tok) return
+      if (i === lines.length) { R.on = false; R.done = true; rest(); return }
+      useV5.getState().setCaption(lines[i])
+      setTimeout(() => step(i + 1), 3200 + lines[i].length * 40)
+    }
+    step(0)
   }
 
   const completeOnce = () => {
@@ -336,15 +352,13 @@ export default function Obstacle({ id, active, complete, done }: ObstacleProps) 
   const storyI = useMemo<Interactable>(() => ({
     id: 'L05-story', at: () => (storyMark.current ? storyMark.current.getWorldPosition(wpStory) : wpStory.set(0, -99, 0)),
     radius: 1.5, label: 'Read about Ent',
-    enabled: () => st.current.active && !cardOpen,
-    use: () => { player.frozen = true; setCardOpen(true) },
-  }), [cardOpen])
+    enabled: () => st.current.active && !reading.current.on,
+    use: () => talk(beats(LREG.story)),
+  }), [])
   useInteractable(gapI); useInteractable(gapHintI); useInteractable(liftDeadI)
   useInteractable(liftI); useInteractable(liftDownI); useInteractable(callI); useInteractable(storyI)
 
-  const closeCard = () => { setCardOpen(false); player.frozen = false }
-  // safety: if this obstacle unmounts with the card up, never strand the player
-  useEffect(() => () => { player.frozen = false }, [])
+  useEffect(() => () => { reading.current.tok++; reading.current.on = false }, [active])
 
   useEffect(() => {
     registerSolve(() => st.current)
@@ -476,6 +490,9 @@ export default function Obstacle({ id, active, complete, done }: ObstacleProps) 
     }
     if (S2.powered !== poweredUI) setPoweredUI(S2.powered)
     if (S2.completed !== completedUI) setCompletedUI(S2.completed)
+    const pl = g.worldToLocal(_pl.copy(player.pos))
+    const near = active && reading.current.done && Math.hypot(pl.x - STORY_P[0], pl.z - STORY_P[2]) < 3.4
+    if (near !== linksOn.current) { linksOn.current = near; setLinks(near) }
     mats.rackLed.emissiveIntensity = 0.35 + (Math.sin(t * 6.3 + 1.7) > 0.1 ? 0.5 : 0.05)
     mats.trim.emissiveIntensity += ((S2.phase === 'idle' ? 0 : 0.9) - mats.trim.emissiveIntensity) * Math.min(1, dtm * 3)
     mats.callLit.emissiveIntensity += ((S2.powered ? 0.85 : 0.12) - mats.callLit.emissiveIntensity) * Math.min(1, dtm * 4)
@@ -543,7 +560,7 @@ export default function Obstacle({ id, active, complete, done }: ObstacleProps) 
       <LiftPad padRef={padRef} trimMat={mats.trim} segMat={basicSeg} segRef={segsIM} />
       <object3D ref={callMark} position={[1.25, 0.75, -3.3]} />
       <object3D ref={storyMark} position={[STORY_P[0], STORY_P[1] + 0.85, STORY_P[2]]} />
-      {active && !completedUI && !cardOpen && (
+      {active && !completedUI && (
         <Html fullscreen zIndexRange={[90, 0]} style={{ pointerEvents: 'none' }}>
           <div
             style={{
@@ -558,9 +575,9 @@ export default function Obstacle({ id, active, complete, done }: ObstacleProps) 
           </div>
         </Html>
       )}
-      {cardOpen && (
-        <Html fullscreen zIndexRange={[200, 0]}>
-          <EntCard open onClose={closeCard} />
+      {links && (
+        <Html fullscreen zIndexRange={[90, 0]} style={{ pointerEvents: 'none' }}>
+          <EntLinks />
         </Html>
       )}
     </group>

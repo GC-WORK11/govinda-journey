@@ -80,7 +80,7 @@ export default function Overlay() {
         <section className="intro" data-ui>
           <p className="eyebrow">Govinda Chauhan · IIT Patna</p>
           <h1><Words text="The Journey of Govinda" base={900} step={110} /></h1>
-          <p className="sub"><Words text="Every island is something I built. Play it to open it." base={1500} step={45} /></p>
+          <p className="sub"><Words text="Play each island to open it." base={1500} step={45} /></p>
           <button className="btn" onClick={() => st().start()}>Begin</button>
         </section>
       )}

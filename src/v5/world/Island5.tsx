@@ -111,13 +111,20 @@ function ExitGate({ id, open }: { id: IslandId; open: boolean }) {
 
 /* ---------- lanterns ---------- */
 
-function IslandLanterns5({ done }: { done: boolean }) {
+function IslandLanterns5({ done, id }: { done: boolean; id: IslandId }) {
   const light = useRef<THREE.PointLight>(null)
-  const spots = useMemo(() => [
-    { p: new THREE.Vector3(0.95, 0, 3.35), tall: 1 },
-    { p: new THREE.Vector3(-0.95, 0, -3.35), tall: 1 },
-    { p: new THREE.Vector3(-1.7, 0, 0.7), tall: 1 },
-  ], [])
+  const spots = useMemo(() => {
+    // the stock exit-side stand lands inside L02's ledge mass — perch it on the
+    // ledge cap beside the gate there instead
+    const out = id === 'L02'
+      ? { p: new THREE.Vector3(-1.35, 1.62, -3.7), tall: 1, gy: 1.62 }
+      : { p: new THREE.Vector3(-0.95, 0, -3.35), tall: 1 }
+    return [
+      { p: new THREE.Vector3(0.95, 0, 3.35), tall: 1 },
+      out,
+      { p: new THREE.Vector3(-1.7, 0, 0.7), tall: 1 },
+    ]
+  }, [id])
   useFrame(() => {
     const l = light.current; if (!l) return
     l.intensity = env.night * 2.1
@@ -248,7 +255,7 @@ export function Island5({ id, i }: { id: IslandId; i: number }) {
         near && <ObstaclePlaceholder seed={i + 3} />
       )}
       {i < LAST && <ExitGate id={id} open={open} />}
-      <IslandLanterns5 done={done} />
+      <IslandLanterns5 done={done} id={id} />
     </group>
   )
 }

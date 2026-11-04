@@ -10,13 +10,13 @@
  */
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { PerformanceMonitor } from '@react-three/drei'
+import { PerformanceMonitor, useGLTF, useTexture } from '@react-three/drei'
 import * as THREE from 'three'
 import { V5_ORDER, useV5, player, cinematic, type IslandId } from './core'
 import { ISLAND_POS, ENTRY, PATH_MID, islandIndex, islandPos } from './world/layout'
 import { Island5, purgeCorridors } from './world/Island5'
 import { Bridge5 } from './world/Bridge5'
-import { hasObstacle, Player, ArtWater, Guard } from './world/modules'
+import { hasObstacle, Player, ArtWater, Guard, whenIsland, warmPlayer, preloadIsland } from './world/modules'
 import { useWorldUI } from './world/progress'
 import { input, now } from './player/input'
 import Sky5, { skyDebug } from './world/Sky5'
@@ -26,6 +26,7 @@ import { Clouds } from '../world/Clouds'
 import { C, clay } from '../world/kit'
 import Chrome from './ui/Chrome'
 import Pet from './pet/Pet'
+import { fj, mark } from './perf'
 import './ui/v5.css'
 
 /** V4's tilt-shift finish — parity baseline until ART's Effects5 clears the bar. */
@@ -35,18 +36,35 @@ const LITE = typeof location !== 'undefined' && new URLSearchParams(location.sea
 const QA = typeof location !== 'undefined' && new URLSearchParams(location.search).has('qa')
 const RM = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches
 
+mark('fj:world5')
+// Cold-load warmup: the traveller's rig and the first island's lazy chunks start
+// fetching the moment this module evaluates — several hundred ms before the lazy
+// Player chunk lands and its inner Suspense would have asked for them. drei's
+// loader cache hands the same pending load to useGLTF/useTexture in Player.
+useGLTF.preload('./models/student.glb')
+useTexture.preload('./models/student-skin.png')
+warmPlayer()
+// ?at=<ID> deep-links stand on another island — gate playable on that one.
+const AT_ISLE = (typeof location !== 'undefined' ? new URLSearchParams(location.search).get('at') : null) as IslandId | null
+const FIRST_ISLE: IslandId = AT_ISLE && (V5_ORDER as readonly string[]).includes(AT_ISLE) ? AT_ISLE : 'L01'
+whenIsland(FIRST_ISLE).finally(() => { fj.l01 = true })
+
 // ?qa&fresh — start from a clean journey (before persist state is read anywhere)
 if (QA && new URLSearchParams(location.search).has('fresh')) {
   localStorage.removeItem('govinda-journey-v5')
   useV5.getState().reset()
 }
 
-function Islands5() {
+function Islands5({ late }: { late: boolean }) {
   const done = useV5((s) => s.done)
   const broken = useWorldUI((s) => s.broken)
+  const idx = useWorldUI((s) => s.idx)
+  // Cold path builds base geometry only for the islands at and just ahead of
+  // the traveller; the rest of the chain mounts in the post-playable wave so
+  // the first commit doesn't pay for seven offscreen islands at once.
   return (
     <group>
-      {V5_ORDER.map((id, i) => <Island5 key={id} id={id} i={i} />)}
+      {V5_ORDER.map((id, i) => (late || i <= idx + 2) && <Island5 key={id} id={id} i={i} />)}
       {V5_ORDER.slice(0, -1).map((id, i) => (
         <Bridge5 key={id} i={i} shown={done.includes(id) || !hasObstacle(id) || !!broken[id]} />
       ))}
@@ -118,6 +136,37 @@ const _fw = new THREE.Vector3(), _fa = new THREE.Vector3()
 
 /** Foam rings around each island for ART's water plane. */
 const WATER_ISLANDS = ISLAND_POS.map((p) => [p.x, p.z, 6.2] as [number, number, number])
+
+/** Marks the commit where PLAYER's real controller (and its input hooks) lands. */
+function PlayerOn({ children }: { children: React.ReactNode }) {
+  useEffect(() => { fj.player = true; mark('fj:player') }, [])
+  return <>{children}</>
+}
+
+/**
+ * Cold-load marks inside the frame loop: `fj:frame1` on the first presented
+ * frame, `fj:glb` once the traveller's model is home (resource timing), and
+ * `fj:playable` on the first frame where all three gates hold — the player is
+ * committed, the model is in, and the island underfoot's code is in. Fires
+ * `onPlayable` once so the shell can schedule work that must not fight the
+ * cold path (post FX).
+ */
+function PerfMarks({ onPlayable }: { onPlayable?: () => void }) {
+  const done = useRef(0)
+  const cb = useRef(onPlayable)
+  useEffect(() => { cb.current = onPlayable })
+  useFrame(() => {
+    const d = done.current
+    if (!(d & 1)) { done.current |= 1; mark('fj:frame1') }
+    if (!(d & 2) && performance.getEntriesByType('resource').some((r) => /\/models\/student\.glb$/.test(r.name))) {
+      done.current |= 2; fj.glb = true; mark('fj:glb')
+    }
+    if (!(d & 4) && fj.player && fj.l01 && fj.glb) {
+      done.current |= 4; mark('fj:playable'); cb.current?.()
+    }
+  })
+  return null
+}
 
 /**
  * The finale pull-back. When core.cinematic.on flips true (L09 complete), this
@@ -231,9 +280,42 @@ export default function World5() {
   // the finale pull-back draws the whole chain at once — cap fill on it so
   // software GL survives the widest view in the game
   const finale = useWorldUI((s) => s.finale)
-  const [fx, setFx] = useState(!LITE)
+  // The heavy optional layers — post FX (postprocessing + N8AO), the sea and
+  // its per-island dressing, and the far half of the chain — wait for the
+  // first idle beat after the playable frame instead of fighting the student
+  // rig for main thread on the cold path.
+  const [fx, setFx] = useState(false)
   const [water, setWater] = useState(!LITE)
-  const slow = useCallback(() => { setDpr(0.6); setFx(false); setWater(false) }, [])
+  const [late, setLate] = useState(false)
+  const declined = useRef(false)
+  const slow = useCallback(() => { declined.current = true; setDpr(0.6); setFx(false); setWater(false) }, [])
+  const armLate = useCallback(() => {
+    const ric: (f: () => void, o?: { timeout: number }) => number =
+      (window as { requestIdleCallback?: typeof window.requestIdleCallback }).requestIdleCallback
+      ?? ((f) => window.setTimeout(f, 700))
+    ric(() => { setLate(true); if (!declined.current) setFx(!LITE) }, { timeout: 3000 })
+  }, [])
+  // Failsafe: if playable never marks (a dead chunk, a stalled loader) the sea
+  // and the far islands still arrive rather than leaving a half-empty world.
+  useEffect(() => {
+    const t = window.setTimeout(() => setLate(true), 7000)
+    return () => window.clearTimeout(t)
+  }, [])
+
+  // Once the late wave lands, walk ahead of the traveller: idle-time prefetch
+  // every island chunk beyond the mounted window so a later bridge never
+  // waits on the network.
+  useEffect(() => {
+    if (!late) return
+    const w = window as { requestIdleCallback?: typeof window.requestIdleCallback; cancelIdleCallback?: typeof window.cancelIdleCallback }
+    const ric: (f: () => void, o?: { timeout: number }) => number =
+      w.requestIdleCallback ?? ((f: () => void) => { window.setTimeout(f, 60); return 0 })
+    const id = ric(() => {
+      const idx = useWorldUI.getState().idx
+      V5_ORDER.forEach((lid, i) => { if (i > idx + 3) preloadIsland(lid) })
+    }, { timeout: 4000 })
+    return () => { w.cancelIdleCallback?.(id) }
+  }, [late])
 
   // ?qa: the V5 side of the test hook. project/find are attached by QaProbe.
   // ?at=<ID> works for everyone (deep links); the rest of the hook is ?qa only.
@@ -302,16 +384,16 @@ export default function World5() {
         <fog attach="fog" args={['#efe2cb', 30, 85]} />
         <Sky5 />
         <Clouds />
-        {ArtWater && water && (
+        {ArtWater && water && late && (
           <Suspense fallback={null}>
             <Guard><ArtWater y={-14} islands={WATER_ISLANDS} /></Guard>
           </Suspense>
         )}
         <Hygiene />
-        <Islands5 />
+        <Islands5 late={late} />
         {Player ? (
           <Suspense fallback={<FallbackRig />}>
-            <Guard fallback={<FallbackRig />}><Player /></Guard>
+            <Guard fallback={<FallbackRig />}><PlayerOn><Player /></PlayerOn></Guard>
           </Suspense>
         ) : (
           <FallbackRig />
@@ -320,6 +402,7 @@ export default function World5() {
         <CharLight />
         <Skybox />
         <FinaleCam />
+        <PerfMarks onPlayable={armLate} />
         {QA && <QaProbe />}
         {!LITE && fx && (
           <Suspense fallback={null}><Guard><Effects /></Guard></Suspense>

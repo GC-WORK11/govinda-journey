@@ -48,6 +48,7 @@ Not used as sources: the Devpost "NoHands" page (a different project), and alive
 | This world is a game about my projects. Each project island opens after a short game that shows how the project works. | src/levels/registry.ts:22 | https://github.com/GC-WORK11/govinda-journey | yes | describes the game itself. "Every island is a real project" was removed |
 | Résumé (link) | src/levels/registry.ts:23 | RESUME | yes | 200 |
 | Arrival (badge) | src/levels/registry.ts:23 | n/a | n/a | label |
+| I love sharing what I learn. | src/levels/registry.ts:21 (story); src/levels/L01/Obstacle.tsx (spoken when the traveller crosses the wall) | S1 header: "I build software and ML systems, and I love sharing what I learn." (https://govinda-01.vercel.app/Govinda_Chauhan_ML_Systems_Resume.pdf, fetched 2026-11-04) | yes | the motive for the L01 story. "For four years I have built things people can open." is the row above |
 
 ### L02 (The closed gates)
 
@@ -85,6 +86,17 @@ Not used as sources: the Devpost "NoHands" page (a different project), and alive
 | Doorway, a desktop app, is a cockpit for visible terminal agents, with git worktrees and review flows. | src/levels/registry.ts:49 | S8 description ("Local-first desktop cockpit for visible terminal agents, git worktrees, and review/merge workflows"); topics include electron | yes | replaces "grew into a cockpit ... side by side" |
 | CEO Hunt, Flow Pitch, Delegators Workbench, Doorway IDE (links) | src/levels/registry.ts:51-54 | the four demo URLs above | yes | all 200. "Workbench" and "Doorway" labels changed to the destinations' names |
 | Shipper (badge) | src/levels/registry.ts:55 | n/a | n/a | label |
+
+### L03 project lines (spoken in-world; registry tech line)
+
+| claim | file:line | source URL | verified | note |
+|---|---|---|---|---|
+| CEO Hunt: a calm meeting ground for founders, investors, and operators. | src/levels/L03/Obstacle.tsx (PROJECTS, spoken when the page is picked up) | S1 "PRODUCTS & WEEKEND BUILDS": "CEO Hunt — A calm meeting ground for founders, investors, and operators."; https://ceohunt.vercel.app/ (200) | yes | the résumé also lists React and Postgres for it; not on screen |
+| Flow Pitch: agent workflows, redesigned for a phone screen. | src/levels/L03/Obstacle.tsx (PROJECTS) | S1: "Flow Pitch — Agent workflows redesigned for a phone screen, shipped in a weekend as a live pitch site."; https://flow-pitch.vercel.app (200) | yes | "shipped in a weekend" is covered by "CEO Hunt, Flow Pitch, Delegators Workbench and Doorway IDE are weekend builds you can open today." (L03 table) |
+| Delegators Workbench turns plans into finished documents. | src/levels/L03/Obstacle.tsx (PROJECTS) | S1: "Delegators — … Its Workbench side turns plans into finished documents."; https://delegators-workbench.vercel.app (200) | yes | the résumé describes the Workbench side of the Delegators product; the link is that side on its own domain (see "Delegators Workbench (link label, changed from ..." in the finale table) |
+| Doorway IDE: several AI models side by side, from one thin page. | src/levels/registry.ts:49 (tech; spoken on the solve caption) | S1: "Doorway IDE — Talk to several AI models side by side from one thin page, no heavy install."; https://doorway-ide.vercel.app/ (200) | yes | the web app. The desktop app Doorway is a separate product (see "Doorway IDE (link label, changed from ..." in the finale table) and is no longer on this level |
+| All four are React front ends, shipped on Vercel. | src/levels/registry.ts:49 (tech) | the row "React front ends, shipped on Vercel." (S13 bundles of CEO Hunt, Flow Pitch, Workbench and Doorway IDE; *.vercel.app hosting) | yes | "All four" is the same four sites |
+| CEO Hunt, Flow Pitch, Delegators Workbench and Doorway IDE are weekend builds you can open today. | src/levels/registry.ts:48 (story); src/levels/L03/Obstacle.tsx (spoken near the weekend bench) | the row "CEO Hunt, Flow Pitch, Delegators Workbench and Doorway IDE are weekend builds you can open today." (S1, S13) | yes | the same claim as the registry row, now also spoken in-world |
 
 ### L05 (Ent)
 

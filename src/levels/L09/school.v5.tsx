@@ -8,6 +8,7 @@ import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
 import { C, M } from '../L08/v5kit.v5'
 import { useBlocker } from '../../v5/core'
+import { NoMerge } from '../../v5/world/AutoMerge'
 
 const WALL = '#efe4d2'
 const ROOF = '#c1704f'
@@ -118,7 +119,7 @@ export function Schoolhouse({ wins, doorOpen, ring }: { wins: boolean[]; doorOpe
           <meshStandardMaterial color="#3a3230" emissive={WARM} emissiveIntensity={wins[2] ? 0.9 : 0.04} />
         </mesh>
         <group position={[0, 0.62, 0.32]}>
-          <Bell ring={ring} />
+          <NoMerge><Bell ring={ring} /></NoMerge>
         </group>
         <mesh position={[0, 0.98, 0]} rotation={[0, Math.PI / 4, 0]} material={M(ROOF)} castShadow>
           <coneGeometry args={[0.52, 0.4, 4]} />
@@ -132,10 +133,10 @@ export function Schoolhouse({ wins, doorOpen, ring }: { wins: boolean[]; doorOpe
           <planeGeometry args={[0.56, 0.9]} />
           <meshStandardMaterial ref={doorway} color="#3a3230" emissive={WARM} emissiveIntensity={0.25} />
         </mesh>
-        <group ref={hinge} position={[-0.26, 0, 0.09]}>
+        <NoMerge><group ref={hinge} position={[-0.26, 0, 0.09]}>
           <RoundedBox args={[0.52, 0.88, 0.05]} radius={0.04} position={[0.26, 0.48, 0]} material={M('#8a6748')} castShadow />
           <mesh position={[0.44, 0.48, 0.03]}><sphereGeometry args={[0.03, 8, 8]} /><meshStandardMaterial color="#c9a34e" metalness={0.5} roughness={0.4} /></mesh>
-        </group>
+        </group></NoMerge>
       </group>
 
       {/* windows: front-left = climb, front-right = build, tower above = power, transom = sign */}

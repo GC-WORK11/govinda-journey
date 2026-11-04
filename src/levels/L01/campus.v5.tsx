@@ -10,6 +10,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import * as core from '../../v5/core'
 import { C, clay, Prop, REDUCED, Merged, mergePrims, type Prim } from './shared.v5'
+import { NoMerge } from '../../v5/world/AutoMerge'
 
 const winLit = new THREE.MeshStandardMaterial({ color: '#ffd489', emissive: '#ffb04e', emissiveIntensity: 0.9, roughness: 0.5 })
 const winDark = new THREE.MeshStandardMaterial({ color: '#9db6b3', roughness: 0.92 })
@@ -57,7 +58,7 @@ export function CampusBlock({ position, yaw = 0, warm }: {
   return (
     <group position={position} rotation={[0, yaw, 0]}>
       <Merged items={statics} />
-      <mesh geometry={winGeo} material={win} />
+      <NoMerge><mesh geometry={winGeo} material={win} /></NoMerge>
       {[0, 1, 2].map((i) => (
         <mesh key={i} position={[0.78, 2.34, -0.2]} material={puffMats[i]}
           ref={(m) => { puffs.current[i] = m }}>

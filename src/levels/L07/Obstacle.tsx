@@ -25,6 +25,7 @@ const GROUND = CHIP_STAGE.map((p) => onIsland(new THREE.Vector3(p.x, 0, p.z)))
 const LAND = onIsland(SCREEN_FRONT)
 const MIC = onIsland(MIC_BASE)
 const HINT = LEVELS.find((l) => l.id === 'L07')?.hint ?? ''
+const WHY = 'There is no Wispr Flow for Linux, so the phone becomes the mic.'
 const ALIAS: Record<string, string[]> = { hello: ['hallo'], my: ['mai'], phone: ['fone'] }
 const heardAs = (tok: string, word: string) => tok === word || !!ALIAS[word]?.includes(tok)
 const smooth = (k: number) => k * k * (3 - 2 * k)
@@ -140,7 +141,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   useEffect(() => {
     core.player.frozen = open
     studio.listening = open
-    if (open) core.playerEmote.name = 'use'
+    if (open) { core.playerEmote.name = 'use'; core.useV5.getState().setCaption(WHY) }
     else if (core.playerEmote.name === 'use') core.playerEmote.name = null
   }, [open])
   useEffect(() => () => {
@@ -188,7 +189,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       {WORDS.map((w, i) => (
         <group key={w} ref={(g) => { chips.current[i] = g }} position={CHIP[i]}>
           <group scale={K}>
-            <RoundedBox args={[0.5, 0.3, 0.12]} radius={0.09} smoothness={3} material={clay('#f6ecd9')} castShadow />
+            <RoundedBox args={[0.5, 0.3, 0.12]} radius={0.09} smoothness={3} material={clay('#f6ecd9')} />
             <mesh position={[0, 0, 0.064]}>
               <planeGeometry args={[0.46, 0.26]} />
               <meshBasicMaterial map={chipTex[i]} toneMapped={false} />

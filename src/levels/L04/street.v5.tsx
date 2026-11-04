@@ -9,6 +9,7 @@ import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import * as core from '../../v5/core'
 import { C, clay, damp, ghostMat, makeTex, paintGeo } from './shared.v5'
+import { NoMerge } from '../../v5/world/AutoMerge'
 
 type V3 = [number, number, number]
 type P = { position?: V3; rotation?: V3; scale?: number | V3 }
@@ -172,11 +173,11 @@ export function SensorTower({ lit, ...p }: P & { lit: Lit }) {
       <mesh position={[0.16, 1.56, 0]} rotation={[0, 0, -0.9]} material={clay('#8a9799')}><sphereGeometry args={[0.09, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2]} /></mesh>
       <mesh position={[0, 1.66, 0]} material={clay(C.ink)}><cylinderGeometry args={[0.05, 0.06, 0.05, 10]} /></mesh>
       <mesh position={[0, 1.73, 0]} material={domeMat}><sphereGeometry args={[0.08, 16, 12]} /></mesh>
-      <group ref={vane} position={[0, 1.86, 0]}>
+      <NoMerge><group ref={vane} position={[0, 1.86, 0]}>
         <mesh material={clay('#8a9799')}><cylinderGeometry args={[0.007, 0.007, 0.1, 5]} /></mesh>
         <mesh position={[0.05, 0.05, 0]} material={clay('#8a9799')}><boxGeometry args={[0.12, 0.01, 0.01]} /></mesh>
         <mesh position={[-0.05, 0.05, 0]} rotation={[0, 0, Math.PI / 2]} material={clay(C.terracotta)}><coneGeometry args={[0.026, 0.05, 6]} /></mesh>
-      </group>
+      </group></NoMerge>
       <mesh position={[0, 1.52, 0]} rotation={[-Math.PI / 2, 0, 0]} material={bandMat}>
         <ringGeometry args={[0.16, 0.19, 26]} />
       </mesh>

@@ -239,16 +239,19 @@ const PROP_LIFT: Record<string, number> = {
 }
 
 /** Natural footprint of each GLB, measured once per URL (shared across clones). */
-const sizeCache = new Map<string, { minY: number; h: number } | null>()
+const sizeCache = new Map<string, { minY: number; h: number; r: number } | null>()
 function naturalSize(url: string, scene: THREE.Object3D) {
   let s = sizeCache.get(url)
   if (s === undefined) {
     const b = new THREE.Box3().setFromObject(scene)
-    s = b.isEmpty() ? null : { minY: b.min.y, h: b.max.y - b.min.y }
+    s = b.isEmpty() ? null : { minY: b.min.y, h: b.max.y - b.min.y, r: Math.max(b.max.x - b.min.x, b.max.z - b.min.z) }
     sizeCache.set(url, s)
   }
   return s
 }
+
+/** Small dressing doesn't earn a shadow-map draw — only tall or wide props cast. */
+const SHADOW_MIN = 0.9
 
 /** One broken GLB must never take down the island — props fail silently. */
 class PropGuard extends Component<{ children: React.ReactNode }, { err: boolean }> {
@@ -289,8 +292,11 @@ function PropInner({
     outer.add(g)
     c.position.y -= nat.minY
     if (fit && nat.h > 1e-4) g.scale.setScalar(fit / nat.h)
+    const k = g.scale.x * (typeof scale === 'number' ? scale : scale?.[1] ?? 1)
+    const casts = nat.h * k >= SHADOW_MIN || nat.r * k >= SHADOW_MIN
+    if (!casts) c.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) m.castShadow = false })
     return outer
-  }, [url, scene, toonOpts, fit])
+  }, [url, scene, toonOpts, fit, scale])
   return <primitive object={obj} position={position} rotation={rotation} scale={scale} />
 }
 

@@ -34,7 +34,7 @@ export async function withChrome(fn, { maxWaitMs } = {}) {
   const release = await acquire(maxWaitMs)
   let b
   try {
-    b = await puppeteer.launch({ userDataDir: PROFILE, executablePath: '/usr/bin/google-chrome', headless: 'new', protocolTimeout: 120000,
+    b = await puppeteer.launch({ userDataDir: PROFILE, executablePath: '/usr/bin/google-chrome', headless: 'new', protocolTimeout: 240000, timeout: 120000,
       args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] })
     return await fn(b)
   } finally { try { await b?.close() } catch {}; release() }

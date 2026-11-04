@@ -8,11 +8,14 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import * as core from '../../v5/core'
-import { Gate, LowWall, PathStones, PillHint, Prop, Rock, tpLocal, sleep, useLocalPlayer, useSolver, BloomField, Merged, type Prim } from './shared.v5'
+import { Gate, LowWall, PathStones, PillHint, Prop, Rock, say, tpLocal, sleep, useLocalPlayer, useSolver, BloomField, Merged, type Prim } from './shared.v5'
 import { BigTree, CampusBlock, LaptopDesk } from './campus.v5'
+import { AutoMerge } from '../../v5/world/AutoMerge'
+import { LEVELS } from '../registry'
 
 const DESK = new THREE.Vector3(2.35, 0, -0.6)
 const WALL_Z = 0.55
+const LREG = LEVELS.find((l) => l.id === 'L01')!
 
 export default function Obstacle({ id, active, complete, done }: core.ObstacleProps) {
   const root = useRef<THREE.Group>(null)
@@ -60,7 +63,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
     // approach = was ever on the near side; tracked independently of `moved` so a slow-frame
     // visitor who only registers as moving after reaching the wall can't get stuck
     if (!approached.current && local.z > WALL_Z + 0.45) approached.current = true
-    if (approached.current && moved.current && !crossed.current && local.z < WALL_Z - 0.35) crossed.current = true
+    if (approached.current && moved.current && !crossed.current && local.z < WALL_Z - 0.35) { crossed.current = true; say(LREG.story, 5200) }
     // the one quiet line at the bottom of the screen
     const h = !active || done ? null
       : !moved.current ? 'Use WASD or the stick to walk'
@@ -104,6 +107,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   const warm = open
   return (
     <group ref={root}>
+      <AutoMerge>
       {/* courtyard landmark + the desk under the tree */}
       <CampusBlock position={[-2.3, 0, -2.85]} yaw={0.55} warm={warm} />
       <BigTree position={[2.9, 0, -1.45]} s={1.1} />
@@ -116,10 +120,8 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       <Merged items={bushes} />
 
       {/* the way out */}
-      <Gate position={[0, 0, -3.9]} open={open} instant={done} width={2.0} height={1.42} />
       <Prop name="streetlight" position={[-1.55, 0, -3.62]} scale={1.55} />
       <Prop name="streetlight" position={[1.55, 0, -3.62]} rotation={[0, Math.PI, 0]} scale={1.55} />
-      {warm && <pointLight position={[0, 1.3, -3.6]} color="#ffc27e" intensity={2.4} distance={4.5} decay={2} />}
 
       {/* a spur of stones leading off the main path to the desk (the z-corridor
           stones are drawn by WORLD) */}
@@ -133,6 +135,10 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       {/* seeded rim dressing (grass + flower blobs, ONE merged mesh) */}
       <BloomField seed={11} density={0.55}
         avoid={[[-2.3, -2.85, 2.6], [2.6, -1.0, 2.0], [0, -3.9, 2.2], [0, 4.2, 1.4]]} />
+      </AutoMerge>
+
+      <Gate position={[0, 0, -3.9]} open={open} instant={done} width={2.0} height={1.42} />
+      {warm && <pointLight position={[0, 1.3, -3.6]} color="#ffc27e" intensity={2.4} distance={4.5} decay={2} />}
 
       {/* quiet teaching line */}
       <PillHint text={hint} />

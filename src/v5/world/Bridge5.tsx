@@ -13,19 +13,29 @@ import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import { C, clay, clayVC, paint } from '../../world/kit'
-import { Lanterns, bridgeLampSpots } from '../../world/Lanterns'
+import { Lanterns } from '../../world/Lanterns'
 import { useWalkable } from '../core'
-import { exitWorld, entryWorld } from './layout'
+import { exitWorld, entryWorld, ISLAND_POS } from './layout'
 
 const RM = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches
 
-/** Deck height along the bridge: endpoint lerp + a gentle sag. */
-const deckY = (from: THREE.Vector3, to: THREE.Vector3, t: number) =>
-  THREE.MathUtils.lerp(from.y, to.y, t) - 0.06 - Math.sin(t * Math.PI) * 0.55
+/** Rails/posts sit just outside the plank edge (planks are 0.95 across). */
+const POST_LAT = 0.5
+/** Posts stand this far inside the rim mouth so both feet land on grass —
+ *  at a diagonal mouth a rim-anchored far post would hang past the lip. */
+const POST_PULL = 0.42
+/** Never let a clamped post sit past the grass lip edge. */
+const POST_MAX_R = 4.95
 
-function bridgeGeo(from: THREE.Vector3, to: THREE.Vector3) {
+/** Deck height along the bridge: endpoint lerp + a gentle sag. The sin² shape
+ *  leaves each rim on a flat tangent — a plain sine's steep end slope drove
+ *  the last planks under the island lip and put the ropes through the grass. */
+const deckY = (from: THREE.Vector3, to: THREE.Vector3, t: number) =>
+  THREE.MathUtils.lerp(from.y, to.y, t) - 0.04 - Math.sin(t * Math.PI) ** 2 * 0.55
+
+function bridgeGeo(from: THREE.Vector3, to: THREE.Vector3, cFrom: THREE.Vector3, cTo: THREE.Vector3) {
   const dir = to.clone().sub(from); const len = dir.length(); dir.normalize()
-  const lat = new THREE.Vector3(-dir.z, 0, dir.x).multiplyScalar(0.44)
+  const lat = new THREE.Vector3(-dir.z, 0, dir.x).multiplyScalar(POST_LAT)
   const ang = Math.atan2(dir.x, dir.z)
   const n = Math.max(4, Math.floor(len / 0.38))
   const planks: { p: THREE.Vector3; r: number }[] = []
@@ -39,18 +49,31 @@ function bridgeGeo(from: THREE.Vector3, to: THREE.Vector3) {
   const put = (g: THREE.BufferGeometry, v: THREE.Vector3, ry: number, hex: string, rx = 0, rz = 0) => {
     eu.set(rx, ry, rz); q.setFromEuler(eu); g.applyMatrix4(mtx.compose(v, q, sc)); paint(g, hex, undefined, 0.06); geos.push(g)
   }
-  for (const end of [from, to]) for (const s of [-1, 1]) {
-    const base = end.clone().addScaledVector(lat, s)
-    put(new THREE.CylinderGeometry(0.05, 0.065, 0.7, 7), base.clone().setY(end.y + 0.24), ang, C.wood, 0, s * 0.07)
-    put(new THREE.SphereGeometry(0.08, 10, 8), base.clone().setY(end.y + 0.62), ang, C.woodLight)
+  // One post pair per mouth, pulled inside the rim and clamped onto the grass
+  // edge. Order: from-, from+, to-, to+ (side = lat sign).
+  const posts: THREE.Vector3[] = []
+  const ends = [from, to] as const
+  const ctrs = [cFrom, cTo] as const
+  for (const e of [0, 1]) for (const s of [-1, 1]) {
+    const p = ends[e].clone().addScaledVector(dir, -POST_PULL).addScaledVector(lat, s)
+    const ox = p.x - ctrs[e].x, oz = p.z - ctrs[e].z, od = Math.hypot(ox, oz)
+    if (od > POST_MAX_R) { p.x = ctrs[e].x + (ox / od) * POST_MAX_R; p.z = ctrs[e].z + (oz / od) * POST_MAX_R }
+    p.y = ends[e].y // pulled horizontally only — posts stand at rim height
+    posts.push(p)
+    put(new THREE.CylinderGeometry(0.05, 0.065, 0.7, 7), p.clone().setY(ends[e].y + 0.24), ang, C.wood, 0, s * 0.07)
+    put(new THREE.SphereGeometry(0.08, 10, 8), p.clone().setY(ends[e].y + 0.62), ang, C.woodLight)
   }
   for (const s of [-1, 1]) {
     const pts: THREE.Vector3[] = []
     for (let k = 0; k <= 12; k++) {
       const t = k / 12, p = from.clone().lerp(to, t).addScaledVector(lat, s)
-      p.y = deckY(from, to, t) + 0.58 - Math.sin(t * Math.PI) * 0.3
+      p.y = deckY(from, to, t) + 0.56 - Math.sin(t * Math.PI) * 0.3
       pts.push(p)
     }
+    // tie the rope into the post tops — the ends land on the grass-side posts
+    // instead of floating at the rail line
+    pts[0].copy(posts[s === -1 ? 0 : 1]).setY(from.y + 0.52)
+    pts[12].copy(posts[s === -1 ? 2 : 3]).setY(to.y + 0.52)
     const tube = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 20, 0.022, 6)
     paint(tube, '#dcc7a0', undefined, 0.05); geos.push(tube)
   }
@@ -62,17 +85,20 @@ function bridgeGeo(from: THREE.Vector3, to: THREE.Vector3) {
   // walk discs — no seam to catch a foot on.
   const strip: number[] = []
   const idx: number[] = []
-  const T0 = -0.05, T1 = 1.05
+  const T0 = -0.1, T1 = 1.1
   for (let i = 0; i <= 40; i++) {
     const t = T0 + (i / 40) * (T1 - T0), p = from.clone().lerp(to, t)
     const tc = Math.min(1, Math.max(0, t))
-    const y = deckY(from, to, tc) + 0.045
+    // Tail tips taper just under the island walk disc (≈ -0.02): the rim seam
+    // still grabs a walker, but spawns/rim strolls inside the island stay on
+    // the disc like before — the bridge guide doesn't reach inland.
+    const y = deckY(from, to, tc) + 0.045 - Math.max(0, -t, t - 1) * 0.25
     // Plank width mid-deck; flares to corridor width at both mouths — players
     // who drop off a high exit (L02's ledge lip) or wander the curved start
     // still land on the strip instead of slipping past its edge.
     const mouth = Math.min(tc, 1 - tc)
     const w = 0.98 + 0.95 * Math.max(0, 1 - mouth / 0.16)
-    strip.push(p.x - lat.x * (w / 0.44) * 0.5, y, p.z - lat.z * (w / 0.44) * 0.5, p.x + lat.x * (w / 0.44) * 0.5, y, p.z + lat.z * (w / 0.44) * 0.5)
+    strip.push(p.x - lat.x * (w / POST_LAT) * 0.5, y, p.z - lat.z * (w / POST_LAT) * 0.5, p.x + lat.x * (w / POST_LAT) * 0.5, y, p.z + lat.z * (w / POST_LAT) * 0.5)
     if (i < 40) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2) }
   }
   const walk = new THREE.BufferGeometry()
@@ -93,20 +119,25 @@ function bridgeGeo(from: THREE.Vector3, to: THREE.Vector3) {
   }
   const deck = mergeGeometries(deckParts, false)!
   deckParts.forEach((x) => x.dispose())
-  return { planks, rails, walk, deck, lat }
+  return { planks, rails, walk, deck, lat, posts }
 }
 
 export function Bridge5({ i, shown }: { i: number; shown: boolean }) {
-  const { planks, rails, walk, deck, spots, yaw, mid } = useMemo(() => {
+  // On a cold journey every bridge is hidden: skip the ~25 merged geometries
+  // and ~20 plank meshes per gap until the first `shown` flips (done only ever
+  // grows — the reveal then pays the one-time build during its own animation).
+  const bg = useMemo(() => {
+    if (!shown) return null
     const from = exitWorld(i), to = entryWorld(i + 1)
-    const g = bridgeGeo(from, to)
+    const g = bridgeGeo(from, to, ISLAND_POS[i], ISLAND_POS[i + 1])
     return {
       ...g,
-      spots: bridgeLampSpots(from, to),
+      // a lantern glass on each post top
+      spots: g.posts.map((p) => ({ p: p.clone().setY(p.y + 0.68), tall: 0 })),
       yaw: Math.atan2(-(to.z - from.z), to.x - from.x),
       mid: from.clone().lerp(to, 0.5),
     }
-  }, [i])
+  }, [i, shown])
   const walkRef = useRef<THREE.Mesh>(null)
   useWalkable(walkRef, shown)
   const railsWrap = useRef<THREE.Group>(null)
@@ -115,6 +146,8 @@ export function Bridge5({ i, shown }: { i: number; shown: boolean }) {
   const deckRef = useRef<THREE.Mesh>(null)
   const st = useRef({ p: shown ? 1 : 0, landed: shown })
   useFrame((_, dt) => {
+    if (!bg) return
+    const { planks } = bg
     const k = st.current
     k.p = RM ? (shown ? 1 : 0) : shown ? Math.min(1, k.p + dt / 1.45) : 0
     const rp = Math.min(1, Math.max(0, (k.p - 0.02) / 0.3))
@@ -135,6 +168,8 @@ export function Bridge5({ i, shown }: { i: number; shown: boolean }) {
     if (shown && landed && !k.landed) { k.landed = true }
     if (!shown) k.landed = false
   })
+  if (!bg) return null
+  const { planks, rails, walk, deck, spots, yaw, mid } = bg
   return (
     <group name={`bridge-${i}`}>
       {/* walk surface: invisible strip (draws nothing, still raycastable; DoubleSide so the down-ray can't miss) */}

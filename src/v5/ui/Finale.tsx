@@ -21,6 +21,8 @@ const STACK: [string, IslandId][] = [
   ['React · Vercel', 'L03'],
   ['Rust', 'L05'],
   ['C++20 · Expo', 'L06'],
+  ['Linux · Wispr Flow', 'L07'],
+  ['Shape match', 'L08'],
 ]
 
 export function Finale() {
@@ -31,7 +33,8 @@ export function Finale() {
       <div className="card">
         <p className="eyebrow">{L?.place} · {L?.title}</p>
         <h1>Govinda Chauhan</h1>
-        <p className="line">{L?.line}</p>
+        <p className="line">{LEVEL_BY_ID['L01']?.line}</p>
+        <p className="line" style={{ marginTop: 12 }}>{L?.line}</p>
 
         <div className="projs">
           {PROJECTS.map((id) => {

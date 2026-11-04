@@ -17,6 +17,7 @@ import { Schoolhouse } from './school.v5'
 import { SignPad, SIGN_C } from '../L08/signui.v5'
 import { has, interactables, player, useBlocker, useV5, useWalkable, type ObstacleProps } from '../../v5/core'
 import { Prop } from '../../v5/art/Dressing'
+import { AutoMerge, NoMerge } from '../../v5/world/AutoMerge'
 
 const SCHOOL = new THREE.Vector3(-0.9, 0, -2.6)
 const WALL_Z = 2.0
@@ -126,7 +127,7 @@ function Plank({ frame, carried, placing, placed, instant, onPlaced }: {
   })
 
   return (
-    <group ref={g} position={instant ? RAMP.pos.toArray() : PLANK_HOME.toArray()} rotation={instant ? [RAMP.rx, 0, 0] : [0, 0.35, 0.06]}>
+    <group ref={g} position={instant ? RAMP.pos.toArray() : [PLANK_HOME.x, 0.08, PLANK_HOME.z]} rotation={instant ? [RAMP.rx, 0, 0] : [0, 0.35, 0.06]}>
       <RoundedBox ref={walk} args={[0.86, 0.1, 1.16]} material={M(C.woodLight)} castShadow receiveShadow />
       <mesh position={[0, 0.052, 0]} material={M('#b98a5f')}><boxGeometry args={[0.88, 0.012, 0.05]} /></mesh>
       <mesh position={[0, 0.052, 0.3]} material={M('#b98a5f')}><boxGeometry args={[0.88, 0.012, 0.05]} /></mesh>
@@ -144,11 +145,11 @@ function Crank({ winding }: { winding: boolean }) {
   return (
     <group>
       <mesh position={[0, 0.3, 0]} material={M(C.wood)} castShadow><cylinderGeometry args={[0.05, 0.07, 0.6, 8]} /></mesh>
-      <group ref={wheel} position={[0, 0.64, 0]}>
+      <NoMerge><group ref={wheel} position={[0, 0.64, 0]}>
         <mesh rotation={[Math.PI / 2, 0, 0]} material={M('#8a6748')} castShadow><torusGeometry args={[0.17, 0.035, 8, 18]} /></mesh>
         <mesh position={[0.17, 0.05, 0]} material={M(C.woodLight)} castShadow><cylinderGeometry args={[0.03, 0.03, 0.12, 6]} /></mesh>
         <mesh rotation={[Math.PI / 2, 0, 0]} material={M('#8a6748')}><cylinderGeometry args={[0.04, 0.04, 0.1, 8]} /></mesh>
-      </group>
+      </group></NoMerge>
     </group>
   )
 }
@@ -388,15 +389,12 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
 
   return (
     <group ref={frame.ref}>
+      <AutoMerge>
       <Wall />
       <Porch />
       <group position={SCHOOL.toArray()}>
         <Schoolhouse wins={wins} doorOpen={doorOpen} ring={ring} />
       </group>
-
-      {/* plank + its pickup spot by a little work crate */}
-      <Plank frame={frame} carried={carried} placing={placing} placed={placed} instant={done}
-        onPlaced={() => { setPlaced(true); setPlacing(false); caption('It fits.') }} />
       {!placed && !placing && !carried && (
         <group position={[-2.5, 0, 1.0]}>
           <RoundedBox args={[0.55, 0.4, 0.55]} radius={0.04} position={[0, 0.2, 0]} material={M(C.wood)} castShadow receiveShadow />
@@ -421,7 +419,6 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
       <DoorStone />
       <Chalkboard />
       <ExitGate />
-      <Fireflies />
 
       {/* quiet dressing on the rim — ART pack props */}
       <Prop name="plant_bush_detailed" position={[3.45, -0.04, -1.65]} rotation={[0, 0.9, 0]} scale={0.9} />
@@ -436,6 +433,12 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
           <mesh position={[0, 0.84, 0]}><sphereGeometry args={[0.06, 10, 8]} /><meshStandardMaterial color="#e8b56a" emissive="#f2c47e" emissiveIntensity={0.8} /></mesh>
         </group>
       ))}
+      </AutoMerge>
+
+      {/* plank + its pickup spot by a little work crate */}
+      <Plank frame={frame} carried={carried} placing={placing} placed={placed} instant={done}
+        onPlaced={() => { setPlaced(true); setPlacing(false); caption('It fits.') }} />
+      <Fireflies />
 
     </group>
   )

@@ -14,6 +14,7 @@ import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import * as core from '../../v5/core'
+import { LEVELS } from '../registry'
 import {
   C, clay, REDUCED, useLocalPlayer, tpLocal, tpWorld, useSolver, useAt, Hint,
   PathStones, Rock, Mound, RopeFence, StoneLantern, Prop, carryWorld, sleep, waitTp,
@@ -45,6 +46,12 @@ const GAPS = [
   { c: new THREE.Vector3(5.14, 0.0, -1.52), yaw: Math.atan2(-(-2.18 + 0.82), 4.82 - 5.42) },
 ]
 const FENCE_Z = -2.8
+const LREG = LEVELS.find((l) => l.id === 'L03')!
+const PROJECTS = [
+  'CEO Hunt: a calm meeting ground for founders, investors, and operators.',
+  'Flow Pitch: agent workflows, redesigned for a phone screen.',
+  'Delegators Workbench turns plans into finished documents.',
+]
 
 /* --------------------------------- page slab ------------------------------ */
 
@@ -118,6 +125,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   const [lit, setLit] = useState(done)          // payoff: warm glow on the pages + lantern
   const doneRef = useRef(done)
   const solveT = useRef(done ? 1 : 0)
+  const storied = useRef(false)
 
   const blocks = useMemo<Block[]>(() => [0, 1, 2].map((i) => {
     const to = GAPS[i].c.clone().setY(0.055)
@@ -137,9 +145,9 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
 
   /* ------------------------------ interactables ------------------------------ */
 
-  const caption = (s: string) => {
+  const caption = (s: string, ms = 2600) => {
     core.useV5.getState().setCaption(s)
-    setTimeout(() => { if (core.useV5.getState().caption === s) core.useV5.getState().setCaption(null) }, 2600)
+    setTimeout(() => { if (core.useV5.getState().caption === s) core.useV5.getState().setCaption(null) }, ms)
   }
 
   const climbAt = useAt(root, WALL_AT.x, WALL_AT.y + 0.5, WALL_AT.z)
@@ -166,6 +174,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       if (b.state !== 'rack' || core.player.carrying) return
       b.state = 'carried'
       core.player.carrying = `l03-page-${i}`
+      caption(PROJECTS[i], 4600)
     },
   })), [blocks, blockAts])
   blockIts.forEach((it) => core.useInteractable(it))
@@ -195,6 +204,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
 
   const placedCount = useRef(done ? 3 : 0)
   useFrame((s, dt) => {
+    if (active && !storied.current && !doneRef.current && (lp.x + 2.55) ** 2 + (lp.z - 2.3) ** 2 < 6.76) { storied.current = true; caption(LREG.story, 5200) }
     const k = Math.min(1, dt * 9)
     blocks.forEach((b, i) => {
       const g = b.g
@@ -306,7 +316,9 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       </AutoMerge>
 
       {/* floating platforms + gap stubs */}
+      <AutoMerge>
       {PLATS.map((p, i) => <Platform key={i} p={p} i={i} />)}
+      </AutoMerge>
       {GAPS.map((g, i) => (
         <GapSlot key={i} g={g} open={() => !blocks.some((bb) => (bb as any).slot === i && (bb.state === 'placed' || bb.state === 'placing'))} />
       ))}
@@ -318,21 +330,21 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       </AutoMerge>
 
       {/* the landing + exit yard */}
-      <StoneLantern position={[LANTERN.x, 0, LANTERN.z]} lit={lit} />
       <AutoMerge>
+      <StoneLantern position={[LANTERN.x, 0, LANTERN.z]} lit={lit} />
       <PathStones pts={[[3.4, -3.5], [2.2, -3.9], [1.0, -4.1], [0, -4.2]]} seed={9} gap={0.7} />
       <Rock position={[1.9, 0.1, -3.4]} s={0.34} yaw={1.2} />
       <Rock position={[-1.6, 0.08, -3.6]} s={0.42} yaw={0.4} block={false} />
       <Mound position={[-2.6, 0, -3.2]} r={0.9} h={0.3} />
-      </AutoMerge>
       <StoneLantern position={[-0.8, 0, 3.3]} lit={false} />
+      </AutoMerge>
 
       <AutoMerge>
       {/* scattered dressing on the north grass */}
       <Rock position={[-3.6, 0.08, 0.9]} s={0.4} yaw={2.1} block={false} />
       <Rock position={[0.4, 0.06, 0.6]} s={0.28} yaw={0.9} block={false} />
       <Mound position={[-1.8, 0, 0.4]} r={1.1} h={0.34} />
-      <Mound position={[1.4, 0, -1.4]} r={0.85} h={0.26} />
+      <Mound position={[1.9, 0, -1.9]} r={0.85} h={0.26} />
       <Tufts />
       </AutoMerge>
 
@@ -588,29 +600,42 @@ function Plank({ from, to }: { from: THREE.Vector3; to: THREE.Vector3 }) {
 /* ------------------------------- site fence -------------------------------- */
 
 function SiteFence() {
-  const blk = useRef<THREE.Mesh>(null)
-  core.useBlocker(blk)
-  // slat pickets along a gentle arc, x from -4.15 → 4.15 at z ≈ FENCE_Z
-  const posts = useMemo(() => {
-    const out: { x: number; z: number; h: number }[] = []
+  const blkW = useRef<THREE.Mesh>(null)
+  const blkE = useRef<THREE.Mesh>(null)
+  core.useBlocker(blkW)
+  core.useBlocker(blkE)
+  // slat pickets along a gentle arc — TWO runs: a gate opening where the main
+  // path crosses (|x|<1.3), and the east run ends before the gangplank crossing.
+  // A single wall would be purged by the z-corridor rule AND the pickets stood
+  // right on the path / through the plank.
+  const runs = useMemo(() => {
+    const all: { x: number; z: number; h: number }[] = []
     for (let i = 0; i <= 26; i++) {
       const x = -4.15 + (i / 26) * 8.3
       const z = FENCE_Z - 0.12 * Math.sin((x / 4.15) * Math.PI * 0.5) - 0.1
-      out.push({ x, z, h: 0.78 + (i % 2) * 0.05 })
+      all.push({ x, z, h: 0.78 + (i % 2) * 0.05 })
     }
-    return out
+    return [all.filter((p) => p.x <= -1.5), all.filter((p) => p.x >= 1.5 && p.x <= 3.45)]
   }, [])
-  const rail = useMemo(() => {
-    const pts = posts.map((p) => new THREE.Vector3(p.x, 0, p.z))
+  const rail = useMemo(() => runs.flatMap((pts) => {
     const a = pts.map((p) => new THREE.Vector3(p.x, 0.62, p.z))
     const b = pts.map((p) => new THREE.Vector3(p.x, 0.34, p.z))
     return [new THREE.TubeGeometry(new THREE.CatmullRomCurve3(a), 40, 0.024, 5),
             new THREE.TubeGeometry(new THREE.CatmullRomCurve3(b), 40, 0.02, 5)]
-  }, [posts])
-  // all pickets as ONE merged mesh (was 27 draws)
-  const pickets = useMemo<Prim[]>(() => posts.map((p, i) => ({
-    g: 'box', p: [p.x, p.h / 2, p.z], s: [0.07, p.h, 0.05], c: i % 3 ? C.wood : C.woodLight,
-  })), [posts])
+  }), [runs])
+  const gates = useMemo<Prim[]>(() => [-1.3, 1.3].map((x) => ({
+    g: 'box' as const,
+    p: [x, 0.52, FENCE_Z - 0.12 * Math.sin((x / 4.15) * Math.PI * 0.5) - 0.1] as [number, number, number],
+    s: [0.11, 1.04, 0.08] as [number, number, number],
+    c: C.wood,
+  })), [])
+  // all pickets + gate posts as ONE merged mesh
+  const pickets = useMemo<Prim[]>(() => [...gates, ...runs.flat().map((p, i) => ({
+    g: 'box' as const,
+    p: [p.x, p.h / 2, p.z] as [number, number, number],
+    s: [0.07, p.h, 0.05] as [number, number, number],
+    c: i % 3 ? C.wood : C.woodLight,
+  }))], [runs, gates])
   const sign = useMemo<Prim[]>(() => [
     { g: 'cyl', p: [0, 0.3, 0], s: [0.05, 0.6, 0.064], c: C.wood },
     { g: 'box', p: [0, 0.62, 0], s: [0.5, 0.26, 0.035], r: [0, 0, -0.06], c: '#f4e6c4' },
@@ -621,15 +646,20 @@ function SiteFence() {
     <group>
       <Merged items={pickets} />
       {rail.map((g, i) => <mesh key={i} geometry={g} material={clay(C.woodLight)} castShadow />)}
-      {/* invisible wall the whole chord */}
-      <mesh ref={blk} position={[0, 0.6, FENCE_Z - 0.15]} visible={false}>
-        <boxGeometry args={[8.9, 1.4, 0.5]} />
+      {/* invisible walls on the two flanks — the corridor gap and the plank
+          crossing stay open (the old single wall crossed the path corridor and
+          was purged on load, so the fence never actually fenced) */}
+      <mesh ref={blkW} position={[-2.875, 0.6, FENCE_Z - 0.15]} visible={false}>
+        <boxGeometry args={[3.15, 1.4, 0.5]} />
+      </mesh>
+      <mesh ref={blkE} position={[2.375, 0.6, FENCE_Z - 0.15]} visible={false}>
+        <boxGeometry args={[2.15, 1.4, 0.5]} />
       </mesh>
       {/* rocks tying the fence ends into the rim */}
       <Rock position={[-4.0, 0.1, -3.15]} s={0.55} yaw={0.8} />
       <Rock position={[-3.6, 0.08, -3.5]} s={0.4} yaw={1.9} />
-      <Rock position={[4.05, 0.12, -3.1]} s={0.6} yaw={0.3} />
-      <Rock position={[3.7, 0.07, -3.55]} s={0.38} yaw={2.4} />
+      <Rock position={[3.1, 0.1, -3.0]} s={0.35} yaw={0.3} />
+      <Rock position={[4.15, 0.08, -3.55]} s={0.32} yaw={2.4} />
       {/* a little leaning site sign by the path — ONE merged mesh */}
       <group position={[3.15, 0, -2.45]} rotation={[0, -0.5, 0.04]}>
         <Merged items={sign} />

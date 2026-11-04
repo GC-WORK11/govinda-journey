@@ -9,6 +9,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
+import { Html } from '@react-three/drei'
 import * as THREE from 'three'
 import * as core from '../../v5/core'
 import { useV5 } from '../../v5/core'
@@ -19,6 +20,7 @@ import {
 import { ClayPot, Bush } from '../../world/kit'
 import { AutoMerge } from '../../v5/world/AutoMerge'
 import { AqiPost, aqiTagTex, CableSpan, Rooftop, SensorPost, SensorTower, STREET_Y, StreetLamp, StreetTree, useStreetGeo, type Lit } from './street.v5'
+import { LEVELS } from '../registry'
 
 /* ---------- layout (island-local; entry +z, exit -z) ---------- */
 const STRIP_Z0 = 0.55, STRIP_Z1 = -2.75, STRIP_W = 4.95
@@ -35,6 +37,9 @@ const AQI: { p: [number, number, number]; aqi: number }[] = [
   { p: [-1.8, 0, -3.0], aqi: 168 }, { p: [2.0, 0, -3.05], aqi: 151 },
 ]
 const PULSE_WINDOW = 4.0
+const LREG = LEVELS.find((l) => l.id === 'L04')!
+const READER: [number, number, number] = [-1.95, 0.5, 0.85]
+const beats = (s: string) => (s.match(/[^.]+\.?/g) ?? []).map((x) => x.trim())
 
 type Pulse = { from: THREE.Vector3; t0: number; ring: number }
 type Puff = { t0: number; pos: THREE.Vector3; s: number }
@@ -85,6 +90,10 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   const puffSlot = useRef(0)
   const [poweredUi, setPoweredUi] = useState(done)
   const [blink, setBlink] = useState(0)
+  const reading = useRef({ on: false, done: false, tok: 0 })
+  const linksOn = useRef(false)
+  const [links, setLinks] = useState(false)
+  const readerRef = useRef<THREE.Object3D>(null)
   const postRef = useRef<THREE.Group>(null)
   const towerRef = useRef<THREE.Group>(null)
   const streetRef = useRef<THREE.Mesh>(null)
@@ -152,6 +161,25 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   }), [id])
   core.useInteractable(towerInter)
 
+  const talk = (lines: string[]) => {
+    const R = reading.current, tok = ++R.tok
+    R.on = true
+    const step = (i: number) => {
+      if (R.tok !== tok) return
+      if (i === lines.length) { R.on = false; R.done = true; useV5.getState().setCaption(completed.current ? null : LREG.line); return }
+      useV5.getState().setCaption(lines[i])
+      setTimeout(() => step(i + 1), 3200 + lines[i].length * 40)
+    }
+    step(0)
+  }
+  const readI = useMemo<core.Interactable>(() => ({
+    id: `${id}-read`, at: objAt(readerRef), radius: 1.1, label: `Read about ${LREG.title}`,
+    enabled: () => active && !reading.current.on,
+    use: () => talk(beats(LREG.story)),
+  }), [id, active])
+  core.useInteractable(readI)
+  useEffect(() => () => { reading.current.tok++; reading.current.on = false }, [active])
+
   /* ---------- solver (?qa) ---------- */
 
   const solve = useCallback(async () => {
@@ -214,6 +242,8 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
         tpLocal(root.current, RESPAWN)
       }
     } else exposure.current = Math.max(0, exposure.current - dt * 2)
+    const near = active && reading.current.done && Math.hypot(local.x - READER[0], local.z - READER[2]) < 3.0
+    if (near !== linksOn.current) { linksOn.current = near; setLinks(near) }
   })
 
   /* ---------- render ---------- */
@@ -235,29 +265,31 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       {[0, 1, 2].map((i) => <PulseRing key={i} slot={i} pulses={pulses} clockRef={clockRef} />)}
 
       {/* kerbside readers + their quiet readings during the window */}
+      <AutoMerge>
       {AQI.map(({ p, aqi }, i) => (
         <group key={i}>
           <AqiPost position={p} />
           <AqiTag aqi={aqi} position={[p[0], 0.98, p[2]]} reveal={reveal} />
         </group>
       ))}
+      </AutoMerge>
 
       {/* the smog volume — fades off as the tower breathes */}
       {!done && <Smog clearT={clearT} pulses={pulses} clockRef={clockRef} />}
 
       {/* sensor hardware */}
       <group ref={postRef} position={POST}><SensorPost powered={poweredUi} shakeT={shakeT} /></group>
-      <group ref={towerRef} position={TOWER}><SensorTower lit={lit} /></group>
+      <AutoMerge><group ref={towerRef} position={TOWER}><SensorTower lit={lit} /></group></AutoMerge>
 
       {/* Delhi street dressing */}
       <AutoMerge>
       <Rooftop position={[-3.25, 0, 2.35]} yaw={0.45} lit={lit} />
       <Rooftop position={[3.35, 0, 2.1]} yaw={-0.55} s={0.85} />
       <Rooftop position={[-3.05, 0, -3.5]} yaw={0.95} s={0.9} lit={lit} />
-      <StreetLamp position={[1.75, 0, 1.6]} lit={lit} />
-      <WarmLight position={[2.0, 1.7, 1.6]} lit={lit} />
+      <StreetLamp position={[2.7, 0, 0.9]} lit={lit} />
+      <WarmLight position={[2.9, 1.6, 0.95]} lit={lit} />
       <StreetTree position={[-3.6, 0, 0.95]} s={1.05} />
-      <StreetTree position={[3.7, 0, -1.15]} s={0.8} />
+      <StreetTree position={[4.0, 0, -0.9]} s={0.8} />
       {/* thin silhouettes standing inside the smog */}
       <mesh position={[-3.9, 0.5, -0.6]} material={clay('#5f6b6a')} castShadow><cylinderGeometry args={[0.02, 0.028, 1.0, 6]} /></mesh>
       <mesh position={[-3.35, 0.5, -1.75]} material={clay('#5f6b6a')} castShadow><cylinderGeometry args={[0.02, 0.028, 1.0, 6]} /></mesh>
@@ -265,7 +297,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       <Bush position={[3.95, 0, 0.35]} s={0.9} color="#7d9058" />
       <ClayPot position={[-2.55, 0, 1.9]} s={0.95} />
       <ClayPot position={[1.35, 0, -3.9]} s={0.85} />
-      <ClayPot position={[-1.6, 0, 1.3]} s={0.8} plant={false} />
+      <ClayPot position={[-1.35, 0, 2.15]} s={0.8} plant={false} />
       </AutoMerge>
 
       {/* stones underfoot on the two banks */}
@@ -282,11 +314,41 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
 
       {/* respawn blink */}
       <BlinkFx n={blink} />
+
+      <object3D ref={readerRef} position={READER} />
+      {links && (
+        <Html fullscreen zIndexRange={[90, 0]} style={{ pointerEvents: 'none' }}>
+          <ReadLinks links={LREG.links} />
+        </Html>
+      )}
     </group>
   )
 }
 
 const streetMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.93 })
+
+const pill = {
+  display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 999,
+  background: '#3b3330', color: '#fbf6ee', font: '500 12px Inter, system-ui, sans-serif',
+  letterSpacing: '.02em', textDecoration: 'none',
+} as const
+const paper = { ...pill, background: 'transparent', color: '#3b3330', boxShadow: 'inset 0 0 0 1.5px #b7a68b' } as const
+
+/** The two link pills, shown at the kerbside reader once its lines are read. */
+function ReadLinks({ links }: { links: { label: string; href: string }[] }) {
+  return (
+    <div style={{
+      position: 'fixed', top: 'calc(max(18px, env(safe-area-inset-top)) + 318px)', left: '50%', transform: 'translateX(-50%)',
+      display: 'flex', gap: 8, pointerEvents: 'auto', whiteSpace: 'nowrap',
+    }}>
+      {links.map((k, i) => (
+        <a key={k.href} href={k.href} target="_blank" rel="noreferrer" data-qa={`alive-link-${k.label.toLowerCase()}`} style={i ? paper : pill}>
+          {k.label} ↗
+        </a>
+      ))}
+    </div>
+  )
+}
 
 function WarmLight({ position, lit }: { position: [number, number, number]; lit: Lit }) {
   const l = useRef<THREE.PointLight>(null)
@@ -354,7 +416,7 @@ function Stone({ x, z, seed, safe, live, local, reveal, clearT, puff }: {
 
   return (
     <group ref={grp} position={[x, 0.1, z]} rotation={[0, yaw, 0]}>
-      <mesh ref={m} material={mat} castShadow receiveShadow>
+      <mesh ref={m} material={mat} receiveShadow>
         <cylinderGeometry args={[r, r * 1.12, 0.14, 8]} />
       </mesh>
       {!safe && (
