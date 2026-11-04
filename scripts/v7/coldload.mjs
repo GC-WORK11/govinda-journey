@@ -83,7 +83,7 @@ await withChrome(async (b) => {
       console.log(`[${LABEL}] ${r.tag} h:playable=${r.cold.playable}ms` +
         (m['fj:playable'] ? ` fj:playable=${m['fj:playable']}ms` : '') +
         ` | glb=${r.cold.glb} playerjs=${r.cold.playerjs} obstacle=${r.cold.obstacle} canvas=${r.cold.canvas}` +
-        ` | marks ${JSON.stringify(m)} | errs=${r.errs.length}`)
+        ` | marks ${JSON.stringify(m)} | errs=${r.errs.join('|').slice(0, 300)}`)
       const heavy = r.res.filter((x) => x.sz > 40000 && x.t < r.cold.playable)
       console.log(`   heavy-before-playable: ${heavy.map((x) => `${x.n}=${(x.sz / 1024).toFixed(0)}K@${x.t}`).join(' ')}`)
     }
