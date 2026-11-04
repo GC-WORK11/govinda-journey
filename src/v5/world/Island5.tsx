@@ -16,6 +16,7 @@ import { env } from '../../world/sky'
 import { useV5, useWalkable, useBlocker, walkables, blockers, interactables, V5_ORDER, type IslandId } from '../core'
 import { ISLAND_R, ISLAND_POS } from './layout'
 import { OBSTACLES, DIORAMAS, hasObstacle, Guard, preloadIsland } from './modules'
+import { AutoMerge } from './AutoMerge'
 import { useWorldUI } from './progress'
 import { LEVELS } from '../../levels/registry'
 
@@ -51,8 +52,10 @@ function IslandBase5({ id, seed }: { id: IslandId; seed: number }) {
         <cylinderGeometry args={[ISLAND_R - 0.15, ISLAND_R - 0.15, 0.12, 36]} />
         <meshBasicMaterial visible={false} />
       </mesh>
+      <AutoMerge>
       <Island radius={ISLAND_R} ground={ground} seed={seed} />
       {scatter && <mesh geometry={scatter} material={clayVC()} receiveShadow />}
+      </AutoMerge>
     </group>
   )
 }

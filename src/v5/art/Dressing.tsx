@@ -16,6 +16,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { scatterGeo, clayVC, paint, C } from '../../world/kit'
 import { islandPos, islandIndex, ISLAND_R } from '../world/layout'
 import { useWorldUI } from '../world/progress'
+import { AutoMerge } from '../world/AutoMerge'
 import { LEVELS } from '../../levels/registry'
 import type { IslandId } from '../core'
 
@@ -460,10 +461,12 @@ export function IslandDressing5({
   if (!inWindow) return null
   return (
     <group position={islandPos(id)}>
+      <AutoMerge>
       {geos.map((g, i) => (
         <mesh key={i} geometry={g} material={clayVC()} receiveShadow />
       ))}
       <mesh geometry={baked} material={clayVC()} receiveShadow />
+      </AutoMerge>
     </group>
   )
 }
