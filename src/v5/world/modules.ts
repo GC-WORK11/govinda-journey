@@ -55,6 +55,9 @@ export class Guard extends Component<
 > {
   state = { err: false }
   static getDerivedStateFromError() { return { err: true } }
-  componentDidCatch(e: unknown) { console.error('[v5] module failed:', e); this.props.onError?.() }
+  componentDidCatch(error: Error, errorInfo: { componentStack: string }) {
+    console.error(`[v5] module failed: ${error.message}\n${error.stack ?? ''}${errorInfo?.componentStack ?? ''}`)
+    this.props.onError?.()
+  }
   render() { return this.state.err ? (this.props.fallback ?? null) : this.props.children }
 }

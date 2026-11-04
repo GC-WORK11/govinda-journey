@@ -163,6 +163,9 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
     { g: 'dod', p: [-3.15, 0.6, 2.55], s: [0.6, 0.55, 0.6], r: [0, 0.9, 0], c: '#9cba74' },
     { g: 'dod', p: [3.6, 0.38, 1.9], s: [0.95, 0.8, 0.95], r: [0, 1.7, 0], c: '#8fae6a' },
     { g: 'dod', p: [3.85, 0.52, 2.05], s: [0.5, 0.45, 0.5], r: [0, 0.4, 0], c: '#7fa25e' },
+    // one more up on the ledge
+    { g: 'dod', p: [-2.2, 1.98, -3.4], s: [1.05, 0.85, 1.05], r: [0, 0.6, 0], c: '#8fae6a' },
+    { g: 'dod', p: [-1.95, 2.12, -3.25], s: [0.55, 0.48, 0.55], r: [0, 1.4, 0], c: '#9cba74' },
   ], [])
   const slots = useMemo<Slot[]>(() =>
     LETTERS.map((pos, i) => ({
@@ -234,7 +237,6 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
         material={clay(C.moss)} castShadow receiveShadow />
       <Rock position={[-2.5, 1.62, -4.15]} s={0.45} yaw={0.4} variant={1} />
       <Rock position={[2.55, 1.62, -4.3]} s={0.34} yaw={1.9} variant={2} />
-      <Bush position={[-2.2, 1.62, -3.4]} s={1.0} />
 
       {/* the closed gate on the ledge */}
       <Gate position={[0, 1.62, -3.78]} open={open} instant={done} width={1.85} height={1.5} />

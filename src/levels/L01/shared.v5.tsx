@@ -138,7 +138,7 @@ export function mergePrims(items: Prim[]): THREE.BufferGeometry {
   const geos: THREE.BufferGeometry[] = []
   for (const it of items) {
     const [a, b, c] = it.s
-    let g =
+    let g: THREE.BufferGeometry =
       it.g === 'box' ? new THREE.BoxGeometry(1, 1, 1) :
       it.g === 'cone' ? new THREE.ConeGeometry(0.5, 1, 8) :
       it.g === 'pyr' ? new THREE.ConeGeometry(0.707, 1, 4) :
@@ -194,7 +194,7 @@ export function BloomField({ radius = 5, seed = 1, band = [0.55, 0.93] as [numbe
       } else {
         const h = 0.14 + rnd(i * 3) * 0.12
         prims.push({ g: 'cone', p: [x, y + h / 2, z], s: [0.06, h, 0.06], c: C.moss })
-        prims.push({ g: 'sph', p: [x, y + h + 0.04, z], s: [0.11, 0.09, 0.11], c: i % 2 ? C.tulip : C.meadow })
+        prims.push({ g: 'sph', p: [x, y + h + 0.04, z], s: [0.11, 0.09, 0.11], c: i % 2 ? '#e8c25e' : C.terracotta })
       }
     }
     return prims
