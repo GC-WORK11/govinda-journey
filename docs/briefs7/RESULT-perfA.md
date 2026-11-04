@@ -27,7 +27,10 @@
 - **Fewer shadow casters:** `Prop` now only casts shadows when its effective
   (fit×scale) height or footprint reaches 0.9 m — trees, streetlights, the water
   tower and fences still cast; books, bushes, boxes, flowers no longer do
-  (`src/v5/art/Dressing.tsx`). Inside merges, a whole material bucket already
+  (`src/v5/art/Dressing.tsx`). `castShadow` also dropped on small animated
+  meshes that live outside merges: L02 stone steps + paper letters, L04
+  stepping stones, L07 word chips (`src/levels/L01/shared.v5.tsx`,
+  `L02/L04/L07 Obstacle.tsx`). Inside merges, a whole material bucket already
   collapses to a single shadow-map draw.
 
 ## Measured draw calls — production build, `?v5&qa&fresh&at=<id>&unlock`,
@@ -58,7 +61,9 @@ brief's own estimate and matches V6's recorded 480→374 for L04.)
 `src/v5/world/AutoMerge.tsx`, `src/v5/art/Dressing.tsx`,
 `src/levels/{L01,L02,L03,L04,L06,L07,L08,L09,I01,I02}/{Obstacle,Diorama}.tsx`
 (L08 Diorama already had it), `src/levels/L01/campus.v5.tsx`,
-`src/levels/L04/street.v5.tsx`, `src/levels/L09/school.v5.tsx`.
+`src/levels/L01/shared.v5.tsx` (Gate posts/threshold merge, NoMerge leaves,
+PaperLetter shadow), `src/levels/L04/street.v5.tsx`,
+`src/levels/L09/school.v5.tsx`.
 
 ## Verification
 
@@ -79,9 +84,7 @@ brief's own estimate and matches V6's recorded 480→374 for L04.)
   merged (L04's 24 animated smog planes, shaking stones, pulse rings; L05's
   laptops/chunks/lift; L08's guardian + board; L02's letters/steps; L07's
   chips), plus each view still renders two neighbouring islands' content.
-- Next cheapest wins: instancing L04 stones/L02 letters/L07 chips (same geo,
-  per-instance colour), and dropping `castShadow` on the remaining small
-  animated meshes (each shadow-map draw counts in `calls` while `?qa` isn't
-  `--lite`).
+- Next cheapest win: instancing L04 stones/L02 letters/L07 chips (same geo,
+  per-instance colour) — still ~10-20 calls/level in animated gameplay meshes.
 - `dpr=0.6` in samples: PerfGuard had already degraded pixel ratio under
   SwiftShader; calls are unaffected by dpr.
