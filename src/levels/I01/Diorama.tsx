@@ -7,37 +7,7 @@ import { C, clay, Scaffold, Tree, Rock } from '../../world/kit'
 
 const POND_X = 0
 const POND_Z = -0.75
-const POND_R = 1.45
-const STONE: [number, number, number] = [1.4, 0, 0.85]
-
-const PADS: [number, number, number, number][] = [
-  [-0.62, -1.12, 0.26, 0.4],
-  [0.52, -0.95, 0.2, 2.6],
-  [0.06, -1.32, 0.17, 4.4],
-  [-0.42, -0.28, 0.19, 1.2],
-]
-
-/** Slow rings spreading over the water once the island is open. */
-function Ripples({ on }: { on: boolean }) {
-  const ref = useRef<THREE.Group>(null)
-  const geo = useMemo(() => new THREE.RingGeometry(0.82, 0.885, 48), [])
-  const mats = useMemo(() => [0, 1, 2].map(() => new THREE.MeshBasicMaterial({
-    color: C.paper, transparent: true, opacity: 0, depthWrite: false,
-  })), [])
-  useFrame(({ clock }) => {
-    const t = clock.elapsedTime
-    ref.current?.children.forEach((child, i) => {
-      const k = (t * 0.14 + i / 3) % 1
-      child.scale.setScalar(0.36 + k * 0.94)
-      mats[i].opacity = on ? 0.36 * (1 - k) : 0
-    })
-  })
-  return (
-    <group ref={ref} position={[POND_X, 0.09, POND_Z]} rotation={[-Math.PI / 2, 0, 0]}>
-      {mats.map((m, i) => <mesh key={i} geometry={geo} material={m} />)}
-    </group>
-  )
-}
+const STONE: [number, number, number] = [0.55, 0, 1.85]
 
 /** A few warm fireflies drifting low over the pond. */
 function Fireflies({ on, active }: { on: boolean; active: boolean }) {
@@ -89,34 +59,9 @@ function StoneLantern(p: JSX.IntrinsicElements['group']) {
 }
 
 export default function Diorama({ unlocked, active }: DioramaProps) {
-  const padGeo = useMemo(() => new THREE.CircleGeometry(1, 24, 0.5, 5.55), [])
   return (
     <group>
-      {/* pond bank and water */}
-      <mesh position={[POND_X, 0.018, POND_Z]} material={clay(C.sand)} receiveShadow>
-        <cylinderGeometry args={[POND_R + 0.17, POND_R + 0.21, 0.05, 44]} />
-      </mesh>
-      <mesh position={[POND_X, 0.045, POND_Z]} material={clay(C.water)} receiveShadow>
-        <cylinderGeometry args={[POND_R, POND_R + 0.04, 0.08, 44]} />
-      </mesh>
-
-      {/* lily pads, one with a small flower */}
-      {PADS.map(([x, z, r, rot], i) => (
-        <group key={i} position={[POND_X + x, 0.094, POND_Z + z]} rotation={[-Math.PI / 2, 0, rot]}>
-          <mesh geometry={padGeo} scale={[r, r, 1]} material={clay(i % 2 ? C.leaf : C.leafDark)} castShadow />
-        </group>
-      ))}
-      <mesh position={[POND_X - 0.62, 0.13, POND_Z - 1.12]} material={clay(C.paper)} castShadow>
-        <sphereGeometry args={[0.045, 10, 8]} />
-      </mesh>
-
-      {/* reeds at the far edge */}
-      {[[-1.34, -1.5, 0.1], [-1.22, -1.62, -0.14], [-1.44, -1.42, 0.24]].map(([x, z, r], i) => (
-        <mesh key={i} position={[POND_X + x, 0.2, POND_Z + z]} rotation={[0, 0, r]} material={clay(C.leafDark)} castShadow>
-          <cylinderGeometry args={[0.012, 0.02, 0.4, 5]} />
-        </mesh>
-      ))}
-      {/* a second, smaller reed clump on the right bank */}
+      {/* reeds on the obstacle pond's east shore */}
       {[[1.32, -0.78, -0.12], [1.46, -0.6, 0.16]].map(([x, z, r], i) => (
         <mesh key={i} position={[POND_X + x, 0.18, POND_Z + z]} rotation={[0, 0, r]} material={clay(C.moss)} castShadow>
           <cylinderGeometry args={[0.011, 0.018, 0.34, 5]} />
@@ -144,11 +89,10 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
         <RoundedBox args={[0.48, 0.06, 0.3]} radius={0.028} position={[0, 0.18, 0]} material={clay(C.terracotta)} castShadow />
       </group>
 
-      <Tree position={[-1.85, 0, -0.5]} h={0.95} />
+      <Tree position={[-1.5, 0, 1.35]} h={0.95} />
       <Rock position={[1.55, 0.06, -1.35]} s={0.2} />
       <Rock position={[-1.5, 0.04, 0.55]} s={0.13} color={C.earthDark} />
 
-      <Ripples on={unlocked} />
       <Fireflies on={unlocked} active={active} />
 
       <Scaffold open={unlocked} position={STONE} size={[1.05, 0.5, 0.95]} />

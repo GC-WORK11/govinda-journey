@@ -254,10 +254,10 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       <Rooftop position={[-3.25, 0, 2.35]} yaw={0.45} lit={lit} />
       <Rooftop position={[3.35, 0, 2.1]} yaw={-0.55} s={0.85} />
       <Rooftop position={[-3.05, 0, -3.5]} yaw={0.95} s={0.9} lit={lit} />
-      <StreetLamp position={[1.75, 0, 1.6]} lit={lit} />
-      <WarmLight position={[2.0, 1.7, 1.6]} lit={lit} />
+      <StreetLamp position={[2.7, 0, 0.9]} lit={lit} />
+      <WarmLight position={[2.9, 1.6, 0.95]} lit={lit} />
       <StreetTree position={[-3.6, 0, 0.95]} s={1.05} />
-      <StreetTree position={[3.7, 0, -1.15]} s={0.8} />
+      <StreetTree position={[4.0, 0, -0.9]} s={0.8} />
       {/* thin silhouettes standing inside the smog */}
       <mesh position={[-3.9, 0.5, -0.6]} material={clay('#5f6b6a')} castShadow><cylinderGeometry args={[0.02, 0.028, 1.0, 6]} /></mesh>
       <mesh position={[-3.35, 0.5, -1.75]} material={clay('#5f6b6a')} castShadow><cylinderGeometry args={[0.02, 0.028, 1.0, 6]} /></mesh>
@@ -265,7 +265,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       <Bush position={[3.95, 0, 0.35]} s={0.9} color="#7d9058" />
       <ClayPot position={[-2.55, 0, 1.9]} s={0.95} />
       <ClayPot position={[1.35, 0, -3.9]} s={0.85} />
-      <ClayPot position={[-1.6, 0, 1.3]} s={0.8} plant={false} />
+      <ClayPot position={[-1.35, 0, 2.15]} s={0.8} plant={false} />
       </AutoMerge>
 
       {/* stones underfoot on the two banks */}

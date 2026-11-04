@@ -137,7 +137,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       {/* dressing */}
       <StoneLantern position={[0.6, 0, -3.3]} lit={done} />
       <Rock position={[-3.3, 0.09, 1.4]} s={0.5} yaw={0.7} />
-      <Rock position={[-2.9, 0.06, -2.2]} s={0.32} yaw={1.8} block={false} />
+      <Rock position={[-3.45, 0.06, -2.6]} s={0.32} yaw={1.8} block={false} />
       <Rock position={[3.9, 0.1, -1.9]} s={0.44} yaw={2.6} />
       <Mound position={[-3.4, 0, -0.6]} r={1.0} h={0.36} />
       <Mound position={[2.2, 0, -3.3]} r={0.85} h={0.28} />
