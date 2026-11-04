@@ -85,7 +85,7 @@ function StoneStep({ pos, yaw, instant }: { pos: THREE.Vector3; yaw: number; ins
   const h = pos.y + 0.08
   return (
     <RoundedBox ref={ref} args={[1.08, h, 0.58]} radius={0.07} position={[pos.x, h / 2 - 0.04, pos.z]}
-      rotation={[0, yaw, 0]} material={clay(C.stone)} castShadow receiveShadow>
+      rotation={[0, yaw, 0]} material={clay(C.stone)} receiveShadow>
       {/* a real flat stone cap grows in on each tooth */}
       <Prop name="stone_small_flat_a" position={[0, h / 2 + 0.02, 0]} scale={[2.0, 1.2, 1.3]} />
     </RoundedBox>

@@ -356,7 +356,7 @@ function Stone({ x, z, seed, safe, live, local, reveal, clearT, puff }: {
 
   return (
     <group ref={grp} position={[x, 0.1, z]} rotation={[0, yaw, 0]}>
-      <mesh ref={m} material={mat} castShadow receiveShadow>
+      <mesh ref={m} material={mat} receiveShadow>
         <cylinderGeometry args={[r, r * 1.12, 0.14, 8]} />
       </mesh>
       {!safe && (

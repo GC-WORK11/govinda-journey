@@ -373,7 +373,7 @@ export function PaperLetter({ seal = C.terracotta, ...p }: {
 }) {
   return (
     <group {...p}>
-      <RoundedBox args={[0.3, 0.02, 0.21]} radius={0.008} material={clay(C.paper)} castShadow receiveShadow />
+      <RoundedBox args={[0.3, 0.02, 0.21]} radius={0.008} material={clay(C.paper)} receiveShadow />
       <mesh position={[0, 0.013, -0.035]} rotation={[-Math.PI / 2, 0, 0]} material={clay('#efe3cd')}>
         <planeGeometry args={[0.26, 0.14]} />
       </mesh>

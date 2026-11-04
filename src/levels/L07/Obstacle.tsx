@@ -188,7 +188,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       {WORDS.map((w, i) => (
         <group key={w} ref={(g) => { chips.current[i] = g }} position={CHIP[i]}>
           <group scale={K}>
-            <RoundedBox args={[0.5, 0.3, 0.12]} radius={0.09} smoothness={3} material={clay('#f6ecd9')} castShadow />
+            <RoundedBox args={[0.5, 0.3, 0.12]} radius={0.09} smoothness={3} material={clay('#f6ecd9')} />
             <mesh position={[0, 0, 0.064]}>
               <planeGeometry args={[0.46, 0.26]} />
               <meshBasicMaterial map={chipTex[i]} toneMapped={false} />
