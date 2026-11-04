@@ -16,7 +16,7 @@ function Model({ anim }: { anim: Anim }) {
   const root = useRef<THREE.Group>(null)
   const { scene, animations } = useGLTF(URL)
   const { actions } = useAnimations(animations, root)
-  // Retinted atlas: warm brown skin, near-black hair, cream shirt, charcoal trousers.
+  // Retinted atlas: warm brown skin, near-black hair, cream shirt, blue jeans.
   const skin = useTexture('./models/student-skin.png')
   const scale = useMemo(() => {
     scene.updateMatrixWorld(true)
@@ -28,7 +28,7 @@ function Model({ anim }: { anim: Anim }) {
         m.castShadow = true; m.receiveShadow = false; m.frustumCulled = false
         const mat = m.material as THREE.MeshStandardMaterial
         if (mat && 'roughness' in mat) {
-          mat.roughness = 0.85; mat.metalness = 0
+          mat.roughness = 0.7; mat.metalness = 0
           if (mat.map && mat.map !== skin) {
             skin.flipY = mat.map.flipY; skin.colorSpace = mat.map.colorSpace
             skin.magFilter = mat.map.magFilter; skin.minFilter = mat.map.minFilter
