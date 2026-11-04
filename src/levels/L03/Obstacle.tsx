@@ -1,3 +1,4 @@
+import { AutoMerge } from '../../v5/world/AutoMerge'
 /**
  * L03 "First websites" — the page bridge.
  * The route south leaves the rim on a chain of floating stone platforms over open void;
@@ -284,9 +285,11 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
 
   return (
     <group ref={root}>
+      <AutoMerge>
       {/* path: entry → studio fork → abutment */}
       <PathStones pts={[[0, 4.2], [0.9, 3.6], [2.1, 2.9], [3.1, 2.2], [3.8, 1.7]]} seed={7} />
       <PathStones pts={[[0.9, 3.6], [-0.6, 3.2], [-1.8, 2.8]]} seed={8} gap={0.72} />
+      </AutoMerge>
 
       <Studio position={[-2.55, 0, 2.3]} yaw={1.15} />
       <LedgeWall />
@@ -297,8 +300,10 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
         </group>
       ))}
 
+      <AutoMerge>
       {/* rim abutment where the grass ends */}
       <Abutment />
+      </AutoMerge>
 
       {/* floating platforms + gap stubs */}
       {PLATS.map((p, i) => <Platform key={i} p={p} i={i} />)}
@@ -307,23 +312,29 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       ))}
       <Plank from={PLATS[2]} to={PLANK_TO} />
 
+      <AutoMerge>
       {/* site fence sealing the south yard; the platform chain lands behind it */}
       <SiteFence />
+      </AutoMerge>
 
       {/* the landing + exit yard */}
       <StoneLantern position={[LANTERN.x, 0, LANTERN.z]} lit={lit} />
+      <AutoMerge>
       <PathStones pts={[[3.4, -3.5], [2.2, -3.9], [1.0, -4.1], [0, -4.2]]} seed={9} gap={0.7} />
       <Rock position={[1.9, 0.1, -3.4]} s={0.34} yaw={1.2} />
       <Rock position={[-1.6, 0.08, -3.6]} s={0.42} yaw={0.4} block={false} />
       <Mound position={[-2.6, 0, -3.2]} r={0.9} h={0.3} />
+      </AutoMerge>
       <StoneLantern position={[-0.8, 0, 3.3]} lit={false} />
 
+      <AutoMerge>
       {/* scattered dressing on the north grass */}
       <Rock position={[-3.6, 0.08, 0.9]} s={0.4} yaw={2.1} block={false} />
       <Rock position={[0.4, 0.06, 0.6]} s={0.28} yaw={0.9} block={false} />
       <Mound position={[-1.8, 0, 0.4]} r={1.1} h={0.34} />
       <Mound position={[1.4, 0, -1.4]} r={0.85} h={0.26} />
       <Tufts />
+      </AutoMerge>
 
       {/* hints */}
       <Hint text="handholds" position={[WALL_AT.x, 1.15, WALL_AT.z]} show={() => active && !doneRef.current && near(WALL_AT.x, WALL_AT.z, 2.4) && !core.has('climb')} />

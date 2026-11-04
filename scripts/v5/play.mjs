@@ -288,12 +288,28 @@ async function visitorRun(browser, { size, vp, wire, errorsFor }) {
     // constant north drift) and stopping dead when the use prompt shows so the
     // press lands inside the 1.7m radius instead of sprinting through it.
     const seq = [E,E, fwd, E,E, E,E, W,W,W, fwd, E,E,E,E, W,W,W,W, fwd, E,E,E,E, W,W,W,W, fwd, E,E,E]
+    // Up to 3 sweeps. Each burst is split in two so a low-fps phone run stops
+    // inside the prompt radius instead of overshooting; between sweeps the bot
+    // recentres (back toward the wall, then west onto the path) and retries
+    // with a different stride, since at 7-17 fps fixed strides drift off the desk.
+    const back = vp.isMobile ? [0, 1] : 'KeyS'
     let cleared = false
-    for (let t = 0; t < seq.length && !cleared; t++) {
-      await drv.burst(seq[t], 340)
-      if (await promptOn()) { await drv.release(); await pressUseNow() }
-      if (t % 2 === 1) cleared = await doneHas('L01')
-      if (!cleared && t % 8 === 7 && !(await hintTxt()).includes('laptop')) break // hint gone → done or lost
+    const STRIDES = [340, 250, 430]
+    for (let a = 0; a < STRIDES.length && !cleared; a++) {
+      if (a > 0) {
+        for (let r = 0; r < 3; r++) await drv.burst(back, 300)
+        for (let r = 0; r < 5; r++) await drv.burst(W, 300)
+        await drv.burst(fwd, 260); await drv.release(); await sleep(300)
+      }
+      for (let t = 0; t < seq.length && !cleared; t++) {
+        for (let half = 0; half < 2; half++) {
+          await drv.burst(seq[t], STRIDES[a] / 2)
+          if (await promptOn()) { await drv.release(); await pressUseNow(); break }
+        }
+        if (t % 2 === 1) cleared = await doneHas('L01')
+        if (!cleared && t % 8 === 7 && !(await hintTxt()).includes('laptop')) { cleared = await doneHas('L01'); break }
+      }
+      cleared = cleared || (await doneHas('L01'))
     }
     await shot(page, `visitor-${size}-p2.png`)
     cleared = cleared || (await doneHas('L01'))

@@ -1,3 +1,4 @@
+import { AutoMerge } from '../../v5/world/AutoMerge'
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
@@ -34,9 +35,11 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
 
   return (
     <group>
+      <AutoMerge>
       {/* wooden deck under the little open-air studio */}
       <RoundedBox args={[2.2, 0.07, 2.3]} radius={0.03} position={[0.65, 0.03, -0.2]}
         material={clay(C.woodLight)} castShadow receiveShadow />
+      </AutoMerge>
 
       {/* clay hand sculpture on a stone plinth */}
       <group position={[0.55, 0, -0.95]} rotation={[0, -0.2, 0]}>
@@ -102,6 +105,7 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
         </group>
       </group>
 
+      <AutoMerge>
       {/* crate of fresh clay lumps and a couple of shaping tools on the deck */}
       <group position={[1.5, 0.035, -0.62]} rotation={[0, -0.3, 0]}>
         <RoundedBox args={[0.34, 0.16, 0.26]} radius={0.025} position={[0, 0.08, 0]} material={clay(C.wood)} castShadow receiveShadow />
@@ -132,6 +136,7 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
           <sphereGeometry args={[0.11, 12, 10]} />
         </mesh>
       </group>
+      </AutoMerge>
 
       <Scaffold open={unlocked} position={[0.55, 0, -0.95]} size={[1.7, 2.7, 1.7]} />
     </group>

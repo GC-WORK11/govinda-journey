@@ -37,7 +37,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   const inter = useMemo<core.Interactable>(() => ({
     id: `${id}-laptop`,
     at: () => (laptopRef.current ? laptopRef.current.getWorldPosition(at) : at),
-    radius: 1.7,
+    radius: 2.1, // a little more forgiving for phone visitors (was 1.7)
     label: 'sit at the laptop',
     use: () => {
       if (used.current) return
