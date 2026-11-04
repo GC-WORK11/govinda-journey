@@ -35,9 +35,17 @@ context per run; numbers = in-page ms since navigationStart).
   Eager JS on the V5 route drops ~0.5 MB (minified).
 
 ### Loading order (App / World5 / modules / perf)
-- `import('./v5/World5')` fires at App module eval (gated on !v4/!sandbox/webgl),
-  not at first React commit. `warmPlayer()` at World5 eval pulls the Player +
-  Controls chunk requests forward through the same glob loaders.
+- `warmPlayer()` at World5 eval pulls the Player + Controls chunk requests
+  forward through the same glob loaders, several beats before their Suspense
+  boundaries would ask.
+- NOTE: an earlier draft also fired `import('./v5/World5')` at App module eval
+  to skip the first-commit hop. In the production build that page never
+  mounted (zero chunks fetched, no canvas, no console error — the Guard
+  boundary swallows nothing at that level). Reverted to
+  `lazy(() => import('./v5/World5'))` — the lazy import fires at first commit,
+  ~1 microtask later, and mounting was verified by fj marks.
+- `Overlay` + V4 `store`/`registry` removed from the V5 entry's static graph:
+  Overlay is `lazy()`, QA hook imports dynamically only under `?v4&qa`.
 - `useGLTF.preload('./models/student.glb')` + `useTexture.preload(skin)` at
   World5 eval — the rig's fetch+parse starts ~a second before the inner
   Suspense would ask; `<link rel=preload>` in index.html starts bytes at HTML
