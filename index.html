@@ -15,8 +15,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
 <noscript><link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" /></noscript>
 <!-- The traveller's rig: bytes start at HTML parse; drei's loader cache picks
-     up the same in-flight request when World5's useGLTF.preload fires. -->
-<link rel="preload" as="fetch" crossorigin href="./models/student.glb" />
+     up the same in-flight request when World5's useGLTF.preload fires. No
+     crossorigin — FileLoader/ImageLoader issue same-origin credentialed
+     requests, and a mismatched preload would be fetched twice. -->
+<link rel="preload" as="fetch" href="./models/student.glb" />
 <link rel="preload" as="image" href="./models/student-skin.png" />
 </head>
 <body>
