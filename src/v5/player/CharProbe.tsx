@@ -40,6 +40,8 @@ function Lights() {
       <hemisphereLight args={['#8a84b4', '#423c58', 0.86]} />
       <directionalLight position={[-5, 13, -7]} intensity={0.75} color="#d4d7f4" castShadow />
       <directionalLight position={[-7, 5, -6]} intensity={0.42} color="#6c6a98" />
+      {/* matches World5's CharLight: warm lantern toward the camera side */}
+      <pointLight position={[0.8, 2.05, 0.8]} color="#ffd9a8" intensity={4.0} distance={6.5} decay={2} />
       <color attach="background" args={['#3b3654']} />
     </>
   )

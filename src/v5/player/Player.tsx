@@ -52,6 +52,15 @@ export function Model({ anim, tsRef, socketRef, backpack = true, skinURL = './mo
             skin.wrapS = mat.map.wrapS; skin.wrapT = mat.map.wrapT; skin.needsUpdate = true
             mat.map = skin; mat.needsUpdate = true
           }
+          // self-lit floor: reuse the atlas as the emissive map so the
+          // traveller keeps a whisper of his painted colour wherever every
+          // light term dies (dusk rim, night shade) — never a black blob.
+          if (!mat.emissiveMap && mat.map) {
+            mat.emissiveMap = mat.map
+            mat.emissive.set('#fff4e4')
+            mat.emissiveIntensity = 0.16
+            mat.needsUpdate = true
+          }
         }
       }
     })
@@ -69,9 +78,13 @@ export function Model({ anim, tsRef, socketRef, backpack = true, skinURL = './mo
   }, [chest, socket, socketRef])
 
   // Live walk/run playback rate (locomotion speed follow, no restart).
-  useFrame(() => {
+  useFrame((_, dt) => {
     const a = actions[CLIP[anim]]
-    if (a && anim === 'walk') a.timeScale = THREE.MathUtils.damp(a.timeScale, tsRef.current, 10, 1 / 60)
+    if (a && anim === 'walk') a.timeScale = THREE.MathUtils.damp(a.timeScale, tsRef.current, 10, dt)
+    // sprint lean: gentle forward pitch with speed — reads as a run, not a
+    // fast-forwarded walk (the GLB has no separate run clip).
+    const lean = anim === 'walk' ? THREE.MathUtils.clamp((tsRef.current - 1) * 0.14, 0, 0.13) : 0
+    if (root.current) root.current.rotation.x = THREE.MathUtils.damp(root.current.rotation.x, lean, 8, dt)
   })
 
   // Crossfade on clip change (0.15 s per brief).
