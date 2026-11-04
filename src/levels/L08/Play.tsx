@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import { RoundedBox, Sparkles } from '@react-three/drei'
 import * as THREE from 'three'
 import type { PlayProps } from '../types'
@@ -221,6 +221,11 @@ export default function Play({ onWin, won }: PlayProps) {
   const [wob, setWob] = useState<Partial<Record<Pose, number>>>({})
   const [worldRef, toWorld] = useLocalToWorld()
   const winOnce = useRef(false)
+  // portrait phones: pull the three hands in toward the laptop so all fit in frame
+  const narrow = useThree((st) => st.size.width / st.size.height < 0.8)
+  const slots = useMemo(() => narrow
+    ? SLOTS.map((v) => new THREE.Vector3(0.2 + (v.x - 0.6) * 0.5, v.y, v.z + 0.35))
+    : SLOTS, [narrow])
 
   const handMat = useMemo(() => clay(HAND_C), [])
   const ghostMat = useMemo(() => new THREE.MeshStandardMaterial({
@@ -275,7 +280,7 @@ export default function Play({ onWin, won }: PlayProps) {
       <Laptop progress={done} won={won} />
 
       {/* warm pads under each floating hand */}
-      {SLOTS.map((s, i) => (
+      {slots.map((s, i) => (
         <group key={'d' + i} position={[s.x, 0.02, s.z]}>
           <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.006, 0]} material={blobMat()}>
             <circleGeometry args={[0.34, 20]} />
@@ -298,7 +303,7 @@ export default function Play({ onWin, won }: PlayProps) {
       {cfg.hands.map((pose, i) => (
         <Pop key={round + '-' + pose} delay={0.15 + i * 0.1}>
           <FloatingHand
-            pose={pose} slot={SLOTS[i]} lean={(i - 1) * 0.07} mat={handMat}
+            pose={pose} slot={slots[i]} lean={(i - 1) * 0.07} mat={handMat}
             flying={absorb === pose} wobble={wob[pose] || 0} settled={won}
             disabled={won || !!absorb} onTap={() => tap(pose)} onArrived={arrived}
           />
