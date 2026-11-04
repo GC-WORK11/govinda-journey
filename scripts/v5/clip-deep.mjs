@@ -219,10 +219,14 @@ await withChrome(async (browser) => {
   page.on('console', (m) => { if (m.type() === 'error' && !/favicon|WebGL|swiftshader|GPU stall|deprecation/i.test(m.text())) errors.push(m.text().slice(0, 160)) })
 
   const ready = async () => {
-    for (let t = 0; t < 60; t++) {
-      const ok = await page.evaluate(async (src) => { try { const c = await import(src); return c.walkables.size > 0 } catch { return false } }, CORE).catch(() => false)
-      if (ok) return true
-      await sleep(600)
+    for (let t = 0; t < 240; t++) {
+      const st = await page.evaluate(async (src) => {
+        try { const c = await import(src); return { w: c.walkables.size, err: window.__err || null } }
+        catch (e) { return { w: -1, err: String(e).slice(0, 120) } }
+      }, CORE).catch(() => ({ w: -2 }))
+      if (st.w > 0) return true
+      if (t % 20 === 19) console.log(`[audit] still mounting… walkables=${st.w}${st.err ? ' err=' + st.err : ''}`)
+      await sleep(1000)
     }
     return false
   }
