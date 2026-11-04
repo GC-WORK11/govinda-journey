@@ -12,15 +12,19 @@
  * that mounts later gets folded in too. Wrap the moving bits in <NoMerge>
  * (or keep them outside) — anything whose transform or material animates
  * still must not be merged.
+ *
+ * V8 (perfqa): an optional `deps` re-bakes explicitly when a prop flips
+ * material *identity* without changing the mesh count (e.g. a lamp head
+ * swapping clay -> lit material on unlock), which the poll can't see.
  */
-import { useLayoutEffect, useRef, type ReactNode } from 'react'
+import { useLayoutEffect, useRef, type DependencyList, type ReactNode } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 
 const KEEP = new Set(['position', 'normal', 'color', 'uv'])
 
-export function AutoMerge({ children }: { children: ReactNode }) {
+export function AutoMerge({ children, deps = [] }: { children: ReactNode; deps?: DependencyList }) {
   const root = useRef<THREE.Group>(null)
   const st = useRef({ added: [] as THREE.Mesh[], hidden: [] as THREE.Mesh[], n: -1, poll: 0 })
 
@@ -80,9 +84,10 @@ export function AutoMerge({ children }: { children: ReactNode }) {
       g.add(mesh); s.added.push(mesh)
     })
     s.hidden.forEach((m) => { m.visible = false })
-    s.n = s.hidden.length
+    s.n = count(g) // eligible meshes left over — new arrivals vs this are what trigger re-bakes
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useLayoutEffect(() => {
     bake()
     const s = st.current
@@ -92,7 +97,7 @@ export function AutoMerge({ children }: { children: ReactNode }) {
       for (const m of s.hidden) m.visible = true
       s.added = []; s.hidden = []
     }
-  }, [])
+  }, deps)
 
   /* late mounts (Suspense props, conditional dressing) re-bake once per poll */
   useFrame((_, dt) => {
