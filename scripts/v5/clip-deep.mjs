@@ -287,5 +287,5 @@ await withChrome(async (browser) => {
   const nPairs = results.reduce((a, r) => a + (r.pairs?.length || 0), 0)
   console.log(`\n==== clip audit: ${nClips} island-clip findings, ${nPairs} prop pairs ====`)
   if (errors.length) console.log('console errors:', [...new Set(errors)].slice(0, 6).join(' ;; '))
-})
+}, { maxWaitMs: 45 * 60000 }) // shared box: many agents queue on the one Chrome
 process.exit(0)
