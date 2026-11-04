@@ -25,9 +25,9 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
       <LampPost position={[-2.18, 0, -0.32]} h={0.64} lit={unlocked} />
       <group position={[0.95, 0, -2.15]} rotation={[0, 0.35, 0]}>
         <RoundedBox args={[1.25, 0.2, 0.13]} radius={0.03} position={[0, 0.1, 0]} material={clay(C.brick)} castShadow receiveShadow />
-        <RoundedBox args={[1.31, 0.05, 0.17]} radius={0.02} position={[0, 0.22, 0]} material={clay(C.stoneLight)} castShadow />
+        <RoundedBox args={[1.31, 0.05, 0.17]} radius={0.02} position={[0, 0.22, 0]} material={clay(C.stoneLight)} />
         {[-0.58, 0.58].map((x) => (
-          <RoundedBox key={x} args={[0.14, 0.3, 0.16]} radius={0.03} position={[x, 0.15, 0]} material={clay(C.brick)} castShadow />
+          <RoundedBox key={x} args={[0.14, 0.3, 0.16]} radius={0.03} position={[x, 0.15, 0]} material={clay(C.brick)} />
         ))}
       </group>
       <ClayPot position={[-1.82, 0, 0.62]} s={0.95} />
@@ -66,7 +66,7 @@ function Greenhouse({ unlocked, ...p }: { unlocked: boolean } & JSX.IntrinsicEle
       </mesh>
       
       {/* glass frame */}
-      <mesh position={[0, 0.5, 0]} material={clay(C.earth)} castShadow>
+      <mesh position={[0, 0.5, 0]} material={clay(C.earth)}>
         <cylinderGeometry args={[0.05, 0.05, 0.92, 8]} />
       </mesh>
       
@@ -83,7 +83,7 @@ function Greenhouse({ unlocked, ...p }: { unlocked: boolean } & JSX.IntrinsicEle
       </mesh>
       
       {/* dome top */}
-      <mesh position={[0, 1.06, 0]} castShadow>
+      <mesh position={[0, 1.06, 0]}>
         <sphereGeometry args={[0.72, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2]} />
         <meshStandardMaterial
           color="#a8c5d0"
@@ -120,16 +120,16 @@ function Greenhouse({ unlocked, ...p }: { unlocked: boolean } & JSX.IntrinsicEle
 function Plant({ h = 0.35, ...p }: { h?: number } & JSX.IntrinsicElements['group']) {
   return (
     <group {...p}>
-      <mesh position={[0, h / 2, 0]} material={clay(C.leaf)} castShadow>
+      <mesh position={[0, h / 2, 0]} material={clay(C.leaf)}>
         <cylinderGeometry args={[0.02, 0.03, h, 6]} />
       </mesh>
-      <mesh position={[0, h, 0]} material={clay(C.leafDark)} castShadow>
+      <mesh position={[0, h, 0]} material={clay(C.leafDark)}>
         <sphereGeometry args={[0.08, 8, 6]} />
       </mesh>
-      <mesh position={[-0.05, h - 0.08, 0.04]} material={clay(C.leafDark)} castShadow>
+      <mesh position={[-0.05, h - 0.08, 0.04]} material={clay(C.leafDark)}>
         <sphereGeometry args={[0.05, 8, 6]} />
       </mesh>
-      <mesh position={[0.05, h - 0.06, -0.03]} material={clay(C.leafDark)} castShadow>
+      <mesh position={[0.05, h - 0.06, -0.03]} material={clay(C.leafDark)}>
         <sphereGeometry args={[0.04, 8, 6]} />
       </mesh>
     </group>
@@ -146,22 +146,22 @@ function Rooftop(p: JSX.IntrinsicElements['group']) {
         smoothness={3}
         position={[0, 0.3, 0]}
         material={clay(C.cream)}
-        castShadow
+       
         receiveShadow
       />
       
       {/* flat roof */}
-      <mesh position={[0, 0.64, 0]} material={clay(C.terracotta)} castShadow>
+      <mesh position={[0, 0.64, 0]} material={clay(C.terracotta)}>
         <boxGeometry args={[0.74, 0.08, 0.64]} />
       </mesh>
       
       {/* roof edge */}
-      <mesh position={[0, 0.68, 0]} material={clay(C.brick)} castShadow>
+      <mesh position={[0, 0.68, 0]} material={clay(C.brick)}>
         <boxGeometry args={[0.78, 0.04, 0.68]} />
       </mesh>
       
       {/* small water tank */}
-      <mesh position={[-0.18, 0.82, -0.12]} material={clay(C.stone)} castShadow>
+      <mesh position={[-0.18, 0.82, -0.12]} material={clay(C.stone)}>
         <cylinderGeometry args={[0.12, 0.14, 0.22, 8]} />
       </mesh>
       
@@ -190,23 +190,23 @@ function Arch(p: JSX.IntrinsicElements['group']) {
         radius={0.02}
         position={[-0.22, 0.35, 0]}
         material={clay(C.sand)}
-        castShadow
+       
       />
       <RoundedBox
         args={[0.12, 0.58, 0.12]}
         radius={0.02}
         position={[0.22, 0.35, 0]}
         material={clay(C.sand)}
-        castShadow
+       
       />
       
       {/* arch top */}
-      <mesh position={[0, 0.64, 0]} rotation={[0, 0, Math.PI / 2]} material={clay(C.sand)} castShadow>
+      <mesh position={[0, 0.64, 0]} rotation={[0, 0, Math.PI / 2]} material={clay(C.sand)}>
         <torusGeometry args={[0.24, 0.06, 8, 16, Math.PI]} />
       </mesh>
       
       {/* small dome on top */}
-      <mesh position={[0, 0.82, 0]} material={clay(C.terracotta)} castShadow>
+      <mesh position={[0, 0.82, 0]} material={clay(C.terracotta)}>
         <sphereGeometry args={[0.1, 12, 10, 0, Math.PI * 2, 0, Math.PI / 2]} />
       </mesh>
     </group>
@@ -225,7 +225,7 @@ function HazePuff(p: JSX.IntrinsicElements['group']) {
   
   return (
     <group ref={ref} {...p}>
-      <mesh castShadow>
+      <mesh>
         <sphereGeometry args={[0.26, 12, 10]} />
         <meshStandardMaterial
           color="#a0a0a0"

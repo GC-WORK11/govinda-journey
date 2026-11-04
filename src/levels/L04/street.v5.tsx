@@ -32,19 +32,19 @@ export function Rooftop({ s = 1, yaw = 0, lit, ...p }: P & { s?: number; yaw?: n
     <group {...p} rotation={[0, yaw, 0]} scale={[s, s, s]}>
       <RoundedBox args={[1.05, 0.78, 0.9]} radius={0.05} position={[0, 0.39, 0]} material={clay(C.cream)} castShadow receiveShadow />
       {/* flat roof slab + raised brick lip (Delhi terraces) */}
-      <mesh position={[0, 0.8, 0]} material={clay(C.terracotta)} castShadow><boxGeometry args={[1.11, 0.07, 0.96]} /></mesh>
+      <mesh position={[0, 0.8, 0]} material={clay(C.terracotta)}><boxGeometry args={[1.11, 0.07, 0.96]} /></mesh>
       {[[0, -0.46, 1.11, 0.05], [0, 0.46, 1.11, 0.05]].map(([x, z, w, d], i) => (
-        <mesh key={i} position={[x, 0.875, z]} material={clay(C.brick)} castShadow><boxGeometry args={[w, 0.08, d]} /></mesh>
+        <mesh key={i} position={[x, 0.875, z]} material={clay(C.brick)}><boxGeometry args={[w, 0.08, d]} /></mesh>
       ))}
       {[[-0.53, 0, 0.05, 0.96], [0.53, 0, 0.05, 0.96]].map(([x, z, w, d], i) => (
-        <mesh key={i} position={[x, 0.875, z]} material={clay(C.brick)} castShadow><boxGeometry args={[w, 0.08, d]} /></mesh>
+        <mesh key={i} position={[x, 0.875, z]} material={clay(C.brick)}><boxGeometry args={[w, 0.08, d]} /></mesh>
       ))}
       {/* stair bulkhead + the black water tank every roof has */}
-      <RoundedBox args={[0.34, 0.3, 0.4]} radius={0.03} position={[-0.28, 0.98, -0.2]} material={clay(C.sand)} castShadow />
+      <RoundedBox args={[0.34, 0.3, 0.4]} radius={0.03} position={[-0.28, 0.98, -0.2]} material={clay(C.sand)} />
       <group position={[0.26, 0.95, 0.14]}>
-        <mesh position={[0, 0.05, 0]} material={clay('#4c4640')} castShadow><cylinderGeometry args={[0.14, 0.14, 0.1, 12]} /></mesh>
-        <mesh position={[0, 0.16, 0]} material={clay('#4c4640')} castShadow><cylinderGeometry args={[0.135, 0.14, 0.14, 12]} /></mesh>
-        <mesh position={[0, 0.245, 0]} material={clay('#5a534c')} castShadow><cylinderGeometry args={[0.06, 0.1, 0.03, 12]} /></mesh>
+        <mesh position={[0, 0.05, 0]} material={clay('#4c4640')}><cylinderGeometry args={[0.14, 0.14, 0.1, 12]} /></mesh>
+        <mesh position={[0, 0.16, 0]} material={clay('#4c4640')}><cylinderGeometry args={[0.135, 0.14, 0.14, 12]} /></mesh>
+        <mesh position={[0, 0.245, 0]} material={clay('#5a534c')}><cylinderGeometry args={[0.06, 0.1, 0.03, 12]} /></mesh>
         {[0.07, -0.07].map((y, i) => (
           <mesh key={i} position={[0, 0.16 + y * 0.6, 0]} rotation={[Math.PI / 2, 0, 0]} material={clay('#3c3733')}>
             <torusGeometry args={[0.142, 0.008, 5, 14]} />
@@ -57,13 +57,13 @@ export function Rooftop({ s = 1, yaw = 0, lit, ...p }: P & { s?: number; yaw?: n
       <RoundedBox args={[0.24, 0.03, 0.055]} radius={0.01} position={[-0.3, 0.62, 0.455]} material={clay(C.terracotta)} />
       <RoundedBox args={[0.16, 0.14, 0.04]} radius={0.02} position={[0.3, 0.52, 0.46]} material={clay(C.water)} />
       {/* clothesline on the roof: two posts + a line + two tiny cloth bits */}
-      <mesh position={[-0.44, 1.06, 0.3]} material={clay(C.wood)} castShadow><cylinderGeometry args={[0.014, 0.016, 0.42, 5]} /></mesh>
-      <mesh position={[0.05, 1.06, 0.38]} material={clay(C.wood)} castShadow><cylinderGeometry args={[0.014, 0.016, 0.4, 5]} /></mesh>
+      <mesh position={[-0.44, 1.06, 0.3]} material={clay(C.wood)}><cylinderGeometry args={[0.014, 0.016, 0.42, 5]} /></mesh>
+      <mesh position={[0.05, 1.06, 0.38]} material={clay(C.wood)}><cylinderGeometry args={[0.014, 0.016, 0.4, 5]} /></mesh>
       <mesh position={[-0.195, 1.245, 0.34]} rotation={[Math.PI / 2 - 0.08, 0, Math.PI / 2 + 0.17]} material={clay('#efe3cd')}>
         <cylinderGeometry args={[0.005, 0.005, 0.5, 4]} />
       </mesh>
-      <RoundedBox args={[0.1, 0.13, 0.012]} radius={0.02} position={[-0.31, 1.18, 0.325]} rotation={[0.05, 0.1, 0.04]} material={clay('#e9b3a5')} castShadow />
-      <RoundedBox args={[0.09, 0.11, 0.012]} radius={0.02} position={[-0.09, 1.19, 0.352]} rotation={[-0.04, -0.08, -0.05]} material={clay('#b8dade')} castShadow />
+      <RoundedBox args={[0.1, 0.13, 0.012]} radius={0.02} position={[-0.31, 1.18, 0.325]} rotation={[0.05, 0.1, 0.04]} material={clay('#e9b3a5')} />
+      <RoundedBox args={[0.09, 0.11, 0.012]} radius={0.02} position={[-0.09, 1.19, 0.352]} rotation={[-0.04, -0.08, -0.05]} material={clay('#b8dade')} />
       <mesh ref={blk} position={[0, 0.5, 0]} material={ghostMat()}><boxGeometry args={[1.2, 1.0, 1.05]} /></mesh>
     </group>
   )
@@ -77,11 +77,11 @@ export function StreetLamp({ h = 1.55, lit, ...p }: P & { h?: number; lit: Lit }
   useFrame((_, dt) => { mat.emissiveIntensity = damp(mat.emissiveIntensity, lit.current * 1.35, 3, dt) })
   return (
     <group {...p}>
-      <mesh position={[0, 0.05, 0]} material={clay(C.stone)} castShadow><cylinderGeometry args={[0.09, 0.12, 0.1, 8]} /></mesh>
-      <mesh position={[0, h / 2, 0]} material={clay('#5f6b6a')} castShadow><cylinderGeometry args={[0.026, 0.04, h, 8]} /></mesh>
-      <mesh position={[0.14, h + 0.02, 0]} rotation={[0, 0, Math.PI / 2.4]} material={clay('#5f6b6a')} castShadow><cylinderGeometry args={[0.02, 0.026, 0.34, 7]} /></mesh>
-      <mesh position={[0.3, h + 0.11, 0]} material={mat} castShadow><sphereGeometry args={[0.075, 14, 10]} /></mesh>
-      <mesh position={[0.3, h + 0.17, 0]} material={clay('#4c5a58')} castShadow><coneGeometry args={[0.09, 0.07, 10]} /></mesh>
+      <mesh position={[0, 0.05, 0]} material={clay(C.stone)}><cylinderGeometry args={[0.09, 0.12, 0.1, 8]} /></mesh>
+      <mesh position={[0, h / 2, 0]} material={clay('#5f6b6a')}><cylinderGeometry args={[0.026, 0.04, h, 8]} /></mesh>
+      <mesh position={[0.14, h + 0.02, 0]} rotation={[0, 0, Math.PI / 2.4]} material={clay('#5f6b6a')}><cylinderGeometry args={[0.02, 0.026, 0.34, 7]} /></mesh>
+      <mesh position={[0.3, h + 0.11, 0]} material={mat}><sphereGeometry args={[0.075, 14, 10]} /></mesh>
+      <mesh position={[0.3, h + 0.17, 0]} material={clay('#4c5a58')}><coneGeometry args={[0.09, 0.07, 10]} /></mesh>
     </group>
   )
 }
@@ -110,22 +110,22 @@ export function SensorPost({ powered, shakeT, ...p }: P & { powered: boolean; sh
   return (
     <group {...p}>
       <group ref={g}>
-        <mesh position={[0, 0.06, 0]} material={clay(C.stone)} castShadow><cylinderGeometry args={[0.16, 0.2, 0.12, 10]} /></mesh>
-        <mesh position={[0, 0.52, 0]} material={clay('#66787a')} castShadow><cylinderGeometry args={[0.035, 0.05, 0.94, 8]} /></mesh>
+        <mesh position={[0, 0.06, 0]} material={clay(C.stone)}><cylinderGeometry args={[0.16, 0.2, 0.12, 10]} /></mesh>
+        <mesh position={[0, 0.52, 0]} material={clay('#66787a')}><cylinderGeometry args={[0.035, 0.05, 0.94, 8]} /></mesh>
         {/* tilted solar wing */}
         <group position={[0, 0.98, 0]} rotation={[0, -0.5, 0]}>
-          <RoundedBox args={[0.42, 0.025, 0.3]} radius={0.012} position={[-0.1, 0.05, 0]} rotation={[0, 0, 0.42]} material={clay('#3d5468')} castShadow />
+          <RoundedBox args={[0.42, 0.025, 0.3]} radius={0.012} position={[-0.1, 0.05, 0]} rotation={[0, 0, 0.42]} material={clay('#3d5468')} />
           {[0.07, -0.07].map((z, i) => (
             <mesh key={i} position={[-0.1, 0.062, z]} rotation={[0, 0, 0.42]} material={clay('#54708a')}><boxGeometry args={[0.4, 0.008, 0.05]} /></mesh>
           ))}
         </group>
         {/* sensor head: glass dome on a collar */}
-        <mesh position={[0, 1.02, 0]} material={clay(C.ink)} castShadow><cylinderGeometry args={[0.055, 0.065, 0.06, 10]} /></mesh>
-        <mesh position={[0, 1.1, 0]} material={headMat} castShadow><sphereGeometry args={[0.07, 14, 10]} /></mesh>
+        <mesh position={[0, 1.02, 0]} material={clay(C.ink)}><cylinderGeometry args={[0.055, 0.065, 0.06, 10]} /></mesh>
+        <mesh position={[0, 1.1, 0]} material={headMat}><sphereGeometry args={[0.07, 14, 10]} /></mesh>
         {/* wind vane */}
         <group ref={vane} position={[0, 1.2, 0]}>
           <mesh position={[0, 0, 0]} material={clay('#8a9799')}><cylinderGeometry args={[0.008, 0.008, 0.1, 5]} /></mesh>
-          <mesh position={[0.05, 0.05, 0]} material={clay('#8a9799')} castShadow><boxGeometry args={[0.12, 0.012, 0.012]} /></mesh>
+          <mesh position={[0.05, 0.05, 0]} material={clay('#8a9799')}><boxGeometry args={[0.12, 0.012, 0.012]} /></mesh>
           <mesh position={[-0.055, 0.05, 0]} rotation={[0, 0, Math.PI / 2]} material={clay(C.terracotta)}><coneGeometry args={[0.03, 0.06, 6]} /></mesh>
         </group>
         {/* power ring at the base */}
@@ -156,22 +156,22 @@ export function SensorTower({ lit, ...p }: P & { lit: Lit }) {
       {/* footings + tapered lattice mast */}
       {[[-0.13, -0.13], [0.13, -0.13], [-0.13, 0.13], [0.13, 0.13]].map(([x, z], i) => (
         <group key={i}>
-          <mesh position={[x, 0.045, z]} material={clay(C.stone)} castShadow><cylinderGeometry args={[0.05, 0.065, 0.09, 7]} /></mesh>
-          <mesh position={[x * 0.72, 0.85, z * 0.72]} rotation={[z * 0.16, 0, -x * 0.16]} material={clay('#66787a')} castShadow>
+          <mesh position={[x, 0.045, z]} material={clay(C.stone)}><cylinderGeometry args={[0.05, 0.065, 0.09, 7]} /></mesh>
+          <mesh position={[x * 0.72, 0.85, z * 0.72]} rotation={[z * 0.16, 0, -x * 0.16]} material={clay('#66787a')}>
             <cylinderGeometry args={[0.018, 0.024, 1.62, 6]} />
           </mesh>
         </group>
       ))}
       {[0.45, 0.85, 1.25].map((y, i) => (
-        <mesh key={i} position={[0, y, 0]} material={clay('#7c8b8d')} castShadow>
+        <mesh key={i} position={[0, y, 0]} material={clay('#7c8b8d')}>
           <boxGeometry args={[0.26 - i * 0.05, 0.022, 0.26 - i * 0.05]} />
         </mesh>
       ))}
       {/* instrument box + dish + dome */}
-      <RoundedBox args={[0.2, 0.16, 0.16]} radius={0.025} position={[0, 1.52, 0]} material={clay(C.sand)} castShadow />
-      <mesh position={[0.16, 1.56, 0]} rotation={[0, 0, -0.9]} material={clay('#8a9799')} castShadow><sphereGeometry args={[0.09, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2]} /></mesh>
+      <RoundedBox args={[0.2, 0.16, 0.16]} radius={0.025} position={[0, 1.52, 0]} material={clay(C.sand)} />
+      <mesh position={[0.16, 1.56, 0]} rotation={[0, 0, -0.9]} material={clay('#8a9799')}><sphereGeometry args={[0.09, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2]} /></mesh>
       <mesh position={[0, 1.66, 0]} material={clay(C.ink)}><cylinderGeometry args={[0.05, 0.06, 0.05, 10]} /></mesh>
-      <mesh position={[0, 1.73, 0]} material={domeMat} castShadow><sphereGeometry args={[0.08, 16, 12]} /></mesh>
+      <mesh position={[0, 1.73, 0]} material={domeMat}><sphereGeometry args={[0.08, 16, 12]} /></mesh>
       <group ref={vane} position={[0, 1.86, 0]}>
         <mesh material={clay('#8a9799')}><cylinderGeometry args={[0.007, 0.007, 0.1, 5]} /></mesh>
         <mesh position={[0.05, 0.05, 0]} material={clay('#8a9799')}><boxGeometry args={[0.12, 0.01, 0.01]} /></mesh>
@@ -189,9 +189,9 @@ export function SensorTower({ lit, ...p }: P & { lit: Lit }) {
 export function AqiPost({ ...p }: P) {
   return (
     <group {...p}>
-      <mesh position={[0, 0.035, 0]} material={clay(C.stone)} castShadow><cylinderGeometry args={[0.06, 0.075, 0.07, 8]} /></mesh>
-      <mesh position={[0, 0.3, 0]} material={clay('#66787a')} castShadow><cylinderGeometry args={[0.02, 0.028, 0.55, 7]} /></mesh>
-      <RoundedBox args={[0.13, 0.1, 0.09]} radius={0.02} position={[0, 0.6, 0]} material={clay(C.cream)} castShadow />
+      <mesh position={[0, 0.035, 0]} material={clay(C.stone)}><cylinderGeometry args={[0.06, 0.075, 0.07, 8]} /></mesh>
+      <mesh position={[0, 0.3, 0]} material={clay('#66787a')}><cylinderGeometry args={[0.02, 0.028, 0.55, 7]} /></mesh>
+      <RoundedBox args={[0.13, 0.1, 0.09]} radius={0.02} position={[0, 0.6, 0]} material={clay(C.cream)} />
       <mesh position={[0, 0.665, 0]} material={clay(C.terracotta)}><boxGeometry args={[0.14, 0.025, 0.1]} /></mesh>
       <mesh position={[0, 0.585, 0.048]} material={clay('#3d5468')}><boxGeometry args={[0.08, 0.05, 0.012]} /></mesh>
     </group>
@@ -215,11 +215,11 @@ export function StreetTree({ s = 1, ...p }: P & { s?: number }) {
           <mesh position={[0, 0.03, v]} material={clay(C.stone)}><boxGeometry args={[0.62, 0.06, 0.03]} /></mesh>
         </group>
       ))}
-      <mesh position={[0, 0.3, 0]} rotation={[0, 0, 0.06]} material={clay(C.wood)} castShadow><cylinderGeometry args={[0.05, 0.075, 0.62, 8]} /></mesh>
-      <mesh position={[0.1, 0.62, 0.02]} rotation={[0, 0, -0.5]} material={clay(C.wood)} castShadow><cylinderGeometry args={[0.03, 0.045, 0.35, 7]} /></mesh>
-      <mesh position={[0, 0.88, 0]} material={clay('#87a05e')} castShadow><sphereGeometry args={[0.4, 16, 12]} /></mesh>
-      <mesh position={[0.28, 0.72, 0.1]} material={clay('#7a9455')} castShadow><sphereGeometry args={[0.27, 13, 10]} /></mesh>
-      <mesh position={[-0.24, 0.7, -0.06]} material={clay('#87a05e')} castShadow><sphereGeometry args={[0.22, 12, 9]} /></mesh>
+      <mesh position={[0, 0.3, 0]} rotation={[0, 0, 0.06]} material={clay(C.wood)}><cylinderGeometry args={[0.05, 0.075, 0.62, 8]} /></mesh>
+      <mesh position={[0.1, 0.62, 0.02]} rotation={[0, 0, -0.5]} material={clay(C.wood)}><cylinderGeometry args={[0.03, 0.045, 0.35, 7]} /></mesh>
+      <mesh position={[0, 0.88, 0]} material={clay('#87a05e')}><sphereGeometry args={[0.4, 16, 12]} /></mesh>
+      <mesh position={[0.28, 0.72, 0.1]} material={clay('#7a9455')}><sphereGeometry args={[0.27, 13, 10]} /></mesh>
+      <mesh position={[-0.24, 0.7, -0.06]} material={clay('#87a05e')}><sphereGeometry args={[0.22, 12, 9]} /></mesh>
       <mesh ref={blk} position={[0, 0.5, 0]} material={ghostMat()}><cylinderGeometry args={[0.4, 0.3, 1.0, 8]} /></mesh>
     </group>
   )
