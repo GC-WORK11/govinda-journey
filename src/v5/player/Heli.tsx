@@ -4,7 +4,7 @@
  * Mount inside an island/obstacle group (it must live under the R3F Canvas):
  *
  *   <Heli id="L06-heli" pad={[1.6, 0, 2.4]} exit={[0, 0, 1.4]}>
- *     <VoxelHeliModel />   // your craft, modelled around the group origin
+ *     <VoxelHeliModel />   // optional override — defaults to <HeliModel/>
  *   </Heli>
  *
  * `pad` is the home/landing spot in PARENT-LOCAL space (parents may translate
@@ -26,6 +26,7 @@ import * as THREE from 'three'
 import { cinematic, interactables, playerEmote, walkables, type Interactable } from '../core'
 import { input, isDown, now } from './input'
 import { usePlayerUI } from './uiState'
+import { HeliModel } from './HeliModel'
 
 export const heli = {
   /** Craft centre, world space — updated every frame while mounted. */
@@ -210,5 +211,5 @@ export function Heli({ id, pad, exit, seatY = 0.62, radius = 2.4, label = 'climb
     r.quaternion.setFromEuler(_e)
   })
 
-  return <group ref={rig}>{children}</group>
+  return <group ref={rig}>{children ?? <HeliModel />}</group>
 }
