@@ -83,7 +83,17 @@ landed after the mark (3.3–7 s window), proving the deferral.
 
 ## Verified
 - `tsc --noEmit` clean.
-- TBD: coldload numbers, screenshots, play.mjs smoke.
+- Production builds (flock/nice vite build → /tmp outDir) on every variant.
+- `vite preview` on :5210, entry chunks + index.html verified on the wire.
+- End-to-end mount pipeline on the final dist: `fj:app` → `fj:world5`
+  (module eval) → all 34 cold resources → Canvas mount attempt → WebGL
+  failure caught by `WorldFallback` → `world-fallback` (box GPU dead).
+- Earlier healthy-window probe: full waterfall through `fj:playable` @ 2255 ms.
+- Baseline cold numbers (2×1440, 2×390/lite) captured under the required
+  harness before the outage.
+- BLOCKED by environment: post-change `h:playable` under 4x CPU (Chrome
+  can't create a WebGL context under current box memory pressure — not a
+  code issue; boundary-verified). Retry loop armed to capture on recovery.
 
 ## Still wrong / rough
 - **Box-level WebGL outage**: the shared-headless-Chrome GPU stack is
