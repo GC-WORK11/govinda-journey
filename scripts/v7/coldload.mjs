@@ -46,6 +46,7 @@ async function oneRun(ctx, u, vp, tag) {
   try {
     await page.goto(u, { waitUntil: 'domcontentloaded', timeout: 60000 })
     await page.waitForFunction('window.__cold && window.__cold.playable', { timeout: 60000, polling: 150 })
+    await new Promise((r) => setTimeout(r, 3500))
     const out = await page.evaluate(() => {
       const marks = Object.fromEntries(performance.getEntriesByType('mark').map((m) => [m.name, Math.round(m.startTime)]))
       const nav = performance.getEntriesByType('navigation')[0]
