@@ -14,8 +14,7 @@ import {
   StaticBake,
 } from './v5kit.v5'
 import { Prop } from '../../v5/art/Dressing'
-import DioramaV4 from './Diorama'
-import { Plaza, Bunting, Board, BoardCard } from './plaza.v5'
+import { Board, BoardCard } from './plaza.v5'
 import { Guardian } from './guardian.v5'
 import { SpeakPrompt } from './voiceui.v5'
 import { SignPad, SIGN_V } from './signui.v5'
@@ -194,17 +193,8 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
       <GateStone x={1.5} />
       <Tablet shown={stage !== 'approach'} />
 
-      {/* the sign studio — V4's own diorama (unlocked → its scaffold folds away),
-          baked to a handful of merged draws once it settles */}
-      <group position={[0.31, 0, 0.56]} rotation={[0, -0.4, 0]} scale={1.3}>
-        <StaticBake delay={3200}>
-          <DioramaV4 unlocked={true} active={active} />
-        </StaticBake>
-      </group>
-
-      {/* the plaza: paving, sign-glyph bunting over the path — instanced/merged already */}
-      <Plaza />
-      <Bunting from={[-2.5, 2.1, -2.9]} to={[-0.9, 2.1, -3.3]} sag={0.3} />
+      {/* fallback: V4's island comes from WORLD's parity mount — this layer is
+          the V5 obstacle on top: guardian gate, tablet, board, hint pill. */}
 
       {/* story board + quiet rim dressing — one bake, no shadow casts on the small props */}
       <StaticBake shadow={false}>
