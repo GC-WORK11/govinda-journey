@@ -33,6 +33,11 @@ export function useLocalPlayer(root: RefObject<THREE.Group>, out: THREE.Vector3)
   })
 }
 
+export function say(s: string, ms = 4200) {
+  core.useV5.getState().setCaption(s)
+  window.setTimeout(() => { if (core.useV5.getState().caption === s) core.useV5.getState().setCaption(null) }, ms)
+}
+
 /** Teleport the traveller to an island-local point (?qa solvers). */
 export function tpLocal(root: THREE.Group | null, local: THREE.Vector3) {
   if (!root) return

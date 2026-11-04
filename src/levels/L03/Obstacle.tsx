@@ -14,6 +14,7 @@ import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import * as core from '../../v5/core'
+import { LEVELS } from '../registry'
 import {
   C, clay, REDUCED, useLocalPlayer, tpLocal, tpWorld, useSolver, useAt, Hint,
   PathStones, Rock, Mound, RopeFence, StoneLantern, Prop, carryWorld, sleep, waitTp,
@@ -45,6 +46,12 @@ const GAPS = [
   { c: new THREE.Vector3(5.14, 0.0, -1.52), yaw: Math.atan2(-(-2.18 + 0.82), 4.82 - 5.42) },
 ]
 const FENCE_Z = -2.8
+const LREG = LEVELS.find((l) => l.id === 'L03')!
+const PROJECTS = [
+  'CEO Hunt: a calm meeting ground for founders, investors, and operators.',
+  'Flow Pitch: agent workflows, redesigned for a phone screen.',
+  'Delegators Workbench turns plans into finished documents.',
+]
 
 /* --------------------------------- page slab ------------------------------ */
 
@@ -118,6 +125,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   const [lit, setLit] = useState(done)          // payoff: warm glow on the pages + lantern
   const doneRef = useRef(done)
   const solveT = useRef(done ? 1 : 0)
+  const storied = useRef(false)
 
   const blocks = useMemo<Block[]>(() => [0, 1, 2].map((i) => {
     const to = GAPS[i].c.clone().setY(0.055)
@@ -137,9 +145,9 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
 
   /* ------------------------------ interactables ------------------------------ */
 
-  const caption = (s: string) => {
+  const caption = (s: string, ms = 2600) => {
     core.useV5.getState().setCaption(s)
-    setTimeout(() => { if (core.useV5.getState().caption === s) core.useV5.getState().setCaption(null) }, 2600)
+    setTimeout(() => { if (core.useV5.getState().caption === s) core.useV5.getState().setCaption(null) }, ms)
   }
 
   const climbAt = useAt(root, WALL_AT.x, WALL_AT.y + 0.5, WALL_AT.z)
@@ -166,6 +174,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       if (b.state !== 'rack' || core.player.carrying) return
       b.state = 'carried'
       core.player.carrying = `l03-page-${i}`
+      caption(PROJECTS[i], 4600)
     },
   })), [blocks, blockAts])
   blockIts.forEach((it) => core.useInteractable(it))
@@ -195,6 +204,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
 
   const placedCount = useRef(done ? 3 : 0)
   useFrame((s, dt) => {
+    if (active && !storied.current && !doneRef.current && (lp.x + 2.55) ** 2 + (lp.z - 2.3) ** 2 < 6.76) { storied.current = true; caption(LREG.story, 5200) }
     const k = Math.min(1, dt * 9)
     blocks.forEach((b, i) => {
       const g = b.g

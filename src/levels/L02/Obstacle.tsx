@@ -10,8 +10,9 @@ import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import * as core from '../../v5/core'
-import { C, clay, Gate, Mound, PaperLetter, PathStones, PillHint, Prop, REDUCED, Rock, tpLocal, sleep, useLocalPlayer, useSolver, BloomField, Merged, type Prim } from '../L01/shared.v5'
+import { C, clay, Gate, Mound, PaperLetter, PathStones, PillHint, Prop, REDUCED, Rock, say, tpLocal, sleep, useLocalPlayer, useSolver, BloomField, Merged, type Prim } from '../L01/shared.v5'
 import { AutoMerge } from '../../v5/world/AutoMerge'
+import { LEVELS } from '../registry'
 
 /** Where the five letters lie (island-local). */
 const LETTERS = [
@@ -27,6 +28,7 @@ const LETTERS = [
 const STEP_TOPS = [0.32, 0.64, 0.96, 1.28, 1.6]
 const STEP_POS = STEP_TOPS.map((y, i) => new THREE.Vector3(2.2 + (i % 2 ? 0.05 : -0.05), y, -1.0 - i * 0.34))
 const FLY_S = 0.95
+const LREG = LEVELS.find((l) => l.id === 'L02')!
 
 type Slot = {
   pos: THREE.Vector3
@@ -184,6 +186,9 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       return () => clearTimeout(tm)
     }
   }, [placed, open])
+  useEffect(() => {
+    if (placed === 5 && !done) say(LREG.story, 5200)
+  }, [placed, done])
   useEffect(() => { openRef.current = open }, [open])
 
   useFrame(() => {
