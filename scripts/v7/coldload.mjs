@@ -36,6 +36,7 @@ async function oneRun(ctx, u, vp, tag) {
   const page = await ctx.newPage()
   const errs = []
   page.on('pageerror', (e) => errs.push('PAGEERR ' + String(e).slice(0, 120)))
+  page.on('console', (m) => { if (m.type() === 'error') errs.push('CONSOLE ' + m.text().slice(0, 160)) })
   await page.evaluateOnNewDocument(INSTRUMENT)
   await page.setViewport(vp)
   const cdp = await page.createCDPSession()
@@ -56,7 +57,13 @@ async function oneRun(ctx, u, vp, tag) {
     return { tag, ok: true, wall: Date.now() - t0, errs, ...out }
   } catch (e) {
     let out = {}
-    try { out = await page.evaluate(() => ({ cold: window.__cold, res: performance.getEntriesByType('resource').length })) } catch {}
+    try {
+      out = await page.evaluate(() => ({
+        cold: window.__cold,
+        res: performance.getEntriesByType('resource').map((r) => r.name.split('/').pop().slice(0, 40)).join(' '),
+        marks: performance.getEntriesByType('mark').map((m) => m.name + '@' + Math.round(m.startTime)).join(' '),
+      }))
+    } catch {}
     return { tag, ok: false, err: String(e).slice(0, 140), wall: Date.now() - t0, errs, ...out }
   } finally { await page.close().catch(() => {}) }
 }
@@ -71,7 +78,7 @@ await withChrome(async (b) => {
       const ctx = await b.createBrowserContext()
       const r = await oneRun(ctx, j.u, j.vp, `${j.tag}#${i + 1}`)
       await ctx.close()
-      if (!r.ok) { console.log(`[${LABEL}] ${r.tag} FAIL ${r.err} cold=${JSON.stringify(r.cold)} errs=${r.errs.join('|')}`); continue }
+      if (!r.ok) { console.log(`[${LABEL}] ${r.tag} FAIL ${r.err} cold=${JSON.stringify(r.cold)} marks=[${r.marks ?? ''}] errs=${r.errs.join('|')} res=[${r.res ?? ''}]`); continue }
       const m = r.marks
       console.log(`[${LABEL}] ${r.tag} h:playable=${r.cold.playable}ms` +
         (m['fj:playable'] ? ` fj:playable=${m['fj:playable']}ms` : '') +

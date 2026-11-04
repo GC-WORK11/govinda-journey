@@ -76,4 +76,17 @@ context per run; numbers = in-page ms since navigationStart).
 - TBD: coldload numbers, screenshots, play.mjs smoke.
 
 ## Still wrong / rough
-- TBD
+- OPEN: in the measurement harness environment (fresh incognito context,
+  `setCacheEnabled(false)`, 4x CPU throttle) the page reports only the
+  student.glb preload and never mounts — the same failure seen before and
+  after the `world5Promise` revert. A non-incognito, unthrottled probe on the
+  identical dist showed a healthy boot (fj:playable @ 2255 ms, all chunks,
+  no errors). A control run of the pre-change dist under the identical
+  harness is queued to isolate environment vs. code.
+- `student.glb`/`student-skin.png` link preloads: Chrome warns the skin
+  preload is unused when credentials modes differ (fixed by dropping
+  `crossorigin` — matches FileLoader/ImageLoader same-origin credentialed
+  requests).
+- `three` chunk is unchanged (~688 KB) — tree-shaking is already maximal;
+  the wins came from moving fiber/drei satellites and postprocessing off the
+  cold path, not from shrinking three.

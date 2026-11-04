@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { lazy, Suspense, useEffect } from 'react'
+import { Component, lazy, Suspense, useEffect } from 'react'
 
 const World = lazy(() => import('./world/World'))
 const World5 = lazy(() => import('./v5/World5'))
@@ -14,8 +14,18 @@ const Sandbox = sandboxMods['./v5/player/Sandbox.tsx']
   ? lazy(sandboxMods['./v5/player/Sandbox.tsx'] as () => Promise<{ default: React.ComponentType }>)
   : null
 
-function webglOk() {
-  try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')) } catch { return false }
+/**
+ * One error boundary around the world mount. A synchronous `getContext` probe
+ * is flaky under cold GPU init (incognito + CPU throttle can transiently
+ * return null on WebGL-capable machines and strand the page on an empty
+ * fallback with no lazy import ever fired). Let the Canvas try for real —
+ * if WebGL genuinely can't initialise, the renderer throws during mount and
+ * this boundary shows the same quiet fallback the probe used to.
+ */
+class WorldFallback extends Component<{ children: React.ReactNode }, { err: boolean }> {
+  state = { err: false }
+  static getDerivedStateFromError() { return { err: true } }
+  render() { return this.state.err ? <div className="world-fallback" /> : this.props.children }
 }
 
 export default function App() {
@@ -37,8 +47,6 @@ export default function App() {
     })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const gl = webglOk()
-
   if (q.has('sandbox') && Sandbox) {
     return <Suspense fallback={null}><Sandbox /></Suspense>
   }
@@ -47,7 +55,7 @@ export default function App() {
     return (
       <div className="app">
         <div className="world" aria-hidden>
-          {gl ? <Suspense fallback={null}><World /></Suspense> : <div className="world-fallback" />}
+          <WorldFallback><Suspense fallback={null}><World /></Suspense></WorldFallback>
         </div>
         <Suspense fallback={null}><Overlay /></Suspense>
       </div>
@@ -56,7 +64,7 @@ export default function App() {
 
   return (
     <div className="app">
-      {gl ? <Suspense fallback={null}><World5 /></Suspense> : <div className="world-fallback" />}
+      <WorldFallback><Suspense fallback={null}><World5 /></Suspense></WorldFallback>
     </div>
   )
 }
