@@ -11,6 +11,7 @@ import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import * as core from '../../v5/core'
 import { C, clay, Gate, Mound, PaperLetter, PathStones, PillHint, Prop, REDUCED, Rock, tpLocal, sleep, useLocalPlayer, useSolver, BloomField, Merged, type Prim } from '../L01/shared.v5'
+import { AutoMerge } from '../../v5/world/AutoMerge'
 
 /** Where the five letters lie (island-local). */
 const LETTERS = [
@@ -84,7 +85,7 @@ function StoneStep({ pos, yaw, instant }: { pos: THREE.Vector3; yaw: number; ins
   const h = pos.y + 0.08
   return (
     <RoundedBox ref={ref} args={[1.08, h, 0.58]} radius={0.07} position={[pos.x, h / 2 - 0.04, pos.z]}
-      rotation={[0, yaw, 0]} material={clay(C.stone)} castShadow receiveShadow>
+      rotation={[0, yaw, 0]} material={clay(C.stone)} receiveShadow>
       {/* a real flat stone cap grows in on each tooth */}
       <Prop name="stone_small_flat_a" position={[0, h / 2 + 0.02, 0]} scale={[2.0, 1.2, 1.3]} />
     </RoundedBox>
@@ -228,6 +229,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
 
   return (
     <group ref={root}>
+      <AutoMerge>
       {/* the ledge the exit sits on — chunky stone shelf, grassy cap */}
       <RoundedBox ref={faceRef} args={[5.7, 1.56, 2.3]} radius={0.16} position={[0, 0.72, -3.55]}
         material={clay(C.stone)} castShadow receiveShadow />
@@ -238,27 +240,15 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       <Rock position={[-2.5, 1.62, -4.15]} s={0.45} yaw={0.4} variant={1} />
       <Rock position={[2.55, 1.62, -4.3]} s={0.34} yaw={1.9} variant={2} />
 
-      {/* the closed gate on the ledge */}
-      <Gate position={[0, 1.62, -3.78]} open={open} instant={done} width={1.7} height={1.05} />
-      {open && <pointLight position={[0, 2.6, -3.5]} color="#ffc27e" intensity={2.0} distance={4.5} decay={2} />}
-
       {/* V4's stream across the front grass — the letters drifted down from it */}
       <Stream />
 
       {/* scattered letters + what hides them */}
-      {slots.map((s, i) => (
-        <LetterRunner key={i} slot={s} player={local} onPickup={onPickup} onLanded={onLanded} />
-      ))}
       <Rock position={[-2.2, 0.05, 1.35]} s={0.58} yaw={0.9} variant={0} />
       <Rock position={[-2.9, 0.03, 1.6]} s={0.3} yaw={2.4} block={false} variant={1} />
       <Mound position={[2.05, 0, 0.95]} r={0.95} h={0.4} />
       <Rock position={[3.2, 0.05, -0.45]} s={0.55} yaw={1.4} variant={1} />
       <Rock position={[-2.45, 0.04, -2.05]} s={0.4} yaw={0.2} variant={2} />
-
-      {/* steps appear as the letters land */}
-      {STEP_POS.slice(0, placed).map((p, i) => (
-        <StoneStep key={i} pos={p} yaw={yawJ[i]} instant={done} />
-      ))}
 
       {/* dressing + a stones spur pointing at the rise (WORLD draws the corridor stones) */}
       <PathStones pts={[[0.7, 1.95], [1.6, 1.25]]} seed={11} />
@@ -268,6 +258,20 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       {/* seeded rim dressing (grass + flower blobs, ONE merged mesh) */}
       <BloomField seed={12} density={0.5}
         avoid={[[1.6, 2.7, 1.1], [-2.5, 0.9, 1.6], [2.05, 0.95, 1.4], [-2.9, -1.5, 1.1], [2.85, -1.15, 1.1], [2.2, -1.7, 1.5], [0, -3.55, 2.4], [0, 4.2, 1.4]]} />
+      </AutoMerge>
+
+      {/* the closed gate on the ledge */}
+      <Gate position={[0, 1.62, -3.78]} open={open} instant={done} width={1.7} height={1.05} />
+      {open && <pointLight position={[0, 2.6, -3.5]} color="#ffc27e" intensity={2.0} distance={4.5} decay={2} />}
+
+      {slots.map((s, i) => (
+        <LetterRunner key={i} slot={s} player={local} onPickup={onPickup} onLanded={onLanded} />
+      ))}
+
+      {/* steps appear as the letters land */}
+      {STEP_POS.slice(0, placed).map((p, i) => (
+        <StoneStep key={i} pos={p} yaw={yawJ[i]} instant={done} />
+      ))}
 
       <PillHint text={hint} />
     </group>

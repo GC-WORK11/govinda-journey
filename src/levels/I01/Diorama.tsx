@@ -4,6 +4,7 @@ import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import type { DioramaProps } from '../types'
 import { C, clay, Scaffold, Tree, Rock } from '../../world/kit'
+import { AutoMerge } from '../../v5/world/AutoMerge'
 
 const POND_X = 0
 const POND_Z = -0.75
@@ -61,6 +62,7 @@ function StoneLantern(p: JSX.IntrinsicElements['group']) {
 export default function Diorama({ unlocked, active }: DioramaProps) {
   return (
     <group>
+      <AutoMerge>
       {/* reeds on the obstacle pond's east shore */}
       {[[1.32, -0.78, -0.12], [1.46, -0.6, 0.16]].map(([x, z, r], i) => (
         <mesh key={i} position={[POND_X + x, 0.18, POND_Z + z]} rotation={[0, 0, r]} material={clay(C.moss)} castShadow>
@@ -92,6 +94,7 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
       <Tree position={[-1.5, 0, 1.35]} h={0.95} />
       <Rock position={[1.55, 0.06, -1.35]} s={0.2} />
       <Rock position={[-1.5, 0.04, 0.55]} s={0.13} color={C.earthDark} />
+      </AutoMerge>
 
       <Fireflies on={unlocked} active={active} />
 

@@ -4,6 +4,7 @@ import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import type { DioramaProps } from '../types'
 import { C, clay, Scaffold, Rock, ClayPot, Bush } from '../../world/kit'
+import { AutoMerge, NoMerge } from '../../v5/world/AutoMerge'
 
 const SCHOOL_POS: [number, number, number] = [0.55, 0, -0.38]
 
@@ -64,13 +65,13 @@ function SchoolGate({ open }: { open: boolean }) {
         <boxGeometry args={[0.12, 0.8, 0.12]} />
       </mesh>
       {/* Left gate door */}
-      <group ref={leftRef} position={[0, 0, 0]}>
+      <NoMerge><group ref={leftRef} position={[0, 0, 0]}>
         <RoundedBox args={[0.32, 0.65, 0.04]} radius={0.02} position={[-0.16, 0.33, 0]} material={clay(C.woodLight)} castShadow />
-      </group>
+      </group></NoMerge>
       {/* Right gate door */}
-      <group ref={rightRef} position={[0, 0, 0]}>
+      <NoMerge><group ref={rightRef} position={[0, 0, 0]}>
         <RoundedBox args={[0.32, 0.65, 0.04]} radius={0.02} position={[0.16, 0.33, 0]} material={clay(C.woodLight)} castShadow />
-      </group>
+      </group></NoMerge>
     </group>
   )
 }
@@ -88,6 +89,7 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
 
   return (
     <group>
+      <AutoMerge>
       {/* Main school building: cream + terracotta */}
       <group position={SCHOOL_POS}>
         {/* Main structure */}
@@ -191,6 +193,7 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
         </mesh>
       </group>
 
+      </AutoMerge>
       {/* Main building scaffold that drops on unlock */}
       <Scaffold open={unlocked} position={SCHOOL_POS} size={[1.7, 1.4, 1.4]} />
     </group>

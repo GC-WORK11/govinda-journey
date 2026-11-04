@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
 import type { DioramaProps } from '../types'
 import { Scaffold, clay, C, ClayPot, Bush, Fence } from '../../world/kit'
+import { AutoMerge } from '../../v5/world/AutoMerge'
 import * as THREE from 'three'
 
 export default function Diorama({ unlocked, active }: DioramaProps) {
@@ -34,6 +35,7 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
 
   return (
     <group>
+      <AutoMerge>
       {/* House with window */}
       <group position={[0.8, 0, -1.2]}>
         {/* Main house structure */}
@@ -178,6 +180,7 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
         />
       </group>
 
+      </AutoMerge>
       {/* Dotted signal line between phone tower and house (when unlocked) */}
       {unlocked && (
         <group ref={signalRef}>
@@ -212,10 +215,12 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
       )}
 
       {/* pots by the door, a fenced garden corner at the back rim */}
+      <AutoMerge>
       <ClayPot position={[1.48, 0, -0.52]} s={0.9} />
       <ClayPot position={[0.92, 0, -0.46]} s={0.72} />
       <Bush position={[-1.62, 0, -1.5]} s={0.9} />
       <Fence pts={[new THREE.Vector3(-2.32, 0, -0.72), new THREE.Vector3(-2.45, 0, -1.5), new THREE.Vector3(-2.05, 0, -2.15)]} seed={7} />
+      </AutoMerge>
 
       {/* Scaffold wrapper */}
       <Scaffold open={unlocked} position={[0.8, 0, -1.2]} size={[1.6, 1.8, 1.6]} />

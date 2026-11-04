@@ -23,6 +23,7 @@ import { SignPad, SIGN_V } from './signui.v5'
 import { has, interactables, useBlocker, useV5, type ObstacleProps } from '../../v5/core'
 import { LEVELS } from '../registry'
 import { PillHint } from '../L01/shared.v5'
+import { AutoMerge } from '../../v5/world/AutoMerge'
 
 const L08H = LEVELS.find((l) => l.id === 'L08')!
 
@@ -186,8 +187,10 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
         </group>
       </group>
       <PillHint text={active && stage !== 'aside' && overlay === 'none' ? L08H.hint : null} />
+      <AutoMerge>
       <GateStone x={-1.45} />
       <GateStone x={1.5} />
+      </AutoMerge>
       <Tablet shown={stage !== 'approach'} />
 
       {/* V4's matching game, as V4 played it: the laptop shows a sign, tap the hand that matches */}
