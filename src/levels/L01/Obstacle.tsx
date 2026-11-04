@@ -55,10 +55,12 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
     if (!inited.current) { prev.current.copy(local); inited.current = true }
     const step = local.distanceTo(prev.current)
     prev.current.copy(local)
-    if (step > 0.001 && step < 0.3) walked.current += step
+    if (step > 0.001 && step < 1.0) walked.current += step  // slow frames take big steps; teleports are bigger
     if (!moved.current && walked.current > 0.7) moved.current = true
-    if (!approached.current && moved.current && local.z > WALL_Z + 0.45) approached.current = true
-    if (approached.current && !crossed.current && local.z < WALL_Z - 0.35) crossed.current = true
+    // approach = was ever on the near side; tracked independently of `moved` so a slow-frame
+    // visitor who only registers as moving after reaching the wall can't get stuck
+    if (!approached.current && local.z > WALL_Z + 0.45) approached.current = true
+    if (approached.current && moved.current && !crossed.current && local.z < WALL_Z - 0.35) crossed.current = true
     // the one quiet line at the bottom of the screen
     const h = !active || done ? null
       : !moved.current ? 'Use WASD or the stick to walk'
