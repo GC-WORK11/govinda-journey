@@ -33,20 +33,20 @@ const EXIT_L = new V3(0, 0, -4.0)
 /** Route rings — ONE clear flight line: lift off, arc out over the west rim,
  *  set down on the far rock. */
 const RINGS: V3T[] = [
-  [-0.6, 2.2, 3.4], [-3.4, 2.4, 2.6], [-5.6, 2.1, 0.3], [-7.3, 1.6, -1.7], [-8.4, 1.1, -2.7],
+  [-0.6, 1.9, 3.4], [-3.4, 2.0, 2.6], [-5.6, 1.8, 0.3], [-7.3, 1.4, -1.7], [-8.4, 1.0, -2.7],
 ]
 
 /** Towers: pos, w, d, h, tone, seed. All |x|>1.5 — clear of the walk corridor.
- *  Kept low in the middle/north so the caption band stays on open sky. */
+ *  Low enough that the caption band stays on open sky. */
 const TOWERS: [number, number, number, number, number, string, number][] = [
-  [2.95, 1.35, 1.35, 1.1, 2.8, C.facade1, 3],
-  [3.75, -0.7, 1.25, 1.25, 2.6, C.facade2, 7],
-  [2.55, -2.75, 1.15, 1.0, 1.8, C.facade3, 11],
-  [-2.15, -2.85, 1.45, 1.2, 2.0, C.facade1, 5],
-  [-3.75, -0.9, 1.25, 1.15, 2.8, C.facade2, 13],
-  [-3.5, 1.75, 1.15, 1.05, 2.0, C.facade4, 17],
-  [-1.8, 3.45, 1.0, 0.9, 1.4, C.facade3, 19],
-  [4.35, 1.6, 0.9, 0.9, 1.6, C.facade4, 23],
+  [2.95, 1.35, 1.35, 1.1, 2.3, C.facade1, 3],
+  [3.75, -0.7, 1.25, 1.25, 2.4, C.facade2, 7],
+  [2.55, -2.75, 1.15, 1.0, 1.5, C.facade3, 11],
+  [-2.15, -2.85, 1.45, 1.2, 1.7, C.facade1, 5],
+  [-3.75, -0.9, 1.25, 1.15, 2.4, C.facade2, 13],
+  [-3.5, 1.75, 1.15, 1.05, 1.8, C.facade4, 17],
+  [-1.8, 3.45, 1.0, 0.9, 1.3, C.facade3, 19],
+  [4.35, 1.6, 0.9, 0.9, 1.5, C.facade4, 23],
 ]
 
 const ACCEL = 8.0, DAMP = 2.3, VMAX = 4.4, ALT_K = 3.2
@@ -66,7 +66,6 @@ export default function Obstacle({ id, complete, done }: core.ObstacleProps) {
 
   const [phase, setPhase] = useState<'walk' | 'fly' | 'land' | 'done'>(done ? 'done' : 'walk')
   const [passed, setPassed] = useState(done ? RINGS.length : 0)
-  const [hint, setHint] = useState(false)
 
   const sim = useRef({
     pos: (done ? PAD_FAR : PAD_HOME).clone().add(new V3(0, 0.02, 0)),
@@ -99,12 +98,10 @@ export default function Obstacle({ id, complete, done }: core.ObstacleProps) {
       use: () => {
         if (phaseRef.current !== 'walk') return
         setPhase('fly')
-        setHint(true)
         sim.current.boardT = sim.current.t
         core.player.frozen = true
         core.playerEmote.name = 'sit'
         if (!core.cinematic.on) { core.cinematic.on = true; cineOwned.current = true }
-        window.setTimeout(() => setHint(false), 6000)
       },
     }
   }, [id])
@@ -363,12 +360,12 @@ export default function Obstacle({ id, complete, done }: core.ObstacleProps) {
         </group>
       ))}
       {/* rooftops */}
-      <Prop name="water_tower" position={[-3.75, 2.86, -0.9]} fit={0.9} />
-      <AcBox position={[2.95, 2.88, 1.1]} />
-      <AcBox position={[3.75, 2.68, -0.9]} s={1.2} />
-      <Antenna position={[2.55, 1.84, -2.75]} h={0.9} />
-      <AcBox position={[-3.5, 2.06, 1.75]} s={0.9} />
-      <Antenna position={[-2.15, 2.06, -2.85]} h={0.7} />
+      <Prop name="water_tower" position={[-3.75, 2.46, -0.9]} fit={0.9} />
+      <AcBox position={[2.95, 2.38, 1.1]} />
+      <AcBox position={[3.75, 2.48, -0.9]} s={1.2} />
+      <Antenna position={[2.55, 1.54, -2.75]} h={0.9} />
+      <AcBox position={[-3.5, 1.86, 1.75]} s={0.9} />
+      <Antenna position={[-2.15, 1.76, -2.85]} h={0.7} />
       {/* street life */}
       <Prop name="streetlight" position={[-1.05, 0.03, 1.9]} fit={0.95} />
       <Prop name="streetlight" position={[-2.35, 0.03, -0.6]} fit={0.95} rotation={[0, Math.PI, 0]} />
@@ -438,11 +435,11 @@ export default function Obstacle({ id, complete, done }: core.ObstacleProps) {
         <boxGeometry args={[0.95, 0.08, 2.5]} />
       </mesh>
 
-      {/* a soft hint while airborne */}
-      {hint && phase === 'fly' && (
+      {/* the hint line — V4's pill, reworded for the flight */}
+      {phase !== 'done' && !solved.current && (
         <group ref={(g) => { if (g && heli.current) g.position.copy(heli.current.position) }}>
           <Html fullscreen zIndexRange={[30, 0]}>
-            <div className="gj-heli-hint">follow the warm rings — steer with W A S D or the joystick</div>
+            <div className="gj-heli-hint">{phase === 'walk' ? 'board the helicopter on the pad' : 'follow the warm rings — set down on the far pad'}</div>
             <style>{`.gj-heli-hint{position:fixed;left:50%;bottom:16vh;transform:translateX(-50%);font:500 13px Inter,system-ui;color:#fbf6ee;text-shadow:0 1px 8px rgba(50,40,30,.45);letter-spacing:.02em;pointer-events:none}`}</style>
           </Html>
         </group>

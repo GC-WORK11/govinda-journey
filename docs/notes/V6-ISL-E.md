@@ -21,12 +21,16 @@
 `http://localhost:5190/?qa&at=L06` (fresh context or cleared localStorage —
 the save persists `done`).
 Check at 1440x900 and 390x844:
-1. Island reads as a city; caption text sits on open sky, not over towers.
-2. Walk to the helipad beside the path (east side); `E Board the helicopter`.
-3. Takeoff auto-climbs; steer through the 5 warm rings west → far rock pad
+1. Island reads as a city; caption text sits on open sky, not over towers
+   (skyline capped ≤2.4 m, tall towers pushed to the sides; rings fly low).
+2. A soft hint line shows under the frame (V4 pill equivalent): walk →
+   "board the helicopter on the pad", flying → "follow the warm rings —
+   set down on the far pad". Gone after done.
+3. Walk to the helipad beside the path (east side); `E Board the helicopter`.
+4. Takeoff auto-climbs; steer through the 5 warm rings west → far rock pad
    (it lights once all 5 pass). Touchdown unfolds the plank bridge; step out
    on the rock; `done`/`remote` granted; walk back over the bridge to exit.
-4. No stuck states: E mid-flight flies home and re-docks; the home pad only
+5. No stuck states: E mid-flight flies home and re-docks; the home pad only
    re-lands after the heli has left and returned low+slow (leftPad latch —
    fixed a bug where it landed straight after takeoff).
 Known-partial: my real-input run reached pad + boarded + flew (phase fly),
