@@ -123,7 +123,11 @@ function bridgeGeo(from: THREE.Vector3, to: THREE.Vector3, cFrom: THREE.Vector3,
 }
 
 export function Bridge5({ i, shown }: { i: number; shown: boolean }) {
-  const { planks, rails, walk, deck, spots, yaw, mid } = useMemo(() => {
+  // On a cold journey every bridge is hidden: skip the ~25 merged geometries
+  // and ~20 plank meshes per gap until the first `shown` flips (done only ever
+  // grows — the reveal then pays the one-time build during its own animation).
+  const bg = useMemo(() => {
+    if (!shown) return null
     const from = exitWorld(i), to = entryWorld(i + 1)
     const g = bridgeGeo(from, to, ISLAND_POS[i], ISLAND_POS[i + 1])
     return {
@@ -133,7 +137,7 @@ export function Bridge5({ i, shown }: { i: number; shown: boolean }) {
       yaw: Math.atan2(-(to.z - from.z), to.x - from.x),
       mid: from.clone().lerp(to, 0.5),
     }
-  }, [i])
+  }, [i, shown])
   const walkRef = useRef<THREE.Mesh>(null)
   useWalkable(walkRef, shown)
   const railsWrap = useRef<THREE.Group>(null)
@@ -142,6 +146,8 @@ export function Bridge5({ i, shown }: { i: number; shown: boolean }) {
   const deckRef = useRef<THREE.Mesh>(null)
   const st = useRef({ p: shown ? 1 : 0, landed: shown })
   useFrame((_, dt) => {
+    if (!bg) return
+    const { planks } = bg
     const k = st.current
     k.p = RM ? (shown ? 1 : 0) : shown ? Math.min(1, k.p + dt / 1.45) : 0
     const rp = Math.min(1, Math.max(0, (k.p - 0.02) / 0.3))
@@ -162,6 +168,8 @@ export function Bridge5({ i, shown }: { i: number; shown: boolean }) {
     if (shown && landed && !k.landed) { k.landed = true }
     if (!shown) k.landed = false
   })
+  if (!bg) return null
+  const { planks, rails, walk, deck, spots, yaw, mid } = bg
   return (
     <group name={`bridge-${i}`}>
       {/* walk surface: invisible strip (draws nothing, still raycastable; DoubleSide so the down-ray can't miss) */}

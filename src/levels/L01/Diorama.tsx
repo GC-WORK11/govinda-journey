@@ -134,9 +134,6 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
       </mesh>
 
       <Rock position={[1.72, 0.05, -0.85]} s={0.16} />
-
-      {/* low fence curving around the back-left rim */}
-      <Fence pts={[new THREE.Vector3(-2.35, 0, -0.7), new THREE.Vector3(-2.15, 0, -1.55), new THREE.Vector3(-1.45, 0, -2.15)]} seed={4} />
       </AutoMerge>
 
       {/* the four lanterns along the path — hidden while the game borrows them */}
@@ -153,8 +150,6 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
       {unlocked && (
         <pointLight position={[0.85, 0.9, 1.35]} color="#ffc27e" intensity={2.2} distance={3.4} decay={2} />
       )}
-
-      <Rock position={[1.72, 0.05, -0.85]} s={0.16} />
 
       {/* V5: the back-left rim is now the real campus block + obstacle fences —
           V4's little rim fence landed inside the building; dropped (was:
