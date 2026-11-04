@@ -34,7 +34,7 @@ Not used as sources: the Devpost "NoHands" page (a different project), and alive
 | Contact: GitHub | src/levels/registry.ts:11 | https://github.com/GC-WORK11 | yes | 200, name Govinda Chauhan |
 | Contact: LinkedIn | src/levels/registry.ts:12 | https://in.linkedin.com/in/govinda-flow | yes | linked from S1 and S2; LinkedIn answers 999 to scripts, so the page itself was not fetched |
 | Contact: Résumé | src/levels/registry.ts:13 | RESUME (line 8) | yes | same file |
-| Contact: X (was x.com/Govinda_00000) | removed | none | no | no source ties this handle to the owner. S3 has no X handle. S2 links x.com/Doorway_harness. Owner decision |
+| Contact: X (was x.com/Govinda_00000) | removed | none | n/a (removed) | removed from CONTACT (src/levels/registry.ts:9-13), not on screen. No source ties this handle to the owner. S3 has no X handle. S2 links x.com/Doorway_harness |
 
 ### L01 (The first step)
 
@@ -113,7 +113,7 @@ Not used as sources: the Devpost "NoHands" page (a different project), and alive
 | Place the sensors and clear the smog. / Drag the sensors onto the glowing spots | src/levels/registry.ts:73 | n/a | n/a | instruction |
 | ALive shows the air at the exact spot you stand on in Delhi-NCR, and routes where you breathe less smoke. It runs on AWS. | src/levels/registry.ts:74 | S4 README and repo description | yes | "launched on Oct 11" removed (no source) |
 | The air field is rebuilt every 15 minutes from ground monitors and a model grid. | src/levels/registry.ts:75 | S4 air-field diagram: "Rebuilt every 15 minutes" from CPCB, DPCC, OpenAQ and WAQI monitors plus a CAMS model grid | yes | "ground monitors", not "government monitors": OpenAQ and WAQI are not government sources |
-| Search covers over 240,000 Delhi places. | src/levels/registry.ts:75 | S4: "240,027 Delhi + 19,004 NCR places" in the local index | yes | the earlier "240k" was supported (240,027); now written as "over 240,000" |
+| Search covers over 240,000 Delhi places. | src/levels/registry.ts:75 | 240,027 figure, exact locations: https://raw.githubusercontent.com/GC-WORK11/ALive/main/README.md line 203 ("240,027 Delhi + 19,004 NCR places", search index) and line 221 ("240,027-place Delhi gazetteer"); line 50 says "240,000-place Delhi index". Data file in the same repo: server/data/delhi-gazetteer.json (https://github.com/GC-WORK11/ALive/blob/main/server/data/delhi-gazetteer.json, 22,988,013 bytes; entry count not re-counted) | yes | "over 240,000" is true of 240,027. The earlier "240k" was supported; now written as "over 240,000" |
 | Live (link) | src/levels/registry.ts:76-79 | https://delhi-is-alive.vercel.app | yes | 200 (app at /app/) |
 | GitHub (link) | src/levels/registry.ts:78 | https://github.com/GC-WORK11/ALive | yes | 200 |
 | Clear air (badge) | src/levels/registry.ts:79 | n/a | n/a | label |
@@ -233,26 +233,28 @@ What the finale shows: the L09 eyebrow and line, the project list (title, place,
 | Contact labels and URLs (Email, GitHub, LinkedIn, Résumé) | src/levels/registry.ts:10-13; src/v5/ui/Finale.tsx:63-66 | mailto address in résumé and portfolio; https://github.com/GC-WORK11; https://in.linkedin.com/in/govinda-flow (linked from résumé and portfolio); RESUME (200) | yes | LinkedIn answers 999 to scripts, so the page itself was not fetched |
 | Weekends (L03 place; finale project list) | src/levels/registry.ts:45 (place); src/v5/ui/Finale.tsx:44 | résumé section "PRODUCTS & WEEKEND BUILDS" and "weekend web products" (https://govinda-01.vercel.app/Govinda_Chauhan_ML_Systems_Resume.pdf) | yes | not a calendar date: it names the weekend builds |
 | Small websites (L03 title; finale project list) | src/levels/registry.ts:45 (title); src/v5/ui/Finale.tsx:43 | n/a | n/a | game label for the four weekend sites: CEO Hunt, Flow Pitch, Delegators Workbench, Doorway IDE |
-| Project list includes L01 ("The first step", place "IIT Patna") | src/v5/ui/Finale.tsx:17 | résumé ("IIT Patna — BS, Computer Science & Data Analytics") for the place | no | L01 is not a project. The place is verified; the listing is a WORLD filter issue, not a date or name error |
+| Project list includes L01 ("The first step", place "IIT Patna") | src/v5/ui/Finale.tsx:16 | committed PROJECTS list: L03, L05, L04, L06, L07, L08 (Finale.tsx:16); résumé for the place "IIT Patna — BS, Computer Science & Data Analytics" | yes | fixed in committed code: L01 is no longer listed |
 
 ## Other on-screen copy (owners act on these)
 
 | claim | file:line | source URL | verified | note |
 |---|---|---|---|---|
-| Ribbon year "2023" for L01 and L02 | src/v5/core.ts:22 | none | no | no source has 2023. Owner: change or source |
-| Ribbon year "2024" for L03 and I01 | src/v5/core.ts:22 | none | no | no source has 2024 |
-| Ribbon year "2026" for I02 | src/v5/core.ts:23 | none | no | the trip year has no source |
-| Ribbon "Aug 2026" (L05), "Oct 2026" (L04), "2026" (L06, L07, L08), "Nov 2026" (L09) | src/v5/core.ts:22-23 | S3, S9, S4 | yes | |
-| "each island is a short game about something real I built" | src/v5/ui/HowTo.tsx:48-49 | none | no | false for I01, I02 and L02, which are not projects. Suggest: "Each project island is a short game about something real I built." |
-| Finale project list includes L01 (Résumé link and tech) | src/v5/ui/Finale.tsx:17 | n/a | no | L01 is not a project. WORLD to filter |
-| facts.ts VERIFIED is an empty stub | src/v5/ui/facts.ts:13 | this file | pending | once FACTS lands, set tech and story to yes for L01, L03, L04, L05, L06, L07, L08, L09 |
-| "Give each laptop only the layers it can hold." | src/levels/L05/Game.tsx:159 | none | no | "layers" is unsourced (S9 says shards) |
-| "one 27B model" with "{P[12]} GB", the "{s} GB" labels and "{sum} / {cap} GB" bars | src/levels/L05/Game.tsx:5, 7-10, 47, 160, 169 | none | no | the 30 GB total and the 16/8/8/4 GB laptop caps are invented game numbers. Owner: label as game scale or remove |
-| AQI readings 232, 187, 168, 151 on the sensor signs | src/levels/L04/Obstacle.tsx:33-35 | none | no | invented readings shown on screen. Owner: remove the digits or label them as illustration |
-| "Helper, make a 3 question test on photosynthesis" and "Ask the helper for a test." | src/levels/L09/Game.tsx:123, 134 | none | no | demonstrates the removed Chalk product. Owner: remove or re-theme |
+| Ribbon year "2023" for L01 and L02 | src/v5/ui/Ribbon.tsx:22-25 (rendered labels; core.ts WHEN is not rendered) | none | no (open) | the 2023 label still shows. Ribbon.tsx is a WORLD file this pass does not change or commit. No source for 2023. Patch for WORLD in docs/notes/V6-FACTS.md. The rail positions (Ribbon.tsx:12-14) are also unsourced. Owner decision (open item 3) |
+| Ribbon year "2024" for L03 and I01 | src/v5/ui/Ribbon.tsx:22-25 | none | no (open) | the 2024 label still shows (same WORLD file, not changed here). No source for 2024. Patch for WORLD in docs/notes/V6-FACTS.md. Owner decision (open item 3) |
+| Ribbon year "2025" tick | src/v5/ui/Ribbon.tsx:22-25 | S3 (GitHub account created 2025-01-21); S2 (AETHER card "Architecture notes · 2025") | no (open) | the 2025 axis label sits between I01 and L05, so it implies I01's year, which has no source. Part of open item 3 |
+| Ribbon year "2026" (the 2026 tick that I02 falls under) | src/v5/ui/Ribbon.tsx:22-25 | S3 (repos created 2026-10-10 to 2026-10-27); S9 (Ent runs in 2026) | no (open) | the 2026 axis label spans L05 to L09 (sourced years) but also covers I02, whose year has no source (rail position Ribbon.tsx:13, T=2026.8). Owner decision (open item 3) |
+| Island month labels in core.ts WHEN ("Aug 2026", "Oct 2026", "Nov 2026", "2026") | src/v5/core.ts:22-23 | n/a | n/a | not rendered: WHEN is exported; its only other src reference is a comment (Ribbon.tsx:10) |
+| "Each project island is a short game about something real I built" | src/v5/ui/HowTo.tsx:48-49 | the six project islands, L03, L04, L05, L06, L07, L08 (committed PROJECTS list, Finale.tsx:16; repo and demo table above) | yes | fixed in committed code. The old wording said every island, which is false for I01, I02 and L02 |
+| Finale project list includes L01 (Résumé link and tech) | src/v5/ui/Finale.tsx:16 | n/a | yes | duplicate of the L01 row above; resolved in the committed PROJECTS list |
+| facts.ts VERIFIED (tech and story gate) | src/v5/ui/facts.ts:15-17 | this file | yes | populated in committed code for L01, L03, L04, L05, L06, L07, L08, L09 |
+| "Give each laptop only the shards it can hold." | src/levels/L05/Game.tsx:159 | S9 ("Two Windows legs serving real shards over LAN and Tailscale") | yes | "layers" replaced with "shards" |
+| "one 27B model" (L05 caption) | src/levels/L05/Game.tsx:160 | S9 (RUN 03: Qwen3.8-27B, 27 billion parameters) | yes | the GB labels and totals that were at Game.tsx:47, 160 and 169 are removed. Slab index labels L1 to L12 remain (game index, not a claim). The LAPTOPS caps stay as game logic and are not shown as numbers |
+| "AQI" sign label (no reading shown) | src/levels/L04/street.v5.tsx:315 | S4 (ALive shows AQI at a point) | yes | the invented readings 232, 187, 168, 151 (L04/Obstacle.tsx:33-35) are no longer drawn: aqiTagTex prints the label only (street.v5.tsx:318 removed). The array stays as code only |
+| "Three quick questions about plants." and "Tap send to start the quiz." (replaced the Helper line) | src/levels/L09/Game.tsx:123, 134 | the quiz has 3 questions (Game.tsx:13-17) | yes | the claim that a helper writes tests is removed; no public source found for that product (open item 2). The avatar emoji is removed too |
+| Quiz facts: plants make oxygen; plants need light from the sun; leaves catch sunlight | src/levels/L09/Game.tsx:14-16 | https://en.wikipedia.org/wiki/Photosynthesis (checked 2026-11-04): "releases oxygen as a byproduct of water splitting"; "convert light energy—typically from sunlight"; chlorophyll "abundant in leaf cells" | yes | general science, not a claim about the author or the projects |
 | "every 15 min" pill | src/levels/L04/Game.tsx:142 | S4 | yes | |
 | Pennant labels "Workbench" and "Doorway" | src/levels/L03/Game.tsx:20-21 | S13 | yes | short names of the same two products. Kept as pennants; the link labels now use the full names. Owner optional |
-| Canvas text "Sign Flow" (should read "Sign-Flow"), "teach the laptop", "your own hand signs" | src/levels/L08/plaza.v5.tsx:137-141 | S6 | no | spelling: the canvas still says "Sign Flow", which does not match the registry title. The other two phrases match S6. Owner: L08 |
+| Canvas text "Sign-Flow" (plaza board), "teach the laptop", "your own hand signs" | src/levels/L08/plaza.v5.tsx:191, 194-195 | S6 (README "# Sign-Flow"; "Teach your phone camera a few hand signs of your own") | yes | fixed: the board now reads "Sign-Flow" (was "Sign Flow"). The other two phrases already match S6 |
 | Finale STACK: "React · Vercel", "Rust", "C++20 · Expo" | src/v5/ui/Finale.tsx:21-25 | S13 bundles, S1, S5 | yes | gated by facts.ts |
 | Finale name "Govinda Chauhan" and the Résumé button | src/v5/ui/Finale.tsx:34, 66 | S1 | yes | |
 | Other labels, prompts, captions, hints, aria text and control text (L01 to L09, I01, I02, HowTo, Chrome, Glyphs) | src/levels/*/Obstacle.tsx, Game.tsx, *.v5.tsx; src/v5/ui/HowTo.tsx:52-55; src/v5/ui/Chrome.tsx:55 | n/a | n/a | game copy with no factual claim. Examples: "The bell rings out over the rooftops." (L09), "A small rail line running past four towns" (I02), "Deploy" (L03), sample task labels (L06 Game.tsx:8-10) |
@@ -278,8 +280,8 @@ Each of these had no source:
 
 1. **X contact.** No source ties x.com/Govinda_00000 to the owner. The portfolio links x.com/Doorway_harness, and the GitHub profile has no X handle. Confirm the handle, then add it back with its source.
 2. **Chalk.** No repo, demo, résumé line or portfolio mention. Removed. Re-add with a public source.
-3. **2023 and 2024.** No source. The registry no longer uses them. The ribbon in src/v5/core.ts:22-23 still does.
+3. **Ribbon time scale (open).** The 2023, 2024, 2025 and 2026 labels still show (src/v5/ui/Ribbon.tsx, a WORLD file this pass does not change or commit). The rail positions for L01 to I01 still encode approximate years (Ribbon.tsx:12-14), including I02 at 2026.8, so the 2025 and 2026 marks sit on an unsourced scale. Patch for WORLD in docs/notes/V6-FACTS.md (empty the YEARS array). Owner decision: that patch, or source the dates.
 4. **53.7%.** The working paper (S10) says the strongest static run cut allocated VRAM from 12.533 GB to 5.798 GB and kept 80.65% of an exploratory quality score. The résumé says "bit-exact outputs", which applies only to the paging branch. The number is not on screen now.
-5. **In-world numbers.** The L05 GB figures and "layers" wording, the L04 AQI digits, and the L09 Helper demo are listed above with file:line.
-6. **Code gates.** The How-to-play line, the Finale project list, and the empty facts.ts stub need WORLD changes.
+5. **In-world numbers.** Resolved in this pass: the L05 GB labels and "layers" wording, the L04 AQI digits, and the L09 Helper demo. Also resolved: the plaza canvas spelling (src/levels/L08/plaza.v5.tsx:191).
+6. **Code gates.** Resolved in committed code: the How-to-play line, the Finale project list (L01 removed), and facts.ts VERIFIED.
 7. **LinkedIn.** Scripts get 999 from linkedin.com, so the link is confirmed only by S1 and S2.

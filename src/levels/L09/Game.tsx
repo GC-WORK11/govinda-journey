@@ -119,8 +119,8 @@ export default function Game({ onWin }: GameProps) {
         {state === 'idle' && (
           <div className="l09-bubble" data-qa="teacher-bubble">
             <div className="l09-bubble-inner">
-              <div className="l09-avatar" aria-hidden="true">👨‍🏫</div>
-              <p className="l09-msg">Helper, make a 3 question test on photosynthesis</p>
+              <div className="l09-avatar" aria-hidden="true"></div>
+              <p className="l09-msg">Three quick questions about plants.</p>
             </div>
             <button className="l09-send" data-qa="send-btn" onClick={handleSend} aria-label="Send message">
               Send
@@ -131,7 +131,7 @@ export default function Game({ onWin }: GameProps) {
 
       {/* Hint */}
       {state === 'idle' && (
-        <p className="l09-hint">Ask the helper for a test.</p>
+        <p className="l09-hint">Tap send to start the quiz.</p>
       )}
       {(state === 'drawing' || state === 'answering') && answered.filter(a => a !== null).length < 3 && (
         <p className="l09-hint">Answer each question.</p>

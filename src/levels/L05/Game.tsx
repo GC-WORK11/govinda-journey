@@ -44,7 +44,6 @@ function Lap({ os, cap, sum, hue, lit, over, qa }: { os: string; cap: number; su
       </svg>
       <span className="os">{os}</span>
       <span className="bar"><i style={{ width: `${Math.min(100, (sum / cap) * 100)}%`, background: over ? OVER : hue }} /></span>
-      <span className="gb">{sum} / {cap} GB</span>
     </div>
   )
 }
@@ -156,8 +155,8 @@ export default function Game({ onWin }: GameProps) {
   return (
     <div className={`l05 ${sending ? 'locked' : ''}`}>
       <style>{CSS}</style>
-      <p className="l05-hint">Give each laptop only the layers it can hold.</p>
-      <div className="l05-cap"><span>one 27B model</span><span>{P[12]} GB · every layer stays in order</span></div>
+      <p className="l05-hint">Give each laptop only the shards it can hold.</p>
+      <div className="l05-cap"><span>one 27B model</span></div>
       <div className="l05-stack" ref={stackRef}>
         <div className="l05-slabs">
           {LAYERS.map((s, i) => {
@@ -166,7 +165,7 @@ export default function Game({ onWin }: GameProps) {
             return (
               <div className={`l05-slab ${over ? 'over' : ''}`} key={i}
                 style={{ width: 42 + s * 38, background: over ? 'rgba(207,111,86,.2)' : rgba(LAPTOPS[gi].hue, 0.13) }}>
-                <b>L{i + 1}</b><span>{s} GB</span>
+                <b>L{i + 1}</b>
               </div>
             )
           })}

@@ -301,7 +301,7 @@ export function CableSpan({ from, to, sag = 0.3, ...p }: P & { from: V3; to: V3;
   return <mesh {...p} geometry={geo} material={clay('#4c4640')} />
 }
 
-/** Small sign texture with a tiny printed AQI number. */
+/** Small sign texture with an AQI label. */
 export function aqiTagTex(aqi: number) {
   return makeTex(128, 96, (ctx) => {
     ctx.fillStyle = 'rgba(251,246,238,0.94)'
@@ -313,8 +313,5 @@ export function aqiTagTex(aqi: number) {
     ctx.font = '500 22px Inter, system-ui, sans-serif'
     ctx.textAlign = 'center'
     ctx.fillText('AQI', 64, 36)
-    ctx.fillStyle = '#3b3330'
-    ctx.font = '600 34px Inter, system-ui, sans-serif'
-    ctx.fillText(String(aqi), 64, 72)
   })
 }

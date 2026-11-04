@@ -188,7 +188,7 @@ export function Board() {
     ctx.fillStyle = '#3b3330'
     ctx.font = '600 30px Fraunces, Georgia, serif'
     ctx.textAlign = 'center'
-    ctx.fillText('Sign Flow', 128, 52)
+    ctx.fillText('Sign-Flow', 128, 52)
     ctx.font = '400 15px Inter, sans-serif'
     ctx.fillStyle = '#6b5f55'
     ctx.fillText('teach the laptop', 128, 84)
