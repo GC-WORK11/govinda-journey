@@ -123,3 +123,7 @@ body:has(.v5-how.on) .gjv5-isla-hint { opacity: 0; visibility: hidden; }
   .v5-ribbon .dot, .v5-cap, .v5-fin, .v5-how { transition: none; }
   .v5-glyph.earned .art, .v5-how .begin { animation: none; }
 }
+
+/* night levels: dark-ink fade instead of paper, light text */
+body.gj-night .v5-cap { background: radial-gradient(ellipse 60% 70% at 50% 50%, rgba(22,20,38,.72), rgba(22,20,38,0) 78%); color: #f2ead8; }
+body.gj-night .v5-cap * { color: inherit; }

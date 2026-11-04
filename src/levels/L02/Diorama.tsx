@@ -63,6 +63,8 @@ export default function Diorama({ unlocked }: DioramaProps) {
 
   return (
     <group>
+      {/* V5: squat the gate line so it reads as a gate, not a wall over the island (visual only) */}
+      <group scale={[1, IS_V4 ? 1 : 0.6, 1]}>
       {/* Stone pillars + caps + wall wings — ONE merged mesh */}
       <Merged items={GATE_LINE} />
 
@@ -103,6 +105,7 @@ export default function Diorama({ unlocked }: DioramaProps) {
       {/* Scattered letters on ground (before unlock) — one mesh */}
       {!unlocked && <Merged items={PAPERS} />}
 
+      </group>
       {/* letters that never got through — one slipped under the closed gate, a few kept by the pillars */}
       <Letter position={[0, 0.008, -0.5]} rotation={[0, 0.12, 0]} />
       <Letter position={[-0.8, 0.09, -0.47]} rotation={[-0.5, 0.08, 0.06]} />
