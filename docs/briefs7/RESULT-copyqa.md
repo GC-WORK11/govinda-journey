@@ -201,7 +201,7 @@ Columns: surface, `file:line`, string, FACTS verdict (quoted), flag. "n/a" means
 | caption after solve (tech) | `registry.ts:114` | The phone reads 21 points on your hand, and the laptop matches each sign against the takes you recorded. Each sign types a phrase or runs an action. | FACTS.md:170-171 yes (S6 "Only 21 landmark points per hand go to the laptop") | ok |
 | badge | `registry.ts:115` | No hands | n/a label | ok |
 | links | `registry.ts:115` | Live · GitHub | FACTS.md:172-173 yes | ok |
-| pill | `L08/Obstacle.tsx:188` | Tap the hand that matches (registry hint, `registry.ts:112`) | n/a | VERIFY: the V5 path is "trace the sign"; confirm the plaza board has tappable hands |
+| pill | `L08/Obstacle.tsx:188` | Tap the hand that matches (registry hint, `registry.ts:112`) | n/a | FLAG: nothing is tappable. The plaza board cards only carry links (`plaza.v5.tsx:219-226`, no click handler). The V5 flow is "speak to the guardian", "read the plaza board", "trace the sign". Replace the pill with the V5 instruction. |
 | caption | `L08/Obstacle.tsx:122` | The guardian steps aside. | n/a | ok |
 | caption | `L08/Obstacle.tsx:134` | Match the sign on the laptop first. | n/a | ok |
 | caption | `L08/Obstacle.tsx:152` | The guardian shows you a sign. | n/a | ok |
@@ -215,10 +215,11 @@ Columns: surface, `file:line`, string, FACTS verdict (quoted), flag. "n/a" means
 | sign note | `signui.v5.tsx:141` | Trace the shape in one stroke. · Not quite — follow the shape once more. | n/a | ok |
 | camera note | `signui.v5.tsx:188` | Camera unavailable — draw with a finger or mouse. | n/a | ok |
 | sign pad buttons | `signui.v5.tsx:240,242,244` | Clear · or sign to the camera · stop the camera | n/a | ok |
-| camera privacy line | `signui.v5.tsx:246` | Move your hand slowly — nothing leaves this device. | NO FACTS LINE. S6 says the phone sends 21 landmark points to the laptop, so "nothing leaves this device" is unsourced and possibly false | FLAG: source it or cut |
+| camera privacy line | `signui.v5.tsx:246` | Move your hand slowly — nothing leaves this device. | NO FACTS LINE. No network call exists in `src/levels/L08` (grep), so the on-page camera may be local. But FACTS.md has no line for it, and S6 (FACTS.md:170) says landmark points go from the phone to the laptop. | FLAG: source it or cut |
 | close (aria) | `v5kit.v5.tsx:221` | Close | a11y | ok |
 | v4 only | `L08/Game.tsx:227,230,249,258,267,273` | Teach each hand a key, then sign the sentence. · Step 1 · teach · Step 2 · sign · hello · the laptop needs · Use my camera | n/a | v4 path also imports `L08/Play.tsx` (live); `Game.tsx` is v4-only |
 | story (not on V5 route) | `registry.ts:113` | … Built for the #NoHandsChallenge. | FACTS.md:169 yes (S6 credits) | hashtag reads as social copy; prefer "Built for the No Hands challenge" |
+| win burst (no text) | `L08/Play.tsx:260` | 24-particle burst, colour `#f2b35e`, fired on win | design rule: no confetti | FLAG: confetti-like effect on the V5 path (`L08/Obstacle.tsx:19` imports this `Play`). Confirm in the screenshot. |
 
 ### L09 The schoolhouse (finale)
 
@@ -251,6 +252,7 @@ Columns: surface, `file:line`, string, FACTS verdict (quoted), flag. "n/a" means
 
 * The V5 Ribbon has no visible text (years removed, `Ribbon.tsx:21`), so the FACTS-unverified years never show.
 * `WHEN` labels (`src/v5/core.ts:21-24`: 2023, 2024) are not rendered anywhere (grep: no use). Code only.
+* `Heli` default prompt "climb in" (`src/v5/player/Heli.tsx:60`) appears only on `?sandbox` (`Sandbox.tsx:95`). L06 overrides it with "Board the helicopter" (`L06/Obstacle.tsx:183`).
 
 ## 3. Proposed one-line taglines (one per project)
 
@@ -276,8 +278,8 @@ PENDING. Screenshots queued (see section 6). The Chrome lock was held by another
 1. storyA, `registry.ts:49` and `:54`: "Doorway, a desktop app" is the desktop repo; the "Doorway IDE" link is the web demo. FACTS.md:196 says separate. Split the sentence or rename the link.
 2. storyC, `registry.ts:94`, rendered at `L06/Obstacle.tsx:490`: the pill "Tap a task on the phone" describes a V4 mechanic. The V5 phone has no task list. Replace with a V5 instruction.
 3. storyD, `registry.ts:106`: badge "No keys" has no FACTS line and reads as a claim. Use a plain label.
-4. storyD, `src/levels/L08/signui.v5.tsx:246`: "nothing leaves this device" has no FACTS line, and S6 says landmarks go to the laptop. Source it or delete it.
-5. storyD, `L08/Obstacle.tsx:188`: the pill "Tap the hand that matches" needs a check that the plaza board is tappable.
+4. storyD, `src/levels/L08/signui.v5.tsx:246`: "nothing leaves this device" has no FACTS line. The page makes no network call, so it may be true for the on-page camera, but S6 says landmarks go from the phone to the laptop. Source it or delete it.
+5. storyD, `L08/Obstacle.tsx:188`: the pill "Tap the hand that matches" points at nothing tappable on V5. Replace it with the V5 instruction.
 6. storyD, `registry.ts:113`: "#NoHandsChallenge" is a hashtag. Use the challenge name in words (FACTS.md:169 credits "No Hands" challenge).
 7. storyA, `L03/Obstacle.tsx:150,180`: captions in lowercase; the rest of the game is sentence case. Pick one.
 8. storyA, `src/levels/L02/Game.tsx:16`: v4-only letters that say "No" and "Not this time". This reintroduces the rejection story FACTS.md:57-58 removed. Delete with the v4 path.
@@ -291,7 +293,6 @@ PENDING. Screenshots queued (see section 6). The Chrome lock was held by another
 ## 6. Verification
 
 * Visible-copy scans: exclamation, emoji, "level complete", cringe, misspelling list, HUD / vendor / Mergetober / fellowship names (grep over `src`). Results in section 1.
-* Typecheck and screenshots: pending (see below).
-* Dev server on 127.0.0.1:5215 (`--strictPort`), stopped by PID when done.
-
-Pending screenshot batch (`proofs/v7/copyqa/`, job file `/tmp/gj7-copyqa-jobs1.tsv`): fresh intro at 1440 and 390 (`/` and `/?lite`), then `?qa&fresh&at=<ID>&unlock` for L01 and L02 at both sizes. Further islands and the finale come after this batch.
+* Typecheck: `nice ./node_modules/.bin/tsc --noEmit -p .` passes (exit 0) with the two section 0 edits.
+* Screenshots: queued behind another session's Chrome lock (`/tmp/gj-chrome.lock`). The first batch hit the 30-minute lock wait and exited without output. Re-queued as a smaller batch (intro, finale, L03, L05 at 1440 and 390), then L01, L02, L04, L06 to L09, I01, I02. Section 4 is filled from `proofs/v7/copyqa/` once captured (gitignored).
+* Dev server on 127.0.0.1:5215 (`--strictPort`, shell `1517de`), stopped by PID when done.
