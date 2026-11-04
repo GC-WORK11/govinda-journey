@@ -10,25 +10,26 @@ held.
 
 ### 1. Bridge5 — deck/rope boardwalk over island rims (the systematic bug)
 
-Every bridge deck ran *inside* the island's lathe lip at both ends:
-`deckY` lerped between endpoint anchors (on the island top) and started
-the sag immediately, so from r≈4.2 to r≈5.8 the plank run sat below the
-overhanging lip the whole way out — worst on climbing spans (e.g. into
-L06: deck down to −0.79 vs lip top ≈0.3 → 0.67 m buried). Rope rails
-grazed the same lip on high-target islands. V7 audits had flagged the
-buried ends as "anchored ~0.1 by design"; measured across all ten spans
-it was the dominant clip in the world.
+Every bridge deck ran *inside* the island's lathe lip at both ends: the
+deck profile sagged from the mouth anchors, so between r≈4.2 and the lip
+edge the plank run sat below the overhanging grass lip. Upstream's V7
+`sin²` fix (973a06b, flat-tangent mouths + pulled posts + tied rope ends)
+reduced it but did not remove it — the offline audit still measured deck
+embedded on **all 20 mouths**, worst 0.55 m into L06 plus rope hits into
+I01/L05/L06.
 
-Fix in `src/v5/world/Bridge5.tsx`: the deck profile now runs **flat at
-island-top + 0.05** from each mouth out to where the path clears that
-island's rim circle (r = 5.85 ≥ lip bulge 1.04·R + wobble ≈ 5.66), then
-lerps + sags only across the open-air span. Rails follow the same
-profile; the invisible walk strip matches. Planks read as a little
-boardwalk onto each rim — same look, zero burial, continuous profile.
+This branch layers the real fix on top of upstream's improved file (their
+post pulls, rope ties and walk-strip tapers kept): `deckY` now runs **flat
+at island-top + 0.05** from each mouth out to where the path clears that
+island's rim circle (RIM_CLEAR = 5.85 ≥ lip bulge 1.04·R + wobble ≈ 5.66),
+then lerps + sags only across the open-air span. Planks read as a little
+boardwalk onto each rim; the profile is continuous, and the walk strip
+follows it so the player's feet match the visible deck.
 
-Verified offline (`scripts/v5/clip-offline.mjs`, exact lathe + raycast
-replica): **0 embedded vertices / 0 lip intersections on all 10 spans**
-(before: 20 deck runs buried, 13–40 verts each, max depth 0.67).
+Verified with `scripts/v5/clip-offline.mjs` (exact island lathe + bridge
+geometry replica + down-raycast inside test):
+- upstream `sin²` profile: **410 embedded vertices** across the 10 spans
+- boardwalk profile: **0**
 
 ### 2. Audit tooling
 
