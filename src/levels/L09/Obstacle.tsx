@@ -250,8 +250,8 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
   // the door opens once every window is warm — one calm motion, then complete()
   useEffect(() => {
     if (!allLit || completed.current) return
-    const t1 = setTimeout(() => setDoorOpen(true), 450)
-    const t2 = setTimeout(() => { completed.current = true; complete() }, 2400)
+    const t1 = setTimeout(() => setDoorOpen(true), 300)
+    const t2 = setTimeout(() => { completed.current = true; complete() }, 1100)
     return () => { clearTimeout(t1); clearTimeout(t2) }
   }, [allLit])
 

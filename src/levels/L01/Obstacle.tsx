@@ -69,7 +69,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       : null
     if (h !== hintNow.current) { hintNow.current = h; setHint(h) }
     if (open && openT.current < 1) {
-      openT.current = Math.min(1, openT.current + dt / 1.7)
+      openT.current = Math.min(1, openT.current + dt / 1.1)
       if (openT.current > 0.8 && !completed.current) { completed.current = true; complete() }
     }
   })

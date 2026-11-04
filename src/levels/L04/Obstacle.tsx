@@ -196,7 +196,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
     const last = pulses.current.length ? t - Math.max(...pulses.current.map((p) => p.t0)) : 99
     reveal.current = done ? 0 : last < PULSE_WINDOW ? 1 : Math.max(0, 1 - (last - PULSE_WINDOW) / 0.9)
     if (clearing.current && clearT.current < 1) {
-      clearT.current = Math.min(1, clearT.current + dt / 4.2)
+      clearT.current = Math.min(1, clearT.current + dt / 2.6)
       if (clearT.current >= 0.99 && !completed.current) { completed.current = true; complete() }
     }
     lit.current = smooth(0.55, 0.95, clearT.current)

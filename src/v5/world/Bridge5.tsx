@@ -116,7 +116,7 @@ export function Bridge5({ i, shown }: { i: number; shown: boolean }) {
   const st = useRef({ p: shown ? 1 : 0, landed: shown })
   useFrame((_, dt) => {
     const k = st.current
-    k.p = RM ? (shown ? 1 : 0) : shown ? Math.min(1, k.p + dt / 1.45) : 0
+    k.p = RM ? (shown ? 1 : 0) : shown ? Math.min(1, k.p + dt / 0.95) : 0
     const rp = Math.min(1, Math.max(0, (k.p - 0.02) / 0.3))
     const re = 1 - Math.pow(1 - rp, 3)
     if (railsWrap.current) { railsWrap.current.scale.set(Math.max(0.0001, re), 1, 1); railsWrap.current.visible = rp > 0.001 }

@@ -487,7 +487,7 @@ export default function Obstacle({ id, active, complete, done }: ObstacleProps) 
     if (pad) {
       if (S2.phase === 'riding') {
         S2.liftT += dtm
-        const k = sm01(Math.min(1, S2.liftT / 2.6))
+        const k = sm01(Math.min(1, S2.liftT / 1.7))
         pad.position.y = k * (DECK_Y - PAD_TOP)
         pad.getWorldPosition(_w)
         const top = _w.y + PAD_TOP
@@ -496,10 +496,10 @@ export default function Obstacle({ id, active, complete, done }: ObstacleProps) 
           Math.abs(player.pos.z - _w.z) < PAD_D / 2 + 0.05 &&
           player.pos.y < top + 0.3 && player.pos.y > top - 2.0
         ) player.pos.y = top
-        if (S2.liftT / 2.6 >= 1) { S2.phase = 'top'; completeOnce() }
+        if (S2.liftT / 1.7 >= 1) { S2.phase = 'top'; completeOnce() }
       } else if (S2.phase === 'down') {
         S2.liftT += dtm
-        const k = sm01(Math.min(1, S2.liftT / 2.2))
+        const k = sm01(Math.min(1, S2.liftT / 1.5))
         pad.position.y = (1 - k) * (DECK_Y - PAD_TOP)
         pad.getWorldPosition(_w)
         const top = _w.y + PAD_TOP

@@ -36,7 +36,7 @@ export function HowTo() {
   // unmount after the fade so it can never block input again
   useEffect(() => {
     if (show || gone) return
-    const t = window.setTimeout(() => setGone(true), 900)
+    const t = window.setTimeout(() => setGone(true), 600)
     return () => window.clearTimeout(t)
   }, [show, gone])
 

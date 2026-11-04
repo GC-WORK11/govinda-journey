@@ -120,7 +120,7 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
     if (stage === 'aside' && d < 0.12 && !completed.current) {
       completed.current = true
       caption('The guardian steps aside.')
-      setTimeout(() => complete(), 650)
+      setTimeout(() => complete(), 400)
     }
   })
 
@@ -151,7 +151,7 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
           setStage('shown')
           caption('The guardian shows you a sign.')
           // a beat to watch the tablet rise, then the pad opens on its own
-          setTimeout(() => setOverlay('sign'), 950)
+          setTimeout(() => setOverlay('sign'), 500)
           setOverlay('none')
         }} />
       ) : overlay === 'sign' ? (

@@ -18,8 +18,8 @@ import { clay, chipTexture } from './kit.v5'
 import { WORDS, CHIP_STAGE, MIC_BASE, SCREEN_FRONT, K, onIsland } from './layout'
 import { studio } from './studio'
 
-const FLY_MS = 1000
-const GAP_MS = 420
+const FLY_MS = 640
+const GAP_MS = 240
 const CHIP = CHIP_STAGE.map(onIsland)
 const GROUND = CHIP_STAGE.map((p) => onIsland(new THREE.Vector3(p.x, 0, p.z)))
 const LAND = onIsland(SCREEN_FRONT)
@@ -124,7 +124,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   useEffect(() => {
     if (nLanded < WORDS.length || doneRef.current) return
     setOpen(false)
-    const t = window.setTimeout(() => completeRef.current(), 1400)
+    const t = window.setTimeout(() => completeRef.current(), 700)
     return () => window.clearTimeout(t)
   }, [nLanded])
 

@@ -19,7 +19,7 @@ export function Caption() {
   useEffect(() => {
     if (caption === text) { setOn(!!caption); return }
     setOn(false)
-    const t = window.setTimeout(() => { setText(caption); setEyeb(eyebrow); if (caption) setOn(true) }, 380)
+    const t = window.setTimeout(() => { setText(caption); setEyeb(eyebrow); if (caption) setOn(true) }, 200)
     return () => window.clearTimeout(t)
   }, [caption, eyebrow]) // eslint-disable-line react-hooks/exhaustive-deps
 

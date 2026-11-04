@@ -88,7 +88,7 @@ function ExitGate({ id, open }: { id: IslandId; open: boolean }) {
     return g
   }, [])
   useFrame((_, dt) => {
-    t.current += ((open ? 1 : 0) - t.current) * Math.min(1, dt * (RM ? 100 : 1.8))
+    t.current += ((open ? 1 : 0) - t.current) * Math.min(1, dt * (RM ? 100 : 2.6))
     // swings outward (over the void) so the open leaf never lies across the path
     if (hinge.current) hinge.current.rotation.y = t.current * 1.9
   })

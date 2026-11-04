@@ -25,7 +25,7 @@ const LETTERS = [
  *  is mounted (the dome covers x −1.56…1.56, z −2.2…−0.3 on this island). */
 const STEP_TOPS = [0.32, 0.64, 0.96, 1.28, 1.6]
 const STEP_POS = STEP_TOPS.map((y, i) => new THREE.Vector3(2.1 + (i % 2 ? 0.08 : -0.08), y, -1.0 - i * 0.34))
-const FLY_S = 0.95
+const FLY_S = 0.7
 
 type Slot = {
   pos: THREE.Vector3
@@ -179,7 +179,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
 
   useEffect(() => {
     if (placed >= 5 && !open) {
-      const tm = setTimeout(() => setOpen(true), 500)
+      const tm = setTimeout(() => setOpen(true), 250)
       return () => clearTimeout(tm)
     }
   }, [placed, open])

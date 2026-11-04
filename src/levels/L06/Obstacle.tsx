@@ -319,7 +319,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       s.vel.multiplyScalar(Math.exp(-4 * dt))
       s.rotor = THREE.MathUtils.lerp(s.rotor, 0.15, dt * 1.4)
       s.yaw = THREE.MathUtils.lerp(s.yaw, atHome ? 2.4 : 0.8, Math.min(1, dt * 2))
-      if (s.landT > 1.6) {
+      if (s.landT > 0.9) {
         s.landT = 0
         if (atHome) {
           setPhase('walk')
@@ -332,7 +332,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
           setPhase('done'); solved.current = true
           const w2 = root.current ? root.current.localToWorld(_v.copy(STEP_OUT)) : _v.copy(STEP_OUT)
           J()?.player?.teleport?.(w2.x, w2.y, w2.z)
-          window.setTimeout(() => { release(); complete() }, 900)
+          window.setTimeout(() => { release(); complete() }, 450)
         }
       }
     }
@@ -376,7 +376,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
     })
     // bridge planks unfold (one InstancedMesh — matrices carry the stagger)
     if (bridgeG.current) {
-      const k = phaseRef.current === 'done' ? Math.min(1, (bridgeG.current.userData.t = (bridgeG.current.userData.t ?? 0) + 0.016) / 1.4) : 0
+      const k = phaseRef.current === 'done' ? Math.min(1, (bridgeG.current.userData.t = (bridgeG.current.userData.t ?? 0) + 0.016) / 0.9) : 0
       for (let i = 0; i < 6; i++) {
         const kk = THREE.MathUtils.clamp(k * 6 - i * 0.55, 0, 1)
         _pm.compose(_pv.set(PLANKS[i].x, PLANKS[i].y, PLANKS[i].z), PLANK_Q, _pv2.setScalar(Math.max(0.001, kk)))

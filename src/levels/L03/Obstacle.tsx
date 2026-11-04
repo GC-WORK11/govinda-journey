@@ -228,8 +228,8 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
           if (slab) core.walkables.add(slab)
           if (placedCount.current >= 3 && !doneRef.current) {
             doneRef.current = true
-            setTimeout(() => { setLit(true) }, 350)
-            setTimeout(() => complete(), REDUCED ? 700 : 1500)
+            setTimeout(() => { setLit(true) }, 200)
+            setTimeout(() => complete(), REDUCED ? 500 : 900)
           }
         }
       } else if (b.state === 'placed' && !b.landed) {

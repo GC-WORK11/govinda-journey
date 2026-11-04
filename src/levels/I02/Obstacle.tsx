@@ -76,8 +76,8 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
     if (active && !arrived.current && local.z < -1.15 && local.y > -1) arrived.current = true
     if (arrived.current && !completed.current) {
       arrivedT.current += dt
-      lit.current = Math.min(1, arrivedT.current / 1.2)
-      if (arrivedT.current > 1.4) { completed.current = true; complete() }
+      lit.current = Math.min(1, arrivedT.current / 0.8)
+      if (arrivedT.current > 0.5) { completed.current = true; complete() }
     }
   })
 
