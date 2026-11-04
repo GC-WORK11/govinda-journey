@@ -14,8 +14,9 @@ import { Caption } from './Caption'
 import { Glyphs } from './Glyphs'
 import { Finale } from './Finale'
 import { HowTo } from './HowTo'
+import { reveal } from './reveal'
 
-const TECH_MS = 6000
+const TECH_MS = 5000
 
 function useProgression() {
   useEffect(() => {
@@ -30,6 +31,7 @@ function useProgression() {
     const unsubDone = useV5.subscribe((s, p) => {
       if (s.done.length === p.done.length) return
       const id = s.done[s.done.length - 1]
+      reveal(id)
       const L = LEVEL_BY_ID[id]
       window.clearTimeout(techTimer)
       if (L) {

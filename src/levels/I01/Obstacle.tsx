@@ -10,6 +10,7 @@ import { useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import * as core from '../../v5/core'
+import { input, now } from '../../v5/player/input'
 import {
   C, clay, REDUCED, useLocalPlayer, tpLocal, tpWorld, useSolver, useAt, Hint,
   PathStones, Rock, Mound, StoneLantern, Prop, sleep, waitTp,
@@ -40,7 +41,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   const benchAt = useAt(root, BENCH.x - 0.4, 0.45, BENCH.z)
   const sitIt = useMemo<core.Interactable>(() => ({
     id: 'i01-bench', at: benchAt, radius: 1.25, label: 'sit for a moment',
-    enabled: () => !sit.current.on,
+    enabled: () => !sit.current.on || sit.current.phase === 1,
     use: () => {
       if (sit.current.on) return
       sit.current.on = true
@@ -61,24 +62,26 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
     // completion: crossing to the exit half
     if (!doneRef.current && lp.z < 0) { doneRef.current = true; complete() }
     const st = sit.current
+    sitIt.label = st.on ? 'stand up' : 'sit for a moment'
     if (st.on) {
       st.t += dt
+      if (st.phase === 1 && st.t > 0.9 && (input.useAt > now() || input.jumpAt > now())) { input.useAt = input.jumpAt = -1e9; st.t = 99 }
       const ease = (x: number) => x * x * (3 - 2 * x)
       if (st.phase === 0) {                    // glide to the seat
-        const k = ease(Math.min(1, st.t / 0.8))
+        const k = ease(Math.min(1, st.t / 0.6))
         tmpV.lerpVectors(st.from, seatLocal, k)
         tmpV.y += Math.sin(k * Math.PI) * 0.12
-        if (st.t >= 0.8) { st.phase = 1; st.t = 0 }
+        if (st.t >= 0.6) { st.phase = 1; st.t = 0 }
       } else if (st.phase === 1) {             // seated, watching the water
         tmpV.copy(seatLocal)
         tmpV.y += REDUCED ? 0 : Math.sin(s.clock.elapsedTime * 1.1) * 0.006
         core.player.facing = BENCH_YAW
-        if (st.t >= (REDUCED ? 2.2 : 4.2)) { st.phase = 2; st.t = 0 }
+        if (st.t >= (REDUCED ? 1.2 : 2.4)) { st.phase = 2; st.t = 0 }
       } else {                                 // stand back at the path
-        const k = ease(Math.min(1, st.t / 0.7))
+        const k = ease(Math.min(1, st.t / 0.5))
         tmpV.lerpVectors(seatLocal, st.back, k)
         tmpV.y += Math.sin(k * Math.PI) * 0.1
-        if (st.t >= 0.7) {
+        if (st.t >= 0.5) {
           st.on = false
           core.player.frozen = false
           const em = (core as any).playerEmote
