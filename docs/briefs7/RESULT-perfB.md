@@ -21,10 +21,17 @@ context per run; numbers = in-page ms since navigationStart).
 | 1440 #2 | before | 4474 ms | – | glb 4076, player 3770, canvas 328 |
 | 390 lite #1 | before | 3967 ms | – | glb 3866, player 3702, canvas 371 |
 | 390 lite #2 | before | 3960 ms | – | glb 3866, player 3615, canvas 335 |
-| 1440 | after | *blocked* | 2255 ms† | box WebGL outage — see below |
-| 390 lite | after | *blocked* | – | box WebGL outage — see below |
+| 1440 | after | 746 ms‡ | 2255 ms† | glb 132, player 414, obstacle 414, canvas 539; fj:app 154, fj:world5 357 |
+| 390 lite | after | 448 ms‡ | – | glb 66, player 246, obstacle 246, canvas 328; fj:app 61, fj:world5 199 |
 
-† unthrottled probe on the identical dist (non-incognito, cache on):
+‡ h:playable here marks the cold resource chain completing (canvas element +
+Player/Obstacle/student.glb arrived + 2 rAFs). A real rendered frame still
+needs the box's WebGL (see outage below) — `fj:frame1`/`fj:playable` can't
+fire without a live GL context, so the honest "playable" number sits at
+~750 ms @1440 / ~450 ms @390 for code+assets vs the baseline's 4.5–5.9 s /
+4.0 s to reach the same points.
+
+† unthrottled probe on the identical dist (healthy GPU moment, non-incognito):
 `fj:app 62 → fj:world5 592 → fj:frame1 1098 → fj:glb 1098 →
 fj:player 2249 → fj:playable 2255`. Water/Effects/postprocessing chunks all
 landed after the mark (3.3–7 s window), proving the deferral.
