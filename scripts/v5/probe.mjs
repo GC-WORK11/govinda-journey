@@ -19,7 +19,22 @@ await withChrome(async (b) => {
     if (!st.done.includes(c.V5_ORDER[bi])) st.complete(c.V5_ORDER[bi])
     await new Promise(r => setTimeout(r, 2600)) // let the bridge build
     const walkNames = [...c.walkables].map((o) => o.name || o.type).filter((n) => /bridge|walk/i.test(n))
-    const deck = (a, b2, t) => { const x = a.x + (b2.x - a.x) * t, z = a.z + (b2.z - a.z) * t; const y = a.y + (b2.y - a.y) * t - 0.06 - Math.sin(t * Math.PI) * 0.55; return { x, y, z } }
+    // deck profile mirrors Bridge5's deckAt: flat at top+0.05 inside each rim
+    // (RIM_CLEAR), sag only across the open-air span.
+    const RIM_CLEAR = 5.85, TOP_OFF = 0.05
+    const hdx = to.x - from.x, hdz = to.z - from.z, hlen = Math.hypot(hdx, hdz)
+    const rimDist = (e, dx, dz) => { const b = e.x * dx + e.z * dz; return -b + Math.sqrt(Math.max(0, b * b + RIM_CLEAR * RIM_CLEAR - (e.x * e.x + e.z * e.z))) }
+    const sA = rimDist({ x: l.EXIT.x, z: l.EXIT.z }, hdx / hlen, hdz / hlen)
+    const sB = rimDist({ x: l.ENTRY.x, z: l.ENTRY.z }, -hdx / hlen, -hdz / hlen)
+    const span = Math.max(1e-6, hlen - sA - sB)
+    const deck = (a, b2, t) => {
+      const x = a.x + (b2.x - a.x) * t, z = a.z + (b2.z - a.z) * t, s = t * hlen
+      let y
+      if (s <= sA) y = a.y + TOP_OFF
+      else if (s >= hlen - sB) y = b2.y + TOP_OFF
+      else { const u = (s - sA) / span; y = a.y + TOP_OFF + (b2.y - a.y) * u - Math.sin(u * Math.PI) * 0.55 }
+      return { x, y, z }
+    }
     const from = { x: l.ISLAND_POS[bi].x + l.EXIT.x, y: l.ISLAND_POS[bi].y + l.EXIT.y, z: l.ISLAND_POS[bi].z + l.EXIT.z }
     const to = { x: l.ISLAND_POS[bi + 1].x + l.ENTRY.x, y: l.ISLAND_POS[bi + 1].y + l.ENTRY.y, z: l.ISLAND_POS[bi + 1].z + l.ENTRY.z }
     const nearBlockers = []
