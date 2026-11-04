@@ -89,7 +89,10 @@ function bridgeGeo(from: THREE.Vector3, to: THREE.Vector3, cFrom: THREE.Vector3,
   for (let i = 0; i <= 40; i++) {
     const t = T0 + (i / 40) * (T1 - T0), p = from.clone().lerp(to, t)
     const tc = Math.min(1, Math.max(0, t))
-    const y = deckY(from, to, tc) + 0.045
+    // Tail tips taper just under the island walk disc (≈ -0.02): the rim seam
+    // still grabs a walker, but spawns/rim strolls inside the island stay on
+    // the disc like before — the bridge guide doesn't reach inland.
+    const y = deckY(from, to, tc) + 0.045 - Math.max(0, -t, t - 1) * 0.25
     // Plank width mid-deck; flares to corridor width at both mouths — players
     // who drop off a high exit (L02's ledge lip) or wander the curved start
     // still land on the strip instead of slipping past its edge.
