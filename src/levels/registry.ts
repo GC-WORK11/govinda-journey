@@ -57,9 +57,9 @@ export const LEVELS: LevelDef[] = [
   },
   {
     id: 'L05', kind: 'level', place: 'Aug – Sep 2026', title: 'Ent',
-    line: 'Four ordinary laptops, one 27B model, over Wi-Fi.',
+    line: 'Four laptops, three operating systems, one 27B model, over Wi-Fi.',
     task: 'Split the model so every laptop can hold its share.', hint: 'Drag each block onto a laptop',
-    story: 'Ent splits one large model across ordinary laptops. In the third run, four laptops on Linux, Windows and Mac served a 27B model together over Wi-Fi.',
+    story: 'I built Ent to pool ordinary laptops into one machine, so one large model can run across them. In the third run, four laptops on Linux, Windows and Mac served a 27B model together over Wi-Fi.',
     tech: 'Written in Rust. Each laptop runs its share in a sandbox and never gives up more than 60% of its memory.',
     links: [
       { label: 'Ent', href: 'https://ent-01.vercel.app' },
@@ -69,9 +69,9 @@ export const LEVELS: LevelDef[] = [
   },
   {
     id: 'L04', kind: 'level', place: 'Delhi · Oct 2026', title: 'ALive',
-    line: 'Built for the AWS × WeMakeDevs Environmental Hacks. Live, street-level air for Delhi-NCR.',
+    line: 'Street-level air for Delhi-NCR, rebuilt every 15 minutes.',
     task: 'Place the sensors and clear the smog.', hint: 'Drag the sensors onto the glowing spots',
-    story: 'ALive shows the air at the exact spot you stand on in Delhi-NCR, and routes where you breathe less smoke. It runs on AWS.',
+    story: 'I built ALive for the AWS × WeMakeDevs Environmental Hacks 2026, and it runs on AWS. It shows the air at the exact spot you stand on in Delhi-NCR, and routes where you breathe less smoke.',
     tech: 'The air field is rebuilt every 15 minutes from ground monitors and a model grid. Search covers over 240,000 Delhi places.',
     links: [
       { label: 'Live', href: 'https://delhi-is-alive.vercel.app' },
