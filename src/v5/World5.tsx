@@ -16,7 +16,7 @@ import { V5_ORDER, useV5, player, cinematic, type IslandId } from './core'
 import { ISLAND_POS, ENTRY, PATH_MID, islandIndex, islandPos } from './world/layout'
 import { Island5, purgeCorridors } from './world/Island5'
 import { Bridge5 } from './world/Bridge5'
-import { hasObstacle, Player, ArtWater, Guard, whenIsland, warmPlayer } from './world/modules'
+import { hasObstacle, Player, ArtWater, Guard, whenIsland, warmPlayer, preloadIsland } from './world/modules'
 import { useWorldUI } from './world/progress'
 import { input, now } from './player/input'
 import Sky5, { skyDebug } from './world/Sky5'
@@ -153,7 +153,7 @@ function PlayerOn({ children }: { children: React.ReactNode }) {
 function PerfMarks({ onPlayable }: { onPlayable?: () => void }) {
   const done = useRef(0)
   const cb = useRef(onPlayable)
-  cb.current = onPlayable
+  useEffect(() => { cb.current = onPlayable })
   useFrame(() => {
     const d = done.current
     if (!(d & 1)) { done.current |= 1; mark('fj:frame1') }
@@ -300,6 +300,21 @@ export default function World5() {
     const t = window.setTimeout(() => setLate(true), 7000)
     return () => window.clearTimeout(t)
   }, [])
+
+  // Once the late wave lands, walk ahead of the traveller: idle-time prefetch
+  // every island chunk beyond the mounted window so a later bridge never
+  // waits on the network.
+  useEffect(() => {
+    if (!late) return
+    const w = window as { requestIdleCallback?: typeof window.requestIdleCallback; cancelIdleCallback?: typeof window.cancelIdleCallback }
+    const ric: (f: () => void, o?: { timeout: number }) => number =
+      w.requestIdleCallback ?? ((f: () => void) => { window.setTimeout(f, 60); return 0 })
+    const id = ric(() => {
+      const idx = useWorldUI.getState().idx
+      V5_ORDER.forEach((lid, i) => { if (i > idx + 3) preloadIsland(lid) })
+    }, { timeout: 4000 })
+    return () => { w.cancelIdleCallback?.(id) }
+  }, [late])
 
   // ?qa: the V5 side of the test hook. project/find are attached by QaProbe.
   // ?at=<ID> works for everyone (deep links); the rest of the hook is ?qa only.
