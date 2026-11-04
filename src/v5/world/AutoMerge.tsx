@@ -107,9 +107,12 @@ export function AutoMerge({ children, deps = [] }: { children: ReactNode; deps?:
     s.poll = 0
     const g = root.current
     if (!g) return
-    // re-bake on new eligible meshes, or when a wrapped child unmounted
-    // (its hidden originals leave the tree, so the merged mesh must too)
-    if (count(g) !== s.n || s.hidden.some((m) => !m.parent)) bake()
+    // re-bake on new eligible meshes, or when a wrapped child unmounted:
+    // a detached original's parent chain no longer reaches this group
+    if (count(g) !== s.n || s.hidden.some((m) => {
+      for (let p: THREE.Object3D | null = m; p; p = p.parent) if (p === g) return false
+      return true
+    })) bake()
   })
 
   return <group ref={root}>{children}</group>
