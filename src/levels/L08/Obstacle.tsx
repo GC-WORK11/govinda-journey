@@ -197,7 +197,7 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
 
       {/* the sign studio — V4's own diorama (unlocked → its scaffold folds away),
           baked to a handful of merged draws once it settles */}
-      <group position={[-3.2, 0, 1.0]} scale={1.35}>
+      <group position={[1.5, 0, 1.1]} scale={1.3}>
         <StaticBake delay={3200}>
           <DioramaV4 unlocked={true} active={active} />
         </StaticBake>
@@ -205,20 +205,19 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
 
       {/* the plaza: paving, sign-glyph bunting over the path — instanced/merged already */}
       <Plaza />
-      <Bunting from={[-2.5, 2.1, 2.6]} to={[2.5, 2.1, 2.6]} sag={0.35} />
+      <Bunting from={[-2.5, 2.1, -2.9]} to={[-0.9, 2.1, -3.3]} sag={0.3} />
 
       {/* story board + quiet rim dressing — one bake, no shadow casts on the small props */}
       <StaticBake shadow={false}>
         <group position={[-1.25, 0, 2.55]} rotation={[0, 0.5, 0]}>
           <Board />
         </group>
-        <Prop name="bench" position={[2.3, 0, -0.35]} rotation={[0, -0.9, 0]} scale={0.85} />
-        <Prop name="sign" position={[1.55, 0, 2.9]} rotation={[0, -0.35, 0]} scale={0.9} />
-        <Prop name="rock_large_b" position={[3.55, -0.08, 1.35]} rotation={[0, 0.7, 0]} scale={0.38} />
-        <Prop name="plant_bush" position={[3.15, -0.04, -0.7]} rotation={[0, 2.1, 0]} scale={0.8} />
+        <Prop name="bench" position={[-2.6, 0, -0.5]} rotation={[0, 0.9, 0]} scale={0.85} />
+        <Prop name="rock_large_b" position={[-3.7, -0.08, 1.1]} rotation={[0, 0.7, 0]} scale={0.38} />
+        <Prop name="plant_bush" position={[-3.3, -0.04, -0.9]} rotation={[0, 2.1, 0]} scale={0.8} />
         <Prop name="plant_bush_detailed" position={[-3.55, -0.04, -1.95]} rotation={[0, 1.2, 0]} scale={0.85} />
         <Prop name="grass_large" position={[-2.95, -0.02, 2.55]} scale={0.85} />
-        <Prop name="flower_red_a" position={[2.35, -0.02, 2.05]} scale={0.9} />
+        <Prop name="flower_red_a" position={[-2.35, -0.02, 2.6]} scale={0.9} />
       </StaticBake>
 
       {/* DOM overlays live on their own react root (see useDomOverlay) */}
