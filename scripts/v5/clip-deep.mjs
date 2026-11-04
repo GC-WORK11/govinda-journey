@@ -126,11 +126,14 @@ async function audit(page, phase) {
         if (insidePts.length) {
           insidePts.sort((a, b) => b.depth - a.depth)
           const top = insidePts[0]
-          const wp = isl.body.localToWorld(new THREE.Vector3(top.w[0], top.w[1], top.w[2]))
-          // planted bases (post/rock bottom sunk <~0.25) are intended anchors;
-          // inside verts higher in the mesh's own box = piercing through.
+          // planted bases (post/rock bottom sunk <~0.3, verts only in the mesh's
+          // bottom third) are intended anchors; grazing contacts (<0.08) are
+          // surface noise. What remains: geometry piercing through the island.
           const h = Math.max(0.01, m.box.max.y - m.box.min.y)
           const minFrac = Math.min(...insidePts.map((ip) => (isl.pos.y + ip.w[1] - m.box.min.y) / h))
+          if (top.depth < 0.08) continue
+          if (minFrac < 0.35 && top.depth < 0.3 && !/^bridge/.test(m.owner)) continue
+          const wp = isl.body.localToWorld(new THREE.Vector3(top.w[0], top.w[1], top.w[2]))
           clips.push({
             island: isl.id, mesh: m.label, owner: m.owner, meshIsland: islandOf(m),
             inside: insidePts.length, maxDepth: +top.depth.toFixed(3), baseFrac: +minFrac.toFixed(2),
@@ -142,7 +145,7 @@ async function audit(page, phase) {
     }
 
     // ---- detector 2: prop-vs-prop Box3 overlaps
-    const pairs = []
+    let pairs = []
     const cand = meshes.filter((m) => !bodySet.has(m.o) && !scatSet.has(m.o))
     const inter = new THREE.Box3()
     for (let a = 0; a < cand.length; a++) {
@@ -170,6 +173,7 @@ async function audit(page, phase) {
         const frac = vol / Math.max(minV, 1e-6)
         if (shared && frac < 0.6) continue
         if (vol < 0.006 && frac < 0.55) continue
+        if (A.owner === B.owner && !/^bridge/.test(A.owner)) continue // one prop cluster's parts overlap by construction
         const ctr = inter.getCenter(new THREE.Vector3())
         pairs.push({
           a: `${A.owner}::${A.label}`, b: `${B.owner}::${B.label}`,
@@ -179,6 +183,15 @@ async function audit(page, phase) {
         })
       }
     }
+    // one row per owner-pair (worst overlap wins) — identical prop clusters
+    // otherwise drown the report in duplicates
+    const byOwner = new Map()
+    for (const p of pairs) {
+      const key = [p.a.split('::')[0], p.b.split('::')[0]].sort().join(' × ')
+      const cur = byOwner.get(key)
+      if (!cur || p.vol > cur.vol) byOwner.set(key, p)
+    }
+    pairs = [...byOwner.values()]
     pairs.sort((x, y) => y.vol - x.vol)
     return { phase, clips, pairs: pairs.slice(0, 60), meshCount: meshes.length }
   }, { phase, coreSrc: CORE })
@@ -244,9 +257,16 @@ await withChrome(async (browser) => {
   const ORDER = ['L01', 'L02', 'L03', 'I01', 'L05', 'L04', 'I02', 'L06', 'L07', 'L08', 'L09']
   const ids = ONLY || ORDER
   let shotN = 0
+  const shotKeys = new Set()
   const shootFindings = async (r) => {
     if (!SHOTS) return
-    for (const cl of (r.clips || [])) { shotN++; await markAndShot(page, cl.at, `clip-${String(shotN).padStart(2, '0')}-${r.phase}.png`) }
+    let n = 0
+    for (const cl of (r.clips || [])) {
+      const key = `${cl.owner}::${cl.mesh}@${cl.island}`
+      if (shotKeys.has(key) || n >= 8) continue
+      shotKeys.add(key); n++; shotN++
+      await markAndShot(page, cl.at, `clip-${String(shotN).padStart(2, '0')}-${r.phase}.png`)
+    }
     for (const pr of (r.pairs || []).slice(0, 3)) { shotN++; await markAndShot(page, pr.at, `clip-${String(shotN).padStart(2, '0')}-${r.phase}-pair.png`) }
   }
 
