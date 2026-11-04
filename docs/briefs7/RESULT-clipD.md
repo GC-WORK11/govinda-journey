@@ -78,11 +78,20 @@ sweep) are part of `clipD-audit.mjs` — see Verification for status.
 ## Verification
 
 - `tsc --noEmit -p .` — clean (after fixes and before).
-- Box3 audit (`node scripts/clipD-audit.mjs http://localhost:5207/`): queued on
-  the shared Chrome lock across several attempts; evidence lands in
-  `proofs/v7/clipD/` as it completes.
-- `scripts/v5/play.mjs --only=L08,L09 --size=1440` and `--lite --size=390`:
-  pending the same lock.
+- `node scripts/v5/play.mjs http://localhost:5207/ --only=L08,L09 --size=1440`
+  — **PASS L08, PASS L09** (real key-press playthrough; guardian solved,
+  wall/plank/crank/door-stone sequence completed, finale captured).
+  Evidence: `proofs/v5/1440-10-L08.png`, `1440-11-L09.png`,
+  `1440-11-L09-finale.png` — the L08 shot shows the moved sculpture/deck/tablet
+  cleanly separated from the guardian; the finale shot shows the full chain.
+- `node scripts/v5/play.mjs http://localhost:5207/ --lite --only=L08,L09 --size=390`
+  — queued on the shared Chrome lock.
+- Box3 audit (`node scripts/clipD-audit.mjs http://localhost:5207/`): four
+  attempts consumed the 20-min lock wait without winning a slot (nine sessions
+  share `/tmp/gj-chrome.lock`); one did win but died on the 30-s Chrome
+  WS-launch timeout — hence the launch-timeout bump in `scripts/chrome.mjs`.
+  The harness is committed and rerunnable; findings above were verified by the
+  static world-space math in *Method* plus the 1440 playthrough screenshots.
 
 ## Remaining known issues
 
