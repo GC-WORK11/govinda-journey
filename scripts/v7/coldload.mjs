@@ -81,5 +81,5 @@ await withChrome(async (b) => {
       console.log(`   heavy-before-playable: ${heavy.map((x) => `${x.n}=${(x.sz / 1024).toFixed(0)}K@${x.t}`).join(' ')}`)
     }
   }
-}, { maxWaitMs: 240000 })
+}, { maxWaitMs: 1200000 })
 process.exit(0)

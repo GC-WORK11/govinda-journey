@@ -53,12 +53,16 @@ if (QA && new URLSearchParams(location.search).has('fresh')) {
   useV5.getState().reset()
 }
 
-function Islands5() {
+function Islands5({ late }: { late: boolean }) {
   const done = useV5((s) => s.done)
   const broken = useWorldUI((s) => s.broken)
+  const idx = useWorldUI((s) => s.idx)
+  // Cold path builds base geometry only for the islands at and just ahead of
+  // the traveller; the rest of the chain mounts in the post-playable wave so
+  // the first commit doesn't pay for seven offscreen islands at once.
   return (
     <group>
-      {V5_ORDER.map((id, i) => <Island5 key={id} id={id} i={i} />)}
+      {V5_ORDER.map((id, i) => (late || i <= idx + 2) && <Island5 key={id} id={id} i={i} />)}
       {V5_ORDER.slice(0, -1).map((id, i) => (
         <Bridge5 key={id} i={i} shown={done.includes(id) || !hasObstacle(id) || !!broken[id]} />
       ))}
@@ -274,18 +278,26 @@ export default function World5() {
   // the finale pull-back draws the whole chain at once — cap fill on it so
   // software GL survives the widest view in the game
   const finale = useWorldUI((s) => s.finale)
-  // Post FX is the heaviest lazy chunk on the route (postprocessing + N8AO) —
-  // hold it off the cold path and let it fade in on the first idle beat after
-  // the playable frame instead of fighting the student rig for main thread.
+  // The heavy optional layers — post FX (postprocessing + N8AO), the sea and
+  // its per-island dressing, and the far half of the chain — wait for the
+  // first idle beat after the playable frame instead of fighting the student
+  // rig for main thread on the cold path.
   const [fx, setFx] = useState(false)
   const [water, setWater] = useState(!LITE)
+  const [late, setLate] = useState(false)
   const declined = useRef(false)
   const slow = useCallback(() => { declined.current = true; setDpr(0.6); setFx(false); setWater(false) }, [])
-  const armFx = useCallback(() => {
+  const armLate = useCallback(() => {
     const ric: (f: () => void, o?: { timeout: number }) => number =
       (window as { requestIdleCallback?: typeof window.requestIdleCallback }).requestIdleCallback
       ?? ((f) => window.setTimeout(f, 700))
-    ric(() => { if (!declined.current) setFx(!LITE) }, { timeout: 3000 })
+    ric(() => { setLate(true); if (!declined.current) setFx(!LITE) }, { timeout: 3000 })
+  }, [])
+  // Failsafe: if playable never marks (a dead chunk, a stalled loader) the sea
+  // and the far islands still arrive rather than leaving a half-empty world.
+  useEffect(() => {
+    const t = window.setTimeout(() => setLate(true), 7000)
+    return () => window.clearTimeout(t)
   }, [])
 
   // ?qa: the V5 side of the test hook. project/find are attached by QaProbe.
@@ -355,13 +367,13 @@ export default function World5() {
         <fog attach="fog" args={['#efe2cb', 30, 85]} />
         <Sky5 />
         <Clouds />
-        {ArtWater && water && (
+        {ArtWater && water && late && (
           <Suspense fallback={null}>
             <Guard><ArtWater y={-14} islands={WATER_ISLANDS} /></Guard>
           </Suspense>
         )}
         <Hygiene />
-        <Islands5 />
+        <Islands5 late={late} />
         {Player ? (
           <Suspense fallback={<FallbackRig />}>
             <Guard fallback={<FallbackRig />}><PlayerOn><Player /></PlayerOn></Guard>
@@ -372,7 +384,7 @@ export default function World5() {
         <Pet />
         <Skybox />
         <FinaleCam />
-        <PerfMarks onPlayable={armFx} />
+        <PerfMarks onPlayable={armLate} />
         {QA && <QaProbe />}
         {!LITE && fx && (
           <Suspense fallback={null}><Guard><Effects /></Guard></Suspense>
