@@ -50,6 +50,9 @@ const PAD_FAR = ROCK.clone().add(new V3(0, 0.1, 0))      // pad centre on the ro
 const STEP_OUT = ROCK.clone().add(new V3(0.9, 0.12, 0.6))
 const BRIDGE_A = new V3(-5.35, 0.08, -2.35)              // rim mouth
 const BRIDGE_B = new V3(-7.75, 0.08, -2.85)              // rock edge
+/** Plank centres + shared yaw for the instanced bridge. */
+const PLANKS = Array.from({ length: 6 }, (_, i) => BRIDGE_A.clone().lerp(BRIDGE_B, (i + 0.5) / 6))
+const PLANK_Q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, Math.atan2(BRIDGE_B.x - BRIDGE_A.x, BRIDGE_B.z - BRIDGE_A.z) + Math.PI / 2, 0))
 const EXIT_L = new V3(0, 0, -4.0)
 
 /** Route rings — ONE clear flight line: lift off, arc out over the west rim,
@@ -128,7 +131,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   const heli = useRef<THREE.Group>(null)
   const rotor = useRef<THREE.Group>(null)
   const ringsG = useRef<THREE.Group>(null)
-  const bridgeG = useRef<THREE.Group>(null)
+  const bridgeG = useRef<THREE.InstancedMesh>(null)
   const bridgeWalk = useRef<THREE.Mesh>(null)
   const boardMarker = useRef<THREE.Object3D>(null)
   const cam = useThree((s) => s.camera)
@@ -152,6 +155,21 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   // static tower AABBs for heli bump-collide
   const boxes = useMemo(() => TOWERS.map(([x, z, w, d, h]) =>
     ({ minX: x - w / 2 - 0.32, maxX: x + w / 2 + 0.32, minZ: z - d / 2 - 0.32, maxZ: z + d / 2 + 0.32, maxY: h + 0.1 })), [])
+
+  // the bridge is one InstancedMesh: geometry+material shared, colour per plank
+  const plankGeo = useMemo(() => new THREE.BoxGeometry(1.05, 0.05, 0.34), [])
+  const plankMat = useMemo(() => clay('#ffffff'), [])
+  useEffect(() => {
+    const m = bridgeG.current
+    if (!m) return
+    for (let i = 0; i < 6; i++) {
+      m.setColorAt(i, _col.set(i % 2 ? C.wood : C.woodLight))
+      _pm.compose(_pv.copy(PLANKS[i]), PLANK_Q, _pv2.setScalar(0.001))
+      m.setMatrixAt(i, _pm)
+    }
+    m.instanceColor!.needsUpdate = true
+    m.instanceMatrix.needsUpdate = true
+  }, [plankGeo, plankMat])
 
   useEffect(() => { if (done) { setPhase('done'); setPassed(RINGS.length) } }, [done])
 
@@ -354,13 +372,15 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       g.position.y = RINGS[i][1] + Math.sin(t * 0.9 + i) * 0.07
       g.rotation.y = t * 0.25 + i
     })
-    // bridge planks unfold
+    // bridge planks unfold (one InstancedMesh — matrices carry the stagger)
     if (bridgeG.current) {
       const k = phaseRef.current === 'done' ? Math.min(1, (bridgeG.current.userData.t = (bridgeG.current.userData.t ?? 0) + 0.016) / 1.4) : 0
-      bridgeG.current.children.forEach((p, i) => {
+      for (let i = 0; i < 6; i++) {
         const kk = THREE.MathUtils.clamp(k * 6 - i * 0.55, 0, 1)
-        p.scale.setScalar(Math.max(0.001, kk))
-      })
+        _pm.compose(_pv.set(PLANKS[i].x, PLANKS[i].y, PLANKS[i].z), PLANK_Q, _pv2.setScalar(Math.max(0.001, kk)))
+        bridgeG.current.setMatrixAt(i, _pm)
+      }
+      bridgeG.current.instanceMatrix.needsUpdate = true
       if (k >= 1 && bridgeWalk.current && !core.walkables.has(bridgeWalk.current)) core.walkables.add(bridgeWalk.current)
     }
   })
@@ -460,17 +480,8 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
         <HeliPad position={[0, 0.09, 0]} r={0.8} lit={passed >= RINGS.length} />
       </group>
       <RockWalkable />
-      {/* plank bridge: rim mouth → rock, unfolds after touchdown */}
-      <group ref={bridgeG}>
-        {Array.from({ length: 6 }).map((_, i) => {
-          const a = BRIDGE_A.clone().lerp(BRIDGE_B, (i + 0.5) / 6)
-          return (
-            <mesh key={i} position={a.toArray()} rotation={[0, Math.atan2(BRIDGE_B.x - BRIDGE_A.x, BRIDGE_B.z - BRIDGE_A.z) + Math.PI / 2, 0]} scale={0.001} material={clay(i % 2 ? C.wood : C.woodLight)} castShadow>
-              <boxGeometry args={[1.05, 0.05, 0.34]} />
-            </mesh>
-          )
-        })}
-      </group>
+      {/* plank bridge: rim mouth → rock, unfolds after touchdown (1 instanced call) */}
+      <instancedMesh ref={bridgeG} args={[undefined, undefined, 6]} geometry={plankGeo} material={plankMat} castShadow frustumCulled={false} />
       <mesh ref={bridgeWalk} position={BRIDGE_A.clone().lerp(BRIDGE_B, 0.5).toArray()} rotation={[0, Math.atan2(BRIDGE_B.x - BRIDGE_A.x, BRIDGE_B.z - BRIDGE_A.z), 0]} visible={false}>
         <boxGeometry args={[0.95, 0.08, 2.5]} />
       </mesh>
@@ -491,3 +502,4 @@ function RockWalkable() {
 const _f = new THREE.Vector3(), _r = new THREE.Vector3(), _wish = new THREE.Vector3()
 const _ringPos = new THREE.Vector3(), _v = new THREE.Vector3(), _v2 = new THREE.Vector3()
 const _seat = new THREE.Vector3(), _camP = new THREE.Vector3(), _look = new THREE.Vector3()
+const _pm = new THREE.Matrix4(), _pv = new THREE.Vector3(), _pv2 = new THREE.Vector3(), _col = new THREE.Color()
