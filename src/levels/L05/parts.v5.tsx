@@ -7,7 +7,7 @@ import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
-import { C, clay, clayVC, paint } from '../../world/kit'
+import { C, clayVC, paint } from '../../world/kit'
 import { useBlocker, useWalkable } from '../../v5/core'
 
 export const DECK_Y = 2.0
@@ -401,15 +401,24 @@ export function PlinthBlock({ lap }: { lap: (typeof LAPTOPS)[number] }) {
   )
 }
 
-/** Plank that extends from the rim to the shard once the player builds it. */
+/** Plank that extends from the rim to the shard once the player builds it —
+ *  board + both cleats merged into one painted mesh. */
 export function Plank() {
   const walk = useRef<THREE.Mesh>(null)
   const grow = useRef<THREE.Group>(null)
   useWalkable(walk)
+  const vc = useVcMat()
   const { len, yaw, pitch } = useMemo(() => {
     const d = PLANK_B.clone().sub(PLANK_A)
     return { len: Math.hypot(d.x, d.z) + 0.3, yaw: Math.atan2(d.x, d.z), pitch: Math.asin(d.y / d.length()) }
   }, [])
+  const geo = useMemo(() => {
+    const bag: PutBag = []
+    put(bag, new THREE.BoxGeometry(0.52, 0.06, len), C.woodLight, 0, 0, len / 2)
+    put(bag, new THREE.BoxGeometry(0.56, 0.03, 0.07), C.wood, 0, 0.045, 0.3)
+    put(bag, new THREE.BoxGeometry(0.56, 0.03, 0.07), C.wood, 0, 0.045, len - 0.3)
+    return merged(bag)!
+  }, [len])
   useFrame((_, dt) => {
     const g = grow.current
     if (g && g.scale.z < 1) {
@@ -420,14 +429,10 @@ export function Plank() {
   return (
     <group position={PLANK_A} rotation={[0, yaw, 0]}>
       <group ref={grow} scale={[1, 1, 0.001]} rotation={[-pitch, 0, 0]}>
-        <mesh ref={walk} position={[0, 0, len / 2]} material={clay(C.woodLight)} castShadow receiveShadow>
+        <mesh ref={walk} position={[0, 0, len / 2]} material={INVIS}>
           <boxGeometry args={[0.52, 0.06, len]} />
         </mesh>
-        {[0.3, len - 0.3].map((z, i) => (
-          <mesh key={i} position={[0, 0.045, z]} material={clay(C.wood)}>
-            <boxGeometry args={[0.56, 0.03, 0.07]} />
-          </mesh>
-        ))}
+        <mesh geometry={geo} material={vc} castShadow receiveShadow />
       </group>
     </group>
   )
@@ -505,7 +510,7 @@ export function CallBulb({ mat }: { mat: THREE.Material }) {
 /** Deck lantern bulb (pole + cap live in the statics merge). */
 export function LanternBulb({ mat }: { mat: THREE.Material }) {
   return (
-    <mesh position={[-1.02, DECK_Y + 0.95, -5.62]} material={mat} castShadow>
+    <mesh position={[-1.02, DECK_Y + 0.95, -5.62]} material={mat}>
       <sphereGeometry args={[0.075, 12, 10]} />
     </mesh>
   )
