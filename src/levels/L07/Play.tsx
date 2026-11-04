@@ -5,7 +5,7 @@ import * as THREE from 'three'
 import type { PlayProps } from '../types'
 import { Tappable, Pop, blip, chime, burst, glowMat, pulse, REDUCED, useLocalToWorld } from '../../world/play'
 import { C, clay } from '../../world/kit'
-import { WORDS, CHIP_IDLE, SCREEN } from './layout'
+import { WORDS, CHIP_IDLE, SCREEN, SCREEN_YAW } from './layout'
 
 /* 'Wispr Wrap': four soft speech-bubble pebbles float in the open front of the island.
    Tap one and it arcs to the laptop, landing as a typed line on the document.
@@ -15,7 +15,7 @@ import { WORDS, CHIP_IDLE, SCREEN } from './layout'
 const SPAWNS: [number, number, number][] = CHIP_IDLE.map((p) => [p.x, p.y, p.z] as [number, number, number])
 
 // laptop screen transform, matching Diorama (screen at SCREEN, facing the path)
-const SCR_M = new THREE.Matrix4().makeRotationY(Math.PI / 2).setPosition(SCREEN)
+const SCR_M = new THREE.Matrix4().makeRotationY(SCREEN_YAW).setPosition(SCREEN)
 const lineY = (i: number) => 0.063 - i * 0.042
 const LINE_TARGET = WORDS.map((_, i) => new THREE.Vector3(0, lineY(i), 0.021).applyMatrix4(SCR_M))
 const barW = (w: string) => 0.1 + w.length * 0.03
@@ -108,7 +108,7 @@ export default function Play({ onWin, won }: PlayProps) {
       )}
 
       {/* typed lines on the laptop document, in sentence order */}
-      <group position={SCREEN} rotation={[0, Math.PI / 2, 0]}>
+      <group position={SCREEN} rotation={[0, SCREEN_YAW, 0]}>
         {landed.map((i) => (
           <Pop key={i} position={[0, lineY(i), 0.021]}>
             <RoundedBox args={[barW(WORDS[i]), 0.034, 0.012]} radius={0.012} material={clay('#e6d5b8')} />

@@ -10,7 +10,7 @@ import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import type { DioramaProps } from '../types'
 import { C, clay, BlockBox, makeCanvasTexture } from './kit.v5'
-import { HUT, HUT_SIZE, DOOR_X, TABLE, SCREEN, MIC_BASE, MIC_HEAD } from './layout'
+import { HUT, HUT_SIZE, DOOR_X, TABLE, SCREEN, SCREEN_YAW, MIC_BASE, MIC_HEAD } from './layout'
 import { studio } from './studio'
 
 const RM = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -70,7 +70,7 @@ export default function Diorama({ unlocked }: DioramaProps) {
   const screen = useMemo(() => makeCanvasTexture(256, 160, (c) => paint(c, studio.landed)), [])
   const geo = useMemo(() => ({
     arcs: [0.2, 0.32, 0.44].map(arc),
-    waves: [wave(0.09, 1.5, 0, 1.08), wave(0.07, 1.1, 1.7, 0.98)],
+    waves: [wave(0.09, 1.5, 0, 1.6), wave(0.07, 1.1, 1.7, 1.45)],
   }), [])
 
   useFrame((s, dt) => {
@@ -88,8 +88,8 @@ export default function Diorama({ unlocked }: DioramaProps) {
     <group>
       {/* studio hut: wall, pyramid roof, round window, door that swings open, foam on the front */}
       <RoundedBox args={HUT_SIZE} radius={0.07} smoothness={3} position={[HUT[0], HUT_SIZE[1] / 2, HUT[2]]} material={clay(C.sand)} castShadow receiveShadow />
-      <mesh position={[HUT[0], HUT_SIZE[1] + 0.19, HUT[2]]} rotation={[0, Math.PI / 4, 0]} material={clay(C.terracotta)} castShadow>
-        <coneGeometry args={[0.95, 0.38, 4]} />
+      <mesh position={[HUT[0], HUT_SIZE[1] + 0.21, HUT[2]]} rotation={[0, Math.PI / 4, 0]} material={clay(C.terracotta)} castShadow>
+        <coneGeometry args={[1.3, 0.42, 4]} />
       </mesh>
       <mesh position={[HUT[0], 0.36, HUT[2] + HUT_SIZE[2] / 2 + 0.005]}>
         <circleGeometry args={[0.12, 20]} />
@@ -98,7 +98,7 @@ export default function Diorama({ unlocked }: DioramaProps) {
       <mesh position={[HUT[0], 0.36, HUT[2] + HUT_SIZE[2] / 2 + 0.01]} material={clay(C.wood)}>
         <torusGeometry args={[0.12, 0.02, 6, 20]} />
       </mesh>
-      <group ref={door} position={[DOOR_X + 0.01, 0, HUT[2] - 0.2]}>
+      <group ref={door} position={[DOOR_X + 0.01, 0, HUT[2] - 0.18]}>
         <RoundedBox args={[0.05, 0.5, 0.36]} radius={0.02} position={[0, 0.25, 0.19]} material={clay(C.wood)} castShadow />
       </group>
       <mesh position={[DOOR_X + 0.03, 0.57, HUT[2]]}>
@@ -119,7 +119,7 @@ export default function Diorama({ unlocked }: DioramaProps) {
         </mesh>
       ))}
       <RoundedBox args={[0.3, 0.02, 0.5]} radius={0.008} position={[TABLE[0], 0.39, TABLE[2]]} material={clay(C.stoneLight)} castShadow />
-      <group position={SCREEN} rotation={[0, Math.PI / 2, 0]}>
+      <group position={SCREEN} rotation={[0, SCREEN_YAW, 0]}>
         <RoundedBox args={[0.5, 0.3, 0.022]} radius={0.01} position={[0, 0, -0.012]} material={clay(C.stoneLight)} castShadow />
         <mesh position={[0, 0, 0.002]}>
           <planeGeometry args={[0.44, 0.27]} />
@@ -160,15 +160,18 @@ export default function Diorama({ unlocked }: DioramaProps) {
         ))}
       </group>
 
-      {/* soft planting on the far side of the studio */}
-      <mesh position={[-2.45, 0.2, 0.55]} material={clay(C.leaf)} castShadow>
+      {/* planting kept off the hut, the table and the traveller's spot */}
+      <mesh position={[-2.4, 0.2, 1.35]} material={clay(C.leaf)} castShadow>
         <sphereGeometry args={[0.26, 12, 9]} />
       </mesh>
-      <mesh position={[-2.15, 0.13, 0.95]} material={clay(C.leafDark)} castShadow>
+      <mesh position={[-2.1, 0.13, 1.6]} material={clay(C.leafDark)} castShadow>
         <sphereGeometry args={[0.18, 10, 8]} />
       </mesh>
-      <mesh position={[-2.6, 0.08, -0.5]} material={clay(C.stone)} castShadow>
+      <mesh position={[-1.6, 0.08, -1.65]} material={clay(C.stone)} castShadow>
         <dodecahedronGeometry args={[0.12, 0]} />
+      </mesh>
+      <mesh position={[2.35, 0.2, 1.1]} material={clay(C.leaf)} castShadow>
+        <sphereGeometry args={[0.24, 12, 9]} />
       </mesh>
 
       {/* physics: the hut, the table and the mic stand stay off the path */}
