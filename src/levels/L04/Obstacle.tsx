@@ -235,19 +235,21 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       {[0, 1, 2].map((i) => <PulseRing key={i} slot={i} pulses={pulses} clockRef={clockRef} />)}
 
       {/* kerbside readers + their quiet readings during the window */}
+      <AutoMerge>
       {AQI.map(({ p, aqi }, i) => (
         <group key={i}>
           <AqiPost position={p} />
           <AqiTag aqi={aqi} position={[p[0], 0.98, p[2]]} reveal={reveal} />
         </group>
       ))}
+      </AutoMerge>
 
       {/* the smog volume — fades off as the tower breathes */}
       {!done && <Smog clearT={clearT} pulses={pulses} clockRef={clockRef} />}
 
       {/* sensor hardware */}
       <group ref={postRef} position={POST}><SensorPost powered={poweredUi} shakeT={shakeT} /></group>
-      <group ref={towerRef} position={TOWER}><SensorTower lit={lit} /></group>
+      <AutoMerge><group ref={towerRef} position={TOWER}><SensorTower lit={lit} /></group></AutoMerge>
 
       {/* Delhi street dressing */}
       <AutoMerge>

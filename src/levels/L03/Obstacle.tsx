@@ -306,7 +306,9 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       </AutoMerge>
 
       {/* floating platforms + gap stubs */}
+      <AutoMerge>
       {PLATS.map((p, i) => <Platform key={i} p={p} i={i} />)}
+      </AutoMerge>
       {GAPS.map((g, i) => (
         <GapSlot key={i} g={g} open={() => !blocks.some((bb) => (bb as any).slot === i && (bb.state === 'placed' || bb.state === 'placing'))} />
       ))}
@@ -318,14 +320,14 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       </AutoMerge>
 
       {/* the landing + exit yard */}
-      <StoneLantern position={[LANTERN.x, 0, LANTERN.z]} lit={lit} />
       <AutoMerge>
+      <StoneLantern position={[LANTERN.x, 0, LANTERN.z]} lit={lit} />
       <PathStones pts={[[3.4, -3.5], [2.2, -3.9], [1.0, -4.1], [0, -4.2]]} seed={9} gap={0.7} />
       <Rock position={[1.9, 0.1, -3.4]} s={0.34} yaw={1.2} />
       <Rock position={[-1.6, 0.08, -3.6]} s={0.42} yaw={0.4} block={false} />
       <Mound position={[-2.6, 0, -3.2]} r={0.9} h={0.3} />
-      </AutoMerge>
       <StoneLantern position={[-0.8, 0, 3.3]} lit={false} />
+      </AutoMerge>
 
       <AutoMerge>
       {/* scattered dressing on the north grass */}
