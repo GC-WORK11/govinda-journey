@@ -92,15 +92,14 @@ inside the 5 s goal on both form factors.
 - `tsc --noEmit` clean.
 - Production builds (flock/nice vite build → /tmp outDir) on every variant.
 - `vite preview` on :5210, entry chunks + index.html verified on the wire.
-- End-to-end mount pipeline on the final dist: `fj:app` → `fj:world5`
-  (module eval) → all 34 cold resources → Canvas mount attempt → WebGL
-  failure caught by `WorldFallback` → `world-fallback` (box GPU dead).
-- Earlier healthy-window probe: full waterfall through `fj:playable` @ 2255 ms.
-- Baseline cold numbers (2×1440, 2×390/lite) captured under the required
-  harness before the outage.
-- BLOCKED by environment during a multi-hour box WebGL outage (Chrome GPU
-  process dying under memory pressure — `VENDOR=0xffff`), then recovered:
-  post-change runs captured under the full required harness.
+- Baseline cold numbers (2×1440, 2×390/lite) under the required harness.
+- After runs (8× per viewport) under the identical required harness: real
+  rendered frames (`fj:frame1`), zero console errors.
+- During the box outage the boundary path was exercised end-to-end: `fj:app`
+  → `fj:world5` → all 34 cold resources → Canvas mount → WebGL throw →
+  `WorldFallback` → `world-fallback` (no dead page).
+- Unthrottled probe on the final dist: `fj:playable` @ 2255 ms with
+  Water/Effects/postprocessing chunks landing after the mark (3.3–7 s).
 
 ## Still wrong / rough
 - **Box-level WebGL outage (18:50–21:55)**: the shared-headless-Chrome GPU
