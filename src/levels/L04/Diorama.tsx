@@ -10,14 +10,14 @@ import * as THREE from 'three'
 export default function Diorama({ unlocked, active }: DioramaProps) {
   return (
     <group>
-      {/* greenhouse at center-back */}
-      <Greenhouse position={[0, 0, -1.2]} unlocked={unlocked} />
-      <Scaffold open={unlocked} position={[0, 0, -1.2]} size={[1.8, 1.6, 1.4]} />
-      
+      {/* greenhouse on the east verge, clear of the safe-stone corridor */}
+      <Greenhouse position={[1.41, 0, -1.02]} unlocked={unlocked} />
+      <Scaffold open={unlocked} position={[1.41, 0, -1.02]} size={[1.8, 1.6, 1.4]} />
+
       <AutoMerge>
       {/* Delhi rooftops left and right */}
-      <Rooftop position={[-1.3, 0, 0.2]} />
-      <Rooftop position={[1.4, 0, -0.3]} scale={0.85} />
+      <Rooftop position={[-1.35, 0, 1.05]} />
+      <Rooftop position={[-0.93, 0, -2.4]} scale={0.85} />
       
       {/* small India Gate arch front-right */}
       <Arch position={[1.1, 0, 1.2]} />
@@ -25,7 +25,7 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
 
       {/* street edge: lamp posts, a low brick wall behind the greenhouse, pots by the homes */}
       <LampPost position={[2.32, 0, 0.78]} h={0.7} lit={unlocked} />
-      <LampPost position={[-2.18, 0, -0.32]} h={0.64} lit={unlocked} />
+      <LampPost position={[-1.41, 0, -2.18]} h={0.64} lit={unlocked} />
       <AutoMerge>
       <group position={[0.95, 0, -2.15]} rotation={[0, 0.35, 0]}>
         <RoundedBox args={[1.25, 0.2, 0.13]} radius={0.03} position={[0, 0.1, 0]} material={clay(C.brick)} castShadow receiveShadow />
@@ -35,8 +35,8 @@ export default function Diorama({ unlocked, active }: DioramaProps) {
         ))}
       </group>
       <ClayPot position={[-1.82, 0, 0.62]} s={0.95} />
-      <ClayPot position={[1.98, 0, -0.42]} s={0.85} />
-      <ClayPot position={[0.28, 0, -2.02]} s={0.9} plant={false} />
+      <ClayPot position={[2.05, 0, 0.3]} s={0.85} />
+      <ClayPot position={[1.92, 0, -2.18]} s={0.9} plant={false} />
       <Bush position={[-2.32, 0, 0.45]} s={0.85} />
       </AutoMerge>
       
