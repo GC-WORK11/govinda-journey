@@ -65,53 +65,60 @@ function islandGeo(radius, ground, seed) {
   top.dispose(); under.dispose()
   return g
 }
-// --- verbatim from Bridge5.tsx ------------------------------------------------
+// --- verbatim from Bridge5.tsx ----------------------------------------------
+const POST_LAT = 0.5
+const POST_PULL = 0.42
+const POST_MAX_R = 4.95
 const RIM_CLEAR = 5.85
 const TOP_OFF = 0.05
-
-function bridgePoints(from, to) {
-  const dir = to.clone().sub(from); const len = dir.length(); dir.normalize()
-  const lat = new THREE.Vector3(-dir.z, 0, dir.x).multiplyScalar(0.44)
-  const n = Math.max(4, Math.floor(len / 0.38))
-  const hdx = to.x - from.x, hdz = to.z - from.z
-  const hlen = Math.hypot(hdx, hdz)
-  const dhx = hdx / hlen, dhz = hdz / hlen
-  const rimDist = (e, dx, dz) => {
-    const b = e.x * dx + e.z * dz
-    return -b + Math.sqrt(Math.max(0, b * b + RIM_CLEAR * RIM_CLEAR - (e.x * e.x + e.z * e.z)))
-  }
-  const sA = rimDist(EXIT, dhx, dhz)
-  const sB = rimDist(ENTRY, -dhx, -dhz)
+const rimExit = (anchor, dx, dz) => {
+  const b = anchor.x * dx + anchor.z * dz
+  return -b + Math.sqrt(Math.max(0, b * b + RIM_CLEAR * RIM_CLEAR - (anchor.x * anchor.x + anchor.z * anchor.z)))
+}
+const deckY = (from, to, t) => {
+  const hdx = to.x - from.x, hdz = to.z - from.z, hlen = Math.hypot(hdx, hdz)
+  const sA = rimExit(EXIT, hdx / hlen, hdz / hlen)
+  const sB = rimExit(ENTRY, -hdx / hlen, -hdz / hlen)
   const span = Math.max(1e-6, hlen - sA - sB)
-  const deckAt = (t) => {
-    const s = t * hlen
-    if (s <= sA) return from.y + TOP_OFF
-    if (s >= hlen - sB) return to.y + TOP_OFF
-    const u = (s - sA) / span
-    return THREE.MathUtils.lerp(from.y + TOP_OFF, to.y + TOP_OFF, u) - Math.sin(u * Math.PI) * 0.55
-  }
-  const spanU = (t) => Math.min(1, Math.max(0, (t * hlen - sA) / span))
+  const s = t * hlen
+  if (s <= sA) return from.y + TOP_OFF
+  if (s >= hlen - sB) return to.y + TOP_OFF
+  const u = (s - sA) / span
+  return THREE.MathUtils.lerp(from.y + TOP_OFF, to.y + TOP_OFF, u) - Math.sin(u * Math.PI) * 0.55
+}
+
+function bridgePoints(from, to, cFrom, cTo) {
+  const dir = to.clone().sub(from); const len = dir.length(); dir.normalize()
+  const lat = new THREE.Vector3(-dir.z, 0, dir.x).multiplyScalar(POST_LAT)
+  const n = Math.max(4, Math.floor(len / 0.38))
   const deck = []
   for (let i = 0; i <= n * 4; i++) { // 4x oversample between plank centres
     const t = i / (n * 4), p = from.clone().lerp(to, t)
-    p.y = deckAt(t)
+    p.y = deckY(from, to, t)
     deck.push(p)
+  }
+  // posts: pulled POST_PULL inside the mouth, clamped to POST_MAX_R from centre
+  const posts = []
+  const ends = [from, to], ctrs = [cFrom, cTo]
+  for (const e of [0, 1]) for (const s of [-1, 1]) {
+    const p = ends[e].clone().addScaledVector(dir, -POST_PULL).addScaledVector(lat, s)
+    const ox = p.x - ctrs[e].x, oz = p.z - ctrs[e].z, od = Math.hypot(ox, oz)
+    if (od > POST_MAX_R) { p.x = ctrs[e].x + (ox / od) * POST_MAX_R; p.z = ctrs[e].z + (oz / od) * POST_MAX_R }
+    p.y = ends[e].y + 0.24
+    posts.push(p)
   }
   const ropes = { '-1': [], '1': [] }
   for (const s of [-1, 1]) {
-    const curve = new THREE.CatmullRomCurve3(
-      Array.from({ length: 13 }, (_, k) => {
-        const t = k / 12, p = from.clone().lerp(to, t).addScaledVector(lat, s)
-        p.y = deckAt(t) + 0.58 - Math.sin(spanU(t) * Math.PI) * 0.3
-        return p
-      }))
+    const pts = []
+    for (let k = 0; k <= 12; k++) {
+      const t = k / 12, p = from.clone().lerp(to, t).addScaledVector(lat, s)
+      p.y = deckY(from, to, t) + 0.56 - Math.sin(t * Math.PI) * 0.3
+      pts.push(p)
+    }
+    pts[0].copy(posts[s === -1 ? 0 : 1]).setY(from.y + 0.52)
+    pts[12].copy(posts[s === -1 ? 2 : 3]).setY(to.y + 0.52)
+    const curve = new THREE.CatmullRomCurve3(pts)
     for (let i = 0; i <= 60; i++) ropes[String(s)].push(curve.getPointAt(i / 60))
-  }
-  // post cylinders+finials at both ends
-  const posts = []
-  for (const end of [from, to]) for (const s of [-1, 1]) {
-    const base = end.clone().addScaledVector(lat, s)
-    posts.push(base.clone().setY(end.y + 0.24))
   }
   return { deck, ropes, posts }
 }
@@ -137,7 +144,7 @@ const bodies = ISLAND_POS.map((p, i) => {
 const findings = []
 for (let i = 0; i < V5_ORDER.length - 1; i++) {
   const from = exitWorld(i), to = entryWorld(i + 1)
-  const { deck, ropes, posts } = bridgePoints(from, to)
+  const { deck, ropes, posts } = bridgePoints(from, to, ISLAND_POS[i], ISLAND_POS[i + 1])
   for (const isl of [bodies[i], bodies[i + 1]]) {
     const check = (kind, p) => {
       const lp = p.clone().sub(isl.pos)

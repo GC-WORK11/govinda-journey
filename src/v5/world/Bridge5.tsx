@@ -15,7 +15,7 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 import { C, clay, clayVC, paint } from '../../world/kit'
 import { Lanterns } from '../../world/Lanterns'
 import { useWalkable } from '../core'
-import { exitWorld, entryWorld, ISLAND_POS } from './layout'
+import { exitWorld, entryWorld, ISLAND_POS, ENTRY, EXIT } from './layout'
 
 const RM = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches
 
@@ -27,11 +27,36 @@ const POST_PULL = 0.42
 /** Never let a clamped post sit past the grass lip edge. */
 const POST_MAX_R = 4.95
 
-/** Deck height along the bridge: endpoint lerp + a gentle sag. The sin² shape
- *  leaves each rim on a flat tangent — a plain sine's steep end slope drove
- *  the last planks under the island lip and put the ropes through the grass. */
-const deckY = (from: THREE.Vector3, to: THREE.Vector3, t: number) =>
-  THREE.MathUtils.lerp(from.y, to.y, t) - 0.04 - Math.sin(t * Math.PI) ** 2 * 0.55
+/** Inside this radius of an island centre the deck must ride at island-top
+ *  height: the lathe lip bulges to r·1.04 plus rim wobble (≈5.66 max), and any
+ *  dip below the top inside that circle buries planks/ropes in the grass. */
+const RIM_CLEAR = 5.85
+/** Plank run rides this far above the island top inside the rim. */
+const TOP_OFF = 0.05
+
+/** Distance from a mouth anchor to where the bridge line leaves that island's
+ *  rim circle (|anchor + s·dir| = RIM_CLEAR, anchor = island-local ENTRY/EXIT). */
+const rimExit = (anchor: THREE.Vector3, dx: number, dz: number) => {
+  const b = anchor.x * dx + anchor.z * dz
+  return -b + Math.sqrt(Math.max(0, b * b + RIM_CLEAR * RIM_CLEAR - (anchor.x * anchor.x + anchor.z * anchor.z)))
+}
+
+/** Deck height along the bridge: a flat boardwalk at island-top level for the
+ *  run inside each island's rim, then endpoint lerp + a gentle sag across the
+ *  open-air span only. A pure sag (even with a flat tangent) still sinks under
+ *  the overhanging lip between the mouth and the lip edge — the offline audit
+ *  measured up to 0.55 m buried into L06. */
+const deckY = (from: THREE.Vector3, to: THREE.Vector3, t: number) => {
+  const hdx = to.x - from.x, hdz = to.z - from.z, hlen = Math.hypot(hdx, hdz)
+  const sA = rimExit(EXIT, hdx / hlen, hdz / hlen)
+  const sB = rimExit(ENTRY, -hdx / hlen, -hdz / hlen)
+  const span = Math.max(1e-6, hlen - sA - sB)
+  const s = t * hlen
+  if (s <= sA) return from.y + TOP_OFF
+  if (s >= hlen - sB) return to.y + TOP_OFF
+  const u = (s - sA) / span
+  return THREE.MathUtils.lerp(from.y + TOP_OFF, to.y + TOP_OFF, u) - Math.sin(u * Math.PI) * 0.55
+}
 
 function bridgeGeo(from: THREE.Vector3, to: THREE.Vector3, cFrom: THREE.Vector3, cTo: THREE.Vector3) {
   const dir = to.clone().sub(from); const len = dir.length(); dir.normalize()
