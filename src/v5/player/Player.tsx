@@ -14,24 +14,27 @@ import { carryAnchor, carryQuat } from './anchor'
 /* ------------------------------------------------------------------ model */
 
 const URL = './models/student.glb'
-const HEIGHT = 0.95
-type Anim = 'idle' | 'walk' | 'jump' | 'cheer' | 'sit' | 'interact' | 'use'
-const CLIP: Record<Anim, string> = {
+export const HEIGHT = 0.95
+export type Anim = 'idle' | 'walk' | 'jump' | 'cheer' | 'sit' | 'interact' | 'use'
+export const CLIP: Record<Anim, string> = {
   idle: 'Idle', walk: 'Walking_A', jump: 'Jump_Full_Short', cheer: 'Cheer',
   sit: 'Sit_Floor_Idle', interact: 'Interact', use: 'Use_Item',
 }
 const LOOP_ONCE: Partial<Record<Anim, boolean>> = { jump: true, interact: true, use: true }
 
-function Model({ anim, tsRef, socketRef }: {
+export function Model({ anim, tsRef, socketRef, backpack = true, skinURL = './models/student-skin.png', freeze }: {
   anim: Anim
   tsRef: { current: number }
   socketRef: { current: THREE.Group | null }
+  backpack?: boolean
+  skinURL?: string
+  freeze?: number
 }) {
   const root = useRef<THREE.Group>(null)
   const { scene, animations } = useGLTF(URL)
   const { actions } = useAnimations(animations, root)
   // Retinted atlas: warm brown skin, near-black hair, cream shirt, charcoal trousers.
-  const skin = useTexture('./models/student-skin.png')
+  const skin = useTexture(skinURL || './models/student-skin.png')
   const scale = useMemo(() => {
     scene.updateMatrixWorld(true)
     const b = new THREE.Box3().setFromObject(scene)
@@ -42,8 +45,8 @@ function Model({ anim, tsRef, socketRef }: {
         m.castShadow = true; m.receiveShadow = false; m.frustumCulled = false
         const mat = m.material as THREE.MeshStandardMaterial
         if (mat && 'roughness' in mat) {
-          mat.roughness = 0.85; mat.metalness = 0
-          if (mat.map && mat.map !== skin) {
+          mat.roughness = 0.7; mat.metalness = 0
+          if (skinURL && mat.map && mat.map !== skin) {
             skin.flipY = mat.map.flipY; skin.colorSpace = mat.map.colorSpace
             skin.magFilter = mat.map.magFilter; skin.minFilter = mat.map.minFilter
             skin.wrapS = mat.map.wrapS; skin.wrapT = mat.map.wrapT; skin.needsUpdate = true
@@ -79,6 +82,7 @@ function Model({ anim, tsRef, socketRef }: {
     a.reset()
     if (LOOP_ONCE[anim]) { a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true }
     else a.setLoop(THREE.LoopRepeat, Infinity)
+    if (freeze !== undefined) { a.paused = true; a.time = freeze * a.getClip().duration }
     a.fadeIn(0.15).play()
     prev.current?.fadeOut(0.15)
     prev.current = a
@@ -88,7 +92,7 @@ function Model({ anim, tsRef, socketRef }: {
   return (
     <group ref={root} scale={scale}>
       <primitive object={scene} />
-      {chest && <BackpackOn bone={chest} />}
+      {chest && backpack && <BackpackOn bone={chest} />}
     </group>
   )
 }
