@@ -119,7 +119,7 @@ function ChunkNode({ rt, st, mat }: { rt: Rt; st: React.MutableRefObject<St>; ma
   )
 }
 
-function LapNode({ i, st, screenMat }: { i: number; st: React.MutableRefObject<St>; screenMat: THREE.Material }) {
+function LapNode({ i, st }: { i: number; st: React.MutableRefObject<St> }) {
   const lap = LAPTOPS[i]
   const mark = useRef<THREE.Object3D>(null)
   const stand = useMemo(() => {
@@ -152,18 +152,10 @@ function LapNode({ i, st, screenMat }: { i: number; st: React.MutableRefObject<S
     [i, lap, st],
   )
   useInteractable(it)
-  const s = LAP_SCALE[lap.size]
-  const screenGeo = useMemo(() => new RoundedBoxGeometry(0.42 * s * 0.86, 0.22 * s, 0.021, 2, 0.008), [s])
   return (
     <group>
       <object3D ref={mark} position={stand} />
       <PlinthBlock lap={lap} />
-      {/* the screen is the only piece with an animated material — shell is in <Statics> */}
-      <group position={lap.p} rotation={[0, lap.yaw, 0]}>
-        <group position={[0, PLINTH_TOP + 0.016 + 0.034 * s, -0.115 * s]} rotation={[-0.34, 0, 0]}>
-          <mesh position={[0, 0.145 * s, 0.004]} material={screenMat} geometry={screenGeo} />
-        </group>
-      </group>
     </group>
   )
 }
@@ -205,10 +197,8 @@ export default function Obstacle({ id, active, complete, done }: ObstacleProps) 
     const mk = (c: string, e: string, ei = 0, extra: Partial<THREE.MeshStandardMaterialParameters> = {}) =>
       new THREE.MeshStandardMaterial({ color: c, roughness: 0.55, emissive: e, emissiveIntensity: ei, ...extra })
     return {
-      screens: LAPTOPS.map(() => mk('#332e2b', '#e8a34e', 0.3)),
       chunks: CHUNKS.map((c) => mk(HUES[c.size], HUES[c.size], 0.5, { transparent: true, opacity: 0.72, roughness: 0.3 })),
       cables: LAPTOPS.map(() => mk('#453c35', '#e08a4e')),
-      segs: LAPTOPS.map(() => mk('#57504b', '#e08a4e', 0.05)),
       trim: mk('#c9875f', '#e08a4e'),
       callLit: mk('#d9cbb6', '#e08a4e', 0.12),
       lantern: mk('#f0e3cc', '#e8a34e'),
@@ -222,7 +212,46 @@ export default function Obstacle({ id, active, complete, done }: ObstacleProps) 
 
   const curves = useMemo(() => LAPTOPS.map((l) => cableCurve(l)), [])
   const cables = useMemo(() => curves.map((c) => new THREE.TubeGeometry(c, 20, 0.022, 6)), [curves])
-  const beadRefs = useRef<(THREE.Mesh | null)[]>([])
+  const beads = useRef<THREE.InstancedMesh>(null)
+  const _beadM = useMemo(() => new THREE.Matrix4(), [])
+
+  /* instanced glow pieces — screens + lift dial live at 1 draw call each,
+   * per-piece colour carried by instanceColor and written each frame */
+  const screensIM = useRef<THREE.InstancedMesh>(null)
+  const segsIM = useRef<THREE.InstancedMesh>(null)
+  const screenGeo = useMemo(() => new RoundedBoxGeometry(0.42 * 0.86, 0.22, 0.021, 2, 0.008), [])
+  const basicScr = useMemo(() => new THREE.MeshBasicMaterial({ color: '#ffffff' }), [])
+  const basicSeg = useMemo(() => new THREE.MeshBasicMaterial({ color: '#ffffff' }), [])
+  const scrArgs = useMemo(() => [screenGeo, basicScr, 4] as const, [screenGeo, basicScr])
+  const beadArgs = useMemo(() => [undefined, mats.trim, 4] as const, [mats.trim])
+  const scrCol = useMemo(() => LAPTOPS.map(() => SCREEN_WARM.clone()), [])
+  const scrI = useMemo(() => new Float32Array(4).fill(0.32), [])
+  const segI = useMemo(() => new Float32Array(4).fill(0.05), [])
+  const _c = useMemo(() => new THREE.Color(), [])
+  const SCR_DARK = useMemo(() => new THREE.Color('#332e2b'), [])
+  const SEG_DARK = useMemo(() => new THREE.Color('#57504b'), [])
+  const EMBER = useMemo(() => new THREE.Color('#e08a4e'), [])
+
+  useEffect(() => {
+    const im = screensIM.current
+    if (!im) return
+    const m = new THREE.Matrix4()
+    const rot = new THREE.Matrix4()
+    const tmp = new THREE.Matrix4()
+    LAPTOPS.forEach((lap, i) => {
+      const s = LAP_SCALE[lap.size]
+      m.makeTranslation(lap.p[0], lap.p[1], lap.p[2])
+        .multiply(rot.makeRotationY(lap.yaw))
+        .multiply(tmp.makeTranslation(0, PLINTH_TOP + 0.016 + 0.034 * s, -0.115 * s))
+        .multiply(rot.makeRotationX(-0.34))
+        .multiply(tmp.makeTranslation(0, 0.145 * s, 0.004))
+        .multiply(tmp.makeScale(s, s, s))
+      im.setMatrixAt(i, m)
+      im.setColorAt(i, SCR_DARK)
+    })
+    im.instanceMatrix.needsUpdate = true
+    if (im.instanceColor) im.instanceColor.needsUpdate = true
+  }, [SCR_DARK])
 
   const say = (s: string) => {
     useV5.getState().setCaption(s)
@@ -408,27 +437,46 @@ export default function Obstacle({ id, active, complete, done }: ObstacleProps) 
     if (S2.powered) {
       S2.powerT += dtm
       mats.cables.forEach((m, i) => { m.emissiveIntensity = sm01((S2.powerT - 0.3 * i) / 0.55) * 1.05 })
-      beadRefs.current.forEach((b, i) => {
-        if (!b) return
-        const on = sm01((S2.powerT - 0.3 * i) / 0.55) > 0.6
-        b.visible = on
-        if (on) b.position.copy(curves[i].getPointAt((S2.powerT * 0.4 + i * 0.29) % 1))
-      })
+      const bm = beads.current
+      if (bm) {
+        bm.visible = true
+        for (let i = 0; i < 4; i++) {
+          const on = sm01((S2.powerT - 0.3 * i) / 0.55) > 0.6
+          if (on) { const p = curves[i].getPointAt((S2.powerT * 0.4 + i * 0.29) % 1); _beadM.makeTranslation(p.x, p.y, p.z) }
+          else _beadM.makeScale(0, 0, 0)
+          bm.setMatrixAt(i, _beadM)
+        }
+        bm.instanceMatrix.needsUpdate = true
+      }
       if (S2.phase === 'idle' && S2.powerT > 1.5) S2.phase = 'lit'
+    } else if (beads.current?.visible) beads.current.visible = false
+    {
+      // screens + dial segments — one instanced draw each, colours via instanceColor
+      const sim = screensIM.current
+      if (sim) {
+        for (let i = 0; i < 4; i++) {
+          const target = S2.loaded[i] ? 0.9 + Math.sin(t * 2 + i * 1.3) * 0.12 : 0.32 + Math.sin(t * 1.4 + i * 0.9) * 0.07
+          scrI[i] += (target - scrI[i]) * Math.min(1, dtm * 6)
+          scrCol[i].lerp(S2.loaded[i] ? SCREEN_HUES[i] : SCREEN_WARM, Math.min(1, dtm * 3))
+          _c.copy(SCR_DARK).lerp(scrCol[i], Math.min(1, scrI[i] * 1.15))
+          sim.setColorAt(i, _c)
+        }
+        if (sim.instanceColor) sim.instanceColor.needsUpdate = true
+      }
+      const gim = segsIM.current
+      if (gim) {
+        for (let i = 0; i < 4; i++) {
+          const target = S2.loaded[i] ? 1.2 : 0.05
+          segI[i] += (target - segI[i]) * Math.min(1, dtm * 5)
+          _c.copy(SEG_DARK).lerp(EMBER, Math.min(1, segI[i] * 0.85))
+          gim.setColorAt(i, _c)
+        }
+        if (gim.instanceColor) gim.instanceColor.needsUpdate = true
+      }
     }
-    mats.screens.forEach((m, i) => {
-      // warm ember while idle, the slab's hue once a share is docked
-      const target = S2.loaded[i] ? 0.9 + Math.sin(t * 2 + i * 1.3) * 0.12 : 0.32 + Math.sin(t * 1.4 + i * 0.9) * 0.07
-      m.emissiveIntensity += (target - m.emissiveIntensity) * Math.min(1, dtm * 6)
-      m.emissive.lerp(S2.loaded[i] ? SCREEN_HUES[i] : SCREEN_WARM, Math.min(1, dtm * 3))
-    })
     if (S2.powered !== poweredUI) setPoweredUI(S2.powered)
     if (S2.completed !== completedUI) setCompletedUI(S2.completed)
     mats.rackLed.emissiveIntensity = 0.35 + (Math.sin(t * 6.3 + 1.7) > 0.1 ? 0.5 : 0.05)
-    mats.segs.forEach((m, i) => {
-      const target = S2.loaded[i] ? 1.2 : 0.05
-      m.emissiveIntensity += (target - m.emissiveIntensity) * Math.min(1, dtm * 5)
-    })
     mats.trim.emissiveIntensity += ((S2.phase === 'idle' ? 0 : 0.9) - mats.trim.emissiveIntensity) * Math.min(1, dtm * 3)
     mats.callLit.emissiveIntensity += ((S2.powered ? 0.85 : 0.12) - mats.callLit.emissiveIntensity) * Math.min(1, dtm * 4)
     mats.lantern.emissiveIntensity += ((S2.phase === 'top' || done ? 0.9 : 0) - mats.lantern.emissiveIntensity) * Math.min(1, dtm * 2.5)
@@ -476,22 +524,23 @@ export default function Obstacle({ id, active, complete, done }: ObstacleProps) 
       <CallBulb mat={mats.callLit} />
       <LanternBulb mat={mats.lantern} />
       {LAPTOPS.map((_, i) => (
-        <LapNode key={i} i={i} st={st} screenMat={mats.screens[i]} />
+        <LapNode key={i} i={i} st={st} />
       ))}
+      {/* all four laptop screens — one instanced draw, colours per instance */}
+      <instancedMesh ref={screensIM} args={scrArgs as unknown as [THREE.BufferGeometry, THREE.Material, number]} frustumCulled={false} />
       {S.chunks.map((ch, i) => (
         <ChunkNode key={ch.id} rt={ch} st={st} mat={mats.chunks[i]} />
       ))}
       {cables.map((ggeo, i) => (
         <mesh key={`cb${i}`} geometry={ggeo} material={mats.cables[i]} />
       ))}
-      {LAPTOPS.map((_, i) => (
-        <mesh key={`bd${i}`} ref={(m) => { beadRefs.current[i] = m }} material={mats.trim} visible={false}>
-          <sphereGeometry args={[0.045, 10, 8]} />
-        </mesh>
-      ))}
+      {/* the four travelling beads — one instanced draw call */}
+      <instancedMesh ref={beads} args={beadArgs as unknown as [THREE.BufferGeometry, THREE.Material, number]} visible={false} frustumCulled={false}>
+        <sphereGeometry args={[0.045, 10, 8]} />
+      </instancedMesh>
       {S.plank && <Plank />}
       <object3D ref={gapMark} position={GAP_EDGE} />
-      <LiftPad padRef={padRef} trimMat={mats.trim} segMats={mats.segs} />
+      <LiftPad padRef={padRef} trimMat={mats.trim} segMat={basicSeg} segRef={segsIM} />
       <object3D ref={callMark} position={[1.25, 0.75, -3.3]} />
       <object3D ref={storyMark} position={[STORY_P[0], STORY_P[1] + 0.85, STORY_P[2]]} />
       {active && !completedUI && !cardOpen && (

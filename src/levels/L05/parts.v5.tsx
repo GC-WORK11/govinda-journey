@@ -2,7 +2,7 @@
  *  Draw-call budget: every static piece is painted + merged into ONE vertex-coloured
  *  mesh (<Statics>, <WalkStatics>, the pad's merged shell). Only pieces with animated
  *  materials or that move with the lift stay separate meshes. */
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
@@ -294,19 +294,30 @@ export const chunkGeo = (size: number) => {
   return merged(bag)!
 }
 
-/** Dark lift pad: merged shell (walkable) + trim ring + the 4-segment dial. */
+/** Dark lift pad: merged shell (walkable) + trim ring + the 4-segment dial,
+ *  instanced to a single draw call (per-seg glow arrives via instanceColor). */
 export function LiftPad({
   trimMat,
-  segMats,
+  segMat,
+  segRef,
   padRef,
 }: {
   trimMat: THREE.MeshStandardMaterial
-  segMats: THREE.MeshStandardMaterial[]
+  segMat: THREE.Material
+  segRef: React.RefObject<THREE.InstancedMesh>
   padRef: React.RefObject<THREE.Group>
 }) {
   const walk = useRef<THREE.Mesh>(null)
   useWalkable(walk)
   const vc = useVcMat()
+  const segArgs = useMemo(() => [undefined, segMat, 4] as const, [segMat])
+  useEffect(() => {
+    const im = segRef.current
+    if (!im) return
+    const m = new THREE.Matrix4()
+    for (let i = 0; i < 4; i++) { m.makeRotationZ(i * (Math.PI / 2) + 0.07); im.setMatrixAt(i, m) }
+    im.instanceMatrix.needsUpdate = true
+  }, [segRef])
   const padGeo = useMemo(() => {
     const bag: PutBag = []
     put(bag, new THREE.BoxGeometry(PAD_W, 0.14, PAD_D), '#46403c', 0, PAD_TOP - 0.07, 0)
@@ -332,11 +343,9 @@ export function LiftPad({
       <mesh geometry={padGeo} material={vc} castShadow receiveShadow />
       <mesh geometry={trimGeo} material={trimMat} />
       <group position={[-PAD_W / 2 + 0.18, 1.18, -PAD_D / 2 + 0.22]}>
-        {segMats.map((m, i) => (
-          <mesh key={i} rotation={[0, 0, i * (Math.PI / 2) + 0.07]} material={m}>
-            <torusGeometry args={[0.3, 0.026, 6, 14, Math.PI / 2 - 0.14]} />
-          </mesh>
-        ))}
+        <instancedMesh ref={segRef} args={segArgs as unknown as [THREE.BufferGeometry, THREE.Material, number]} frustumCulled={false}>
+          <torusGeometry args={[0.3, 0.026, 6, 14, Math.PI / 2 - 0.14]} />
+        </instancedMesh>
       </group>
     </group>
   )

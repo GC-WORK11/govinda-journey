@@ -1,6 +1,5 @@
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import { C, clay, Scaffold } from '../../world/kit'
 import type { DioramaProps } from '../types'
@@ -147,11 +146,32 @@ export default function Diorama({ unlocked }: DioramaProps) {
   const staticGeo = useStaticGeo()
   const vc = useVcMat()
 
-  // screen materials glow softly once the split is solved
-  const screens = useMemo(
-    () => LAPS.map((l) => new THREE.MeshStandardMaterial({ color: '#eadfc9', roughness: 0.55, emissive: l.hue, emissiveIntensity: 0 })),
-    [],
-  )
+  // the four screens glow softly once solved — one instanced draw call,
+  // per-screen colour via instanceColor
+  const scrIM = useRef<THREE.InstancedMesh>(null)
+  const scrGeo = useMemo(() => new THREE.BoxGeometry(0.26, 0.165, 0.016), [])
+  const scrMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#ffffff' }), [])
+  const scrI = useMemo(() => new Float32Array(4), [])
+  const scrArgs = useMemo(() => [scrGeo, scrMat, 4] as const, [scrGeo, scrMat])
+  const _c = useMemo(() => new THREE.Color('#eadfc9'), [])
+  const _hue = useMemo(() => LAPS.map((l) => new THREE.Color(l.hue)), [])
+  useEffect(() => {
+    const im = scrIM.current
+    if (!im) return
+    const m = new THREE.Matrix4()
+    const tmp = new THREE.Matrix4()
+    LAPS.forEach((l, i) => {
+      m.makeTranslation(TABLE[0] + l.x, TOP, TABLE[2] + 0.28)
+        .multiply(tmp.makeRotationY(LAP_YAW[i]))
+        .multiply(tmp.makeTranslation(0, 0.028, -0.092))
+        .multiply(tmp.makeRotationX(-0.32))
+        .multiply(tmp.makeTranslation(0, 0.1, 0.003))
+      im.setMatrixAt(i, m)
+      im.setColorAt(i, _c)
+    })
+    im.instanceMatrix.needsUpdate = true
+    if (im.instanceColor) im.instanceColor.needsUpdate = true
+  }, [_c])
   const led = useMemo(
     () => new THREE.MeshStandardMaterial({ color: '#e9dfcf', roughness: 0.5, emissive: C.leafDark, emissiveIntensity: 0 }),
     [],
@@ -168,9 +188,15 @@ export default function Diorama({ unlocked }: DioramaProps) {
 
   useFrame((st) => {
     const t = st.clock.elapsedTime
-    screens.forEach((m, i) => {
-      m.emissiveIntensity = unlocked ? 0.8 + Math.sin(t * 1.8 + i * 1.4) * 0.15 : 0
-    })
+    const sim = scrIM.current
+    if (sim) {
+      for (let i = 0; i < 4; i++) {
+        scrI[i] = unlocked ? 0.8 + Math.sin(t * 1.8 + i * 1.4) * 0.15 : 0
+        _c.set('#eadfc9').lerp(_hue[i], Math.min(1, scrI[i] * 1.1))
+        sim.setColorAt(i, _c)
+      }
+      if (sim.instanceColor) sim.instanceColor.needsUpdate = true
+    }
     led.emissiveIntensity = unlocked ? 0.7 + (Math.sin(t * 5) > 0 ? 0.6 : 0.1) : 0
     const tk = token.current
     if (tk) {
@@ -194,14 +220,8 @@ export default function Diorama({ unlocked }: DioramaProps) {
       {/* every static prop in one draw call */}
       <mesh geometry={staticGeo ?? undefined} material={vc} castShadow receiveShadow />
 
-      {/* the four screens are the only animated pieces */}
-      {LAPS.map((l, i) => (
-        <group key={i} position={[TABLE[0] + l.x, TOP, TABLE[2] + 0.28]} rotation={[0, LAP_YAW[i], 0]}>
-          <group position={[0, 0.028, -0.092]} rotation={[-0.32, 0, 0]}>
-            <RoundedBox args={[0.26, 0.165, 0.016]} radius={0.005} position={[0, 0.1, 0.003]} material={screens[i]} />
-          </group>
-        </group>
-      ))}
+      {/* the four screens — one instanced draw call */}
+      <instancedMesh ref={scrIM} args={scrArgs as unknown as [THREE.BufferGeometry, THREE.Material, number]} frustumCulled={false} />
       <mesh position={ledP} material={led}>
         <sphereGeometry args={[0.011, 8, 8]} />
       </mesh>
