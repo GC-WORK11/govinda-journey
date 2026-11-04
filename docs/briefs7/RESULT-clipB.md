@@ -59,9 +59,8 @@ under `proofs/v7/clipB/`.
 - Static pass found no prop-vs-prop penetrations: the merged diorama
   (table/tree/cables) and the obstacle field (laptop plinths, desk, rack,
   lift, deck, shard) were laid out complementarily. Ground cables passing
-  under plinths are intentional (they read as roots running under the pads).
-- Ground cables passing under plinths are intentional; nothing required
-  repositioning on static inspection.
+  under plinths are intentional (they read as roots running under the pads);
+  nothing required repositioning on static inspection.
 
 ## Verification
 - `tsc --noEmit -p .` — clean.
