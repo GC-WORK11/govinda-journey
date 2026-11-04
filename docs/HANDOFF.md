@@ -20,3 +20,17 @@ Each: worktree /workspace/gj7/<name>, branch devin/<name>, tmux gj6-<name>, log 
 | storyC | claude-haiku-5-5-max | STORY + TAGLINE for I02, L06 (same brief: what he built, why… | running |
 | storyD | claude-haiku-5-5-max | STORY + TAGLINE for L07, L08, L09 and the finale (same brief… | running |
 | copyqa | claude-haiku-5-5-max | COPY QA + FACTS AUDIT (read-mostly). Do not edit level copy … | running |
+
+## V8 FINAL SPRINT (launched 16:33 IST Nov 4) — rules: docs/briefs8/COMMON.md
+Local Devin CLI sessions on the box (account devin-max; cloud sessions can't push → 403). No URLs; each = tmux gj8-<name>, worktree /workspace/gj8/<name>, branch devin8/<name>, log /workspace/gj8/logs/<name>.log. V7 sessions still running at 16:30 were stopped; their branches are being merged by `integrate`.
+| name | model | task |
+|---|---|---|
+| integrate | swe-2-max | merge all V7 devin/* branches to main → docs/briefs8/INTEGRATED.md, e2e play, preview deploy |
+| char | swe-2-max | full well-lit 3D player, proper arms |
+| heli | swe-2-max | real 3D helicopter |
+| clip | swe-2-max | ropes/props never clip islands |
+| perfqa | swe-2-max | <150 draw calls, <5 s load; e2e QA from 20:00 |
+| storyA | claude-haiku-5-5-max | in-world project story + taglines L01-L05, I01 |
+| storyB | claude-haiku-5-5-max | same for L06-L09, I02, finale + Wispr Flow credit |
+| pace | claude-haiku-5-5-max | ~2 min playthrough, snappy pacing |
+Deadlines: no features after 21:00, all merged 21:45 IST, no production promote.
