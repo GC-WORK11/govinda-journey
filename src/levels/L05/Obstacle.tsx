@@ -15,7 +15,10 @@ import {
   Statics, WalkStatics, Colliders, PlinthBlock, LiftPad, Plank, chunkGeo,
   DeskFx, RackLeds, YardBulb, CallBulb, LanternBulb, cableCurve, dockLocal,
 } from './parts.v5'
+import { LEVELS } from '../registry'
 import EntCard from './card.v5'
+
+const LREG = LEVELS.find((l) => l.id === 'L05')!
 
 const _v = new THREE.Vector3()
 const _w = new THREE.Vector3()
@@ -174,6 +177,8 @@ export default function Obstacle({ id, active, complete, done }: ObstacleProps) 
   const callMark = useRef<THREE.Object3D>(null)
   const storyMark = useRef<THREE.Object3D>(null)
   const [cardOpen, setCardOpen] = useState(false)
+  const [poweredUI, setPoweredUI] = useState(done)
+  const [completedUI, setCompletedUI] = useState(done)
   const [, force] = useState(0)
 
   const st = useRef<St>({
@@ -417,6 +422,8 @@ export default function Obstacle({ id, active, complete, done }: ObstacleProps) 
       m.emissiveIntensity += (target - m.emissiveIntensity) * Math.min(1, dtm * 6)
       m.emissive.lerp(S2.loaded[i] ? SCREEN_HUES[i] : SCREEN_WARM, Math.min(1, dtm * 3))
     })
+    if (S2.powered !== poweredUI) setPoweredUI(S2.powered)
+    if (S2.completed !== completedUI) setCompletedUI(S2.completed)
     mats.rackLed.emissiveIntensity = 0.35 + (Math.sin(t * 6.3 + 1.7) > 0.1 ? 0.5 : 0.05)
     mats.segs.forEach((m, i) => {
       const target = S2.loaded[i] ? 1.2 : 0.05
@@ -487,6 +494,21 @@ export default function Obstacle({ id, active, complete, done }: ObstacleProps) 
       <LiftPad padRef={padRef} trimMat={mats.trim} segMats={mats.segs} />
       <object3D ref={callMark} position={[1.25, 0.75, -3.3]} />
       <object3D ref={storyMark} position={[STORY_P[0], STORY_P[1] + 0.85, STORY_P[2]]} />
+      {active && !completedUI && !cardOpen && (
+        <Html fullscreen zIndexRange={[90, 0]} style={{ pointerEvents: 'none' }}>
+          <div
+            style={{
+              position: 'fixed', left: '50%', bottom: '7.5%', transform: 'translateX(-50%)',
+              pointerEvents: 'none', whiteSpace: 'nowrap', fontFamily: 'Inter, system-ui, sans-serif',
+              fontSize: 13, letterSpacing: '0.01em', color: '#4a3f33',
+              background: 'rgba(243, 234, 216, 0.94)', padding: '8px 18px', borderRadius: 999,
+              boxShadow: '0 2px 12px rgba(60, 45, 30, 0.22), 0 1px 0 rgba(255,255,255,0.5) inset',
+            }}
+          >
+            {poweredUI ? 'Step aboard the lift' : LREG.hint}
+          </div>
+        </Html>
+      )}
       {cardOpen && (
         <Html fullscreen zIndexRange={[200, 0]}>
           <EntCard open onClose={closeCard} />

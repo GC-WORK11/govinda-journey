@@ -21,15 +21,16 @@ export const EXIT_PT = new THREE.Vector3(0, 0, -4.2)
 export const HUES = ['#7fa7b5', '#8fb36b', '#9b8bb5', '#d9825b'] as const
 export const CHUNK_T = [0.1, 0.17, 0.25, 0.35]
 export const CHUNK_W = [0.5, 0.56, 0.64, 0.74]
-export const LAP_SCALE = [0.6, 0.78, 0.96, 1.18]
+export const LAP_SCALE = [0.72, 0.94, 1.15, 1.42]
 export const PLINTH_TOP = 0.52
 
-/** The four laptops, size = memory tier, shuffled around the ring so position is no hint. */
+/** The four laptops flank the player's path in the front half — the first thing
+ *  seen on arrival, screens turned toward the path, staggered small to large. */
 export const LAPTOPS: { size: number; p: [number, number, number]; yaw: number }[] = [
-  { size: 1, p: [-1.65, 0, 1.0], yaw: 0.55 },
-  { size: 0, p: [1.1, 0, 1.62], yaw: -0.55 },
-  { size: 3, p: [2.0, 0, -1.05], yaw: -1.0 },
-  { size: 2, p: [-0.95, 0, -1.92], yaw: 0.75 },
+  { size: 1, p: [1.85, 0, 2.35], yaw: -1.2 },
+  { size: 0, p: [-1.7, 0, 2.9], yaw: 1.2 },
+  { size: 3, p: [2.0, 0, 0.6], yaw: -1.1 },
+  { size: 2, p: [-1.85, 0, 1.2], yaw: 1.15 },
 ]
 
 export const SHARD = { c: new THREE.Vector3(8.15, -0.74, 0.55), r: 1.28 }
@@ -45,9 +46,9 @@ export const STORY_P: [number, number, number] = [1.28, 0, 3.35]
 
 export type ChunkDef = { size: number; home: THREE.Vector3; groundY: number }
 export const CHUNKS: ChunkDef[] = [
-  { size: 2, home: new THREE.Vector3(2.35, 0, 2.85), groundY: 0 },
-  { size: 0, home: new THREE.Vector3(-2.45, 0, 1.85), groundY: 0 },
-  { size: 3, home: new THREE.Vector3(3.15, 0, -0.55), groundY: 0 },
+  { size: 2, home: new THREE.Vector3(2.15, 0, 3.15), groundY: 0 },
+  { size: 0, home: new THREE.Vector3(-1.35, 0, 3.75), groundY: 0 },
+  { size: 3, home: new THREE.Vector3(2.5, 0, 1.35), groundY: 0 },
   { size: 1, home: new THREE.Vector3(8.15, 0, 0.55), groundY: SHARD.c.y },
 ]
 
@@ -255,6 +256,9 @@ export function Statics() {
     lightStatics(bag)
     storyStatics(bag)
     put(bag, new THREE.CircleGeometry(0.5, 20), '#d6cab4', 0, 0.02, 4.2, { rx: -Math.PI / 2 })
+    // a hue-tinted pad under each slab home — reads as "a piece to pick up"
+    for (const c of CHUNKS)
+      put(bag, new THREE.CircleGeometry(0.34, 18), HUES[c.size], c.home.x, c.groundY + 0.022, c.home.z, { rx: -Math.PI / 2 })
     return merged(bag)
   }, [])
   const mat = useVcMat()

@@ -4,8 +4,11 @@ import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import { C, clay, Scaffold } from '../../world/kit'
 import type { DioramaProps } from '../types'
+import { put, frame, merged, useVcMat } from './parts.v5'
 
-/* Ent: four laptops around a round table under a big tree, cables running into the soil like roots. */
+/* Ent: four laptops around a round table under a big tree, cables running into the soil like roots.
+ * All static props are painted + merged into ONE vertex-coloured mesh; only the
+ * animated pieces (screens, LED, token) stay separate. */
 const TABLE: [number, number, number] = [-0.34, 0, -0.28]
 const TOP = 0.56
 const TREE: [number, number, number] = [0.85, 0, -1.15]
@@ -17,20 +20,8 @@ const LAPS = [
 ]
 const LAP_YAW = [-0.3, -0.1, 0.1, 0.3]
 
-function Laptop({ p, yaw, scr }: { p: [number, number, number]; yaw: number; scr: THREE.MeshStandardMaterial }) {
-  return (
-    <group position={p} rotation={[0, yaw, 0]}>
-      <RoundedBox args={[0.3, 0.025, 0.21]} radius={0.008} position={[0, 0.013, 0]} material={clay('#e2cdaa')} castShadow />
-      <group position={[0, 0.028, -0.092]} rotation={[-0.32, 0, 0]}>
-        <RoundedBox args={[0.3, 0.21, 0.015]} radius={0.007} position={[0, 0.1, 0]} material={clay(C.paper)} castShadow />
-        <RoundedBox args={[0.26, 0.165, 0.016]} radius={0.005} position={[0, 0.1, 0.003]} material={scr} />
-      </group>
-    </group>
-  )
-}
-
 /* Four model-share slabs pinned to the scaffold dome while it is up — the same
- * rounded tiles V4's cover wore. They ride the cloth's shrink on unlock. */
+ * rounded tiles V4's cover wore. One merged mesh; rides the cloth's shrink. */
 const DOME_SC: [number, number, number] = [2.35 * 0.56, 1.45 * 1.02, 1.75 * 0.56]
 const SLAB_HUES = ['#c9875f', '#7fa7b5', '#8fb36b', '#9b8bb5']
 const SLAB_ARC = [
@@ -41,24 +32,24 @@ const SLAB_ARC = [
 ]
 
 function DomeBlocks({ open }: { open: boolean }) {
-  const g = useRef<THREE.Group>(null)
+  const g = useRef<THREE.Mesh>(null)
   const t = useRef(open ? 1 : 0)
-  const mats = useMemo(
-    () => SLAB_HUES.map((h) => new THREE.MeshStandardMaterial({ color: h, roughness: 0.6 })),
-    [],
-  )
-  const items = useMemo(
-    () =>
-      SLAB_ARC.map(({ az, el }, i) => {
-        const d = new THREE.Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el))
-        const pos = new THREE.Vector3(d.x * DOME_SC[0], d.y * DOME_SC[1], d.z * DOME_SC[2])
-        const nrm = new THREE.Vector3(d.x / DOME_SC[0], d.y / DOME_SC[1], d.z / DOME_SC[2]).normalize()
-        const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), nrm)
-        pos.addScaledVector(nrm, 0.035)
-        return { pos, q, w: 0.34 + (i % 2) * 0.05 }
-      }),
-    [],
-  )
+  const geo = useMemo(() => {
+    const bag: THREE.BufferGeometry[] = []
+    SLAB_ARC.forEach(({ az, el }, i) => {
+      const d = new THREE.Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el))
+      const pos = new THREE.Vector3(d.x * DOME_SC[0], d.y * DOME_SC[1], d.z * DOME_SC[2])
+      const nrm = new THREE.Vector3(d.x / DOME_SC[0], d.y / DOME_SC[1], d.z / DOME_SC[2]).normalize()
+      const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), nrm)
+      pos.addScaledVector(nrm, 0.035)
+      const w = 0.34 + (i % 2) * 0.05
+      put(bag, new THREE.BoxGeometry(w, 0.26, 0.07), SLAB_HUES[i], 0, 0, 0, {
+        pre: new THREE.Matrix4().compose(pos, q, new THREE.Vector3(1, 1, 1)),
+      })
+    })
+    return merged(bag)
+  }, [])
+  const vc = useVcMat()
   useFrame((_, dt) => {
     const target = open ? 1 : 0
     t.current += (target - t.current) * Math.min(1, dt * 2.2)
@@ -67,17 +58,94 @@ function DomeBlocks({ open }: { open: boolean }) {
       g.current.visible = t.current < 0.995
     }
   })
-  return (
-    <group ref={g}>
-      {items.map((it, i) => (
-        <RoundedBox key={i} args={[it.w, 0.26, 0.07]} radius={0.04} position={it.pos} quaternion={it.q} material={mats[i]} castShadow />
-      ))}
-    </group>
-  )
+  return <mesh ref={g} geometry={geo ?? undefined} material={vc} castShadow />
+}
+
+/** Every static prop — tree, table, laptop shells, router, mugs, note, cushion,
+ *  cables and roots — merged into a single vertex-coloured mesh. */
+function useStaticGeo() {
+  return useMemo(() => {
+    const bag: THREE.BufferGeometry[] = []
+
+    // the Ent tree (group rotation rz 0.05 baked in)
+    const treePre = new THREE.Matrix4().compose(
+      new THREE.Vector3(...TREE),
+      new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, 0.05)),
+      new THREE.Vector3(1, 1, 1),
+    )
+    put(bag, new THREE.CylinderGeometry(0.09, 0.16, 1.5, 9), C.wood, 0, 0.75, 0, { pre: treePre })
+    put(bag, new THREE.CylinderGeometry(0.035, 0.05, 0.45, 7), C.wood, 0.16, 1.15, 0.05, { rz: -0.7, pre: treePre })
+    put(bag, new THREE.CylinderGeometry(0.03, 0.045, 0.4, 7), C.wood, -0.14, 1.3, -0.04, { rx: 0.3, rz: 0.75, pre: treePre })
+    put(bag, new THREE.SphereGeometry(0.68, 18, 14), C.leafDark, 0, 2.05, 0, { s: [1, 0.82, 1], pre: treePre })
+    put(bag, new THREE.SphereGeometry(0.45, 16, 12), C.leaf, 0.5, 1.75, 0.12, { s: [1, 0.8, 1], pre: treePre })
+    put(bag, new THREE.SphereGeometry(0.42, 16, 12), C.moss, -0.45, 1.8, -0.05, { s: [1, 0.78, 1], pre: treePre })
+    put(bag, new THREE.SphereGeometry(0.4, 16, 12), C.leaf, 0.14, 2.5, 0.05, { s: [1, 0.75, 1], pre: treePre })
+    put(bag, new THREE.SphereGeometry(0.36, 14, 12), C.leafDark, -0.15, 2.42, -0.18, { s: [1, 0.75, 1], pre: treePre })
+    ;[[0.22, 0.12, 0.5], [-0.2, 0.1, -0.6], [0.02, -0.2, 2.8]].forEach(([x, z, r]) =>
+      put(bag, new THREE.SphereGeometry(0.1, 10, 8), C.wood, x, 0.05, z, { ry: r, s: [1.6, 0.5, 0.7], pre: treePre }),
+    )
+
+    // round wooden table
+    const tPre = frame(TABLE[0], TABLE[1], TABLE[2])
+    put(bag, new THREE.CylinderGeometry(0.82, 0.82, 0.07, 28), C.woodLight, 0, TOP - 0.035, 0, { pre: tPre })
+    put(bag, new THREE.TorusGeometry(0.72, 0.025, 8, 28), C.wood, 0, TOP - 0.085, 0, { rx: Math.PI / 2, pre: tPre })
+    put(bag, new THREE.CylinderGeometry(0.07, 0.1, 0.5, 10), C.wood, 0, 0.26, 0, { pre: tPre })
+    put(bag, new THREE.CylinderGeometry(0.3, 0.34, 0.06, 20), C.wood, 0, 0.03, 0, { pre: tPre })
+
+    // laptop shells (base + lid back); the screens stay separate animated meshes
+    LAPS.forEach((l, i) => {
+      const pre = frame(TABLE[0] + l.x, TOP, TABLE[2] + 0.28, LAP_YAW[i])
+      put(bag, new THREE.BoxGeometry(0.3, 0.025, 0.21), '#e2cdaa', 0, 0.013, 0, { pre })
+      const lid = frame(0, 0.028, -0.092)
+      lid.premultiply(pre)
+      lid.multiply(new THREE.Matrix4().makeRotationX(-0.32))
+      put(bag, new THREE.BoxGeometry(0.3, 0.21, 0.015), C.paper, 0, 0.1, 0, { pre: lid })
+    })
+
+    // little home router at the back of the table
+    const rPre = frame(TABLE[0], TOP, TABLE[2] - 0.42, 0.15)
+    put(bag, new THREE.BoxGeometry(0.17, 0.05, 0.12), C.cream, 0, 0.025, 0, { pre: rPre })
+    put(bag, new THREE.CylinderGeometry(0.006, 0.006, 0.13, 6), C.ink, -0.05, 0.11, -0.04, { rz: 0.35, pre: rPre })
+    put(bag, new THREE.CylinderGeometry(0.006, 0.006, 0.13, 6), C.ink, 0.05, 0.11, -0.04, { rz: -0.35, pre: rPre })
+
+    // cables running off the table and into the soil like roots
+    const spread = [[-0.75, 0.72], [-0.3, 0.95], [0.35, 0.95], [0.8, 0.68]]
+    LAPS.forEach((l, i) => {
+      const ax = TABLE[0] + l.x, az = TABLE[2] + 0.28
+      const [sx, sz] = spread[i]
+      const pts = [
+        new THREE.Vector3(ax, TOP + 0.01, az - 0.11),
+        new THREE.Vector3(ax * 0.55 + TABLE[0] * 0.45, TOP - 0.07, az - 0.26),
+        new THREE.Vector3(TABLE[0] + sx * 0.1, 0.3, TABLE[2] + 0.08),
+        new THREE.Vector3(TABLE[0] + sx * 0.5, 0.028, TABLE[2] + 0.32),
+        new THREE.Vector3(TABLE[0] + sx, 0.014, TABLE[2] + sz),
+      ]
+      put(bag, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, 0.013, 6), C.earthDark, 0, 0, 0)
+    })
+    const mk = (pts: [number, number, number][]) =>
+      new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(...p))), 20, 0.02, 6)
+    put(bag, mk([[TREE[0], 0.05, TREE[2] + 0.05], [0.5, 0.02, -0.75], [0.1, 0.012, -0.55]]), C.wood, 0, 0, 0)
+    put(bag, mk([[TREE[0] + 0.08, 0.05, TREE[2] + 0.1], [1.3, 0.02, -0.7], [1.55, 0.012, -0.35]]), C.wood, 0, 0, 0)
+
+    // two mugs and a folded note
+    ;[[-0.44, -0.34, '#c9875f'], [0.4, -0.38, '#7fa7b5']].forEach(([x, z, c]) => {
+      const pre = frame(TABLE[0] + (x as number), TOP, TABLE[2] + (z as number))
+      put(bag, new THREE.CylinderGeometry(0.042, 0.036, 0.07, 10), c as string, 0, 0.035, 0, { pre })
+      put(bag, new THREE.TorusGeometry(0.026, 0.008, 6, 12, Math.PI), c as string, 0.05, 0.038, 0, { rx: Math.PI / 2, pre })
+    })
+    put(bag, new THREE.BoxGeometry(0.2, 0.025, 0.15), C.paper, TABLE[0] - 0.28, TOP + 0.012, TABLE[2] - 0.52, { ry: 0.45 })
+
+    // the floor cushion someone pulled up to the table
+    put(bag, new THREE.SphereGeometry(0.3, 14, 10), '#b5654a', -1.32, 0.055, 0.42, { s: [1, 0.32, 1] })
+
+    return merged(bag)
+  }, [])
 }
 
 export default function Diorama({ unlocked }: DioramaProps) {
   const token = useRef<THREE.Mesh>(null)
+  const staticGeo = useStaticGeo()
+  const vc = useVcMat()
 
   // screen materials glow softly once the split is solved
   const screens = useMemo(
@@ -88,29 +156,9 @@ export default function Diorama({ unlocked }: DioramaProps) {
     () => new THREE.MeshStandardMaterial({ color: '#e9dfcf', roughness: 0.5, emissive: C.leafDark, emissiveIntensity: 0 }),
     [],
   )
-  const cables = useMemo(() => {
-    // each cable leaves its laptop, gathers at the table leg, then fans out on the soil like a root
-    const spread = [[-0.75, 0.72], [-0.3, 0.95], [0.35, 0.95], [0.8, 0.68]]
-    return LAPS.map((l, i) => {
-      const ax = TABLE[0] + l.x, az = TABLE[2] + 0.28
-      const [sx, sz] = spread[i]
-      const pts = [
-        new THREE.Vector3(ax, TOP + 0.01, az - 0.11),
-        new THREE.Vector3(ax * 0.55 + TABLE[0] * 0.45, TOP - 0.07, az - 0.26),
-        new THREE.Vector3(TABLE[0] + sx * 0.1, 0.3, TABLE[2] + 0.08),
-        new THREE.Vector3(TABLE[0] + sx * 0.5, 0.028, TABLE[2] + 0.32),
-        new THREE.Vector3(TABLE[0] + sx, 0.014, TABLE[2] + sz),
-      ]
-      return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, 0.013, 6)
-    })
-  }, [])
-  const roots = useMemo(() => {
-    const mk = (pts: [number, number, number][]) =>
-      new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(...p))), 20, 0.02, 6)
-    return [
-      mk([[TREE[0], 0.05, TREE[2] + 0.05], [0.5, 0.02, -0.75], [0.1, 0.012, -0.55]]),
-      mk([[TREE[0] + 0.08, 0.05, TREE[2] + 0.1], [1.3, 0.02, -0.7], [1.55, 0.012, -0.35]]),
-    ]
+  const ledP = useMemo(() => {
+    const p = new THREE.Vector3(0, 0.052, 0.055).applyMatrix4(frame(TABLE[0], TOP, TABLE[2] - 0.42, 0.15))
+    return p
   }, [])
 
   const tops = useMemo(
@@ -143,64 +191,19 @@ export default function Diorama({ unlocked }: DioramaProps) {
 
   return (
     <group>
-      {/* the Ent tree */}
-      <group position={TREE} rotation={[0, 0, 0.05]}>
-        <mesh position={[0, 0.75, 0]} material={clay(C.wood)} castShadow><cylinderGeometry args={[0.09, 0.16, 1.5, 9]} /></mesh>
-        <mesh position={[0.16, 1.15, 0.05]} rotation={[0, 0, -0.7]} material={clay(C.wood)} castShadow><cylinderGeometry args={[0.035, 0.05, 0.45, 7]} /></mesh>
-        <mesh position={[-0.14, 1.3, -0.04]} rotation={[0.3, 0, 0.75]} material={clay(C.wood)} castShadow><cylinderGeometry args={[0.03, 0.045, 0.4, 7]} /></mesh>
-        <mesh position={[0, 2.05, 0]} material={clay(C.leafDark)} castShadow scale={[1, 0.82, 1]}><sphereGeometry args={[0.68, 18, 14]} /></mesh>
-        <mesh position={[0.5, 1.75, 0.12]} material={clay(C.leaf)} castShadow scale={[1, 0.8, 1]}><sphereGeometry args={[0.45, 16, 12]} /></mesh>
-        <mesh position={[-0.45, 1.8, -0.05]} material={clay(C.moss)} castShadow scale={[1, 0.78, 1]}><sphereGeometry args={[0.42, 16, 12]} /></mesh>
-        <mesh position={[0.14, 2.5, 0.05]} material={clay(C.leaf)} castShadow scale={[1, 0.75, 1]}><sphereGeometry args={[0.4, 16, 12]} /></mesh>
-        <mesh position={[-0.15, 2.42, -0.18]} material={clay(C.leafDark)} castShadow scale={[1, 0.75, 1]}><sphereGeometry args={[0.36, 14, 12]} /></mesh>
-        {[[0.22, 0.02, 0.12, 0.5], [-0.2, 0.02, 0.1, -0.6], [0.02, 0.02, -0.2, 2.8]].map(([x, y, z, r], i) => (
-          <mesh key={i} position={[x, y + 0.03, z]} rotation={[0, r, 0]} material={clay(C.wood)} castShadow scale={[1.6, 0.5, 0.7]}>
-            <sphereGeometry args={[0.1, 10, 8]} />
-          </mesh>
-        ))}
-      </group>
+      {/* every static prop in one draw call */}
+      <mesh geometry={staticGeo ?? undefined} material={vc} castShadow receiveShadow />
 
-      {/* round wooden table */}
-      <group position={TABLE}>
-        <mesh position={[0, TOP - 0.035, 0]} material={clay(C.woodLight)} castShadow receiveShadow><cylinderGeometry args={[0.82, 0.82, 0.07, 28]} /></mesh>
-        <mesh position={[0, TOP - 0.085, 0]} rotation={[Math.PI / 2, 0, 0]} material={clay(C.wood)}><torusGeometry args={[0.72, 0.025, 8, 28]} /></mesh>
-        <mesh position={[0, 0.26, 0]} material={clay(C.wood)} castShadow><cylinderGeometry args={[0.07, 0.1, 0.5, 10]} /></mesh>
-        <mesh position={[0, 0.03, 0]} material={clay(C.wood)} castShadow><cylinderGeometry args={[0.3, 0.34, 0.06, 20]} /></mesh>
-      </group>
-
-      {/* four laptops in a row, facing the traveller */}
+      {/* the four screens are the only animated pieces */}
       {LAPS.map((l, i) => (
-        <Laptop key={i} p={[TABLE[0] + l.x, TOP, TABLE[2] + 0.28]} yaw={LAP_YAW[i]} scr={screens[i]} />
-      ))}
-
-      {/* little home router at the back of the table */}
-      <group position={[TABLE[0], TOP, TABLE[2] - 0.42]} rotation={[0, 0.15, 0]}>
-        <RoundedBox args={[0.17, 0.05, 0.12]} radius={0.015} position={[0, 0.025, 0]} material={clay(C.cream)} castShadow />
-        <mesh position={[-0.05, 0.11, -0.04]} rotation={[0, 0, 0.35]} material={clay(C.ink)}><cylinderGeometry args={[0.006, 0.006, 0.13, 6]} /></mesh>
-        <mesh position={[0.05, 0.11, -0.04]} rotation={[0, 0, -0.35]} material={clay(C.ink)}><cylinderGeometry args={[0.006, 0.006, 0.13, 6]} /></mesh>
-        <mesh position={[0, 0.052, 0.055]} material={led}><sphereGeometry args={[0.011, 8, 8]} /></mesh>
-      </group>
-
-      {/* cables running off the table and into the soil like roots */}
-      {cables.map((g, i) => <mesh key={'c' + i} geometry={g} material={clay(C.earthDark)} castShadow />)}
-      {roots.map((g, i) => <mesh key={'r' + i} geometry={g} material={clay(C.wood)} castShadow />)}
-
-      {/* two mugs and a folded note — the home-lab feel */}
-      {[[-0.44, -0.34, '#c9875f'], [0.4, -0.38, '#7fa7b5']].map(([x, z, c], i) => (
-        <group key={i} position={[TABLE[0] + (x as number), TOP, TABLE[2] + (z as number)]}>
-          <mesh position={[0, 0.035, 0]} material={clay(c as string)} castShadow>
-            <cylinderGeometry args={[0.042, 0.036, 0.07, 10]} />
-          </mesh>
-          <mesh position={[0.05, 0.038, 0]} rotation={[Math.PI / 2, 0, 0]} material={clay(c as string)}>
-            <torusGeometry args={[0.026, 0.008, 6, 12, Math.PI]} />
-          </mesh>
+        <group key={i} position={[TABLE[0] + l.x, TOP, TABLE[2] + 0.28]} rotation={[0, LAP_YAW[i], 0]}>
+          <group position={[0, 0.028, -0.092]} rotation={[-0.32, 0, 0]}>
+            <RoundedBox args={[0.26, 0.165, 0.016]} radius={0.005} position={[0, 0.1, 0.003]} material={screens[i]} />
+          </group>
         </group>
       ))}
-      <RoundedBox args={[0.2, 0.025, 0.15]} radius={0.01} position={[TABLE[0] - 0.28, TOP + 0.012, TABLE[2] - 0.52]} rotation={[0, 0.45, 0]} material={clay(C.paper)} castShadow />
-
-      {/* a floor cushion someone pulled up to the table */}
-      <mesh position={[-1.32, 0.055, 0.42]} scale={[1, 0.32, 1]} material={clay('#b5654a')} castShadow receiveShadow>
-        <sphereGeometry args={[0.3, 14, 10]} />
+      <mesh position={ledP} material={led}>
+        <sphereGeometry args={[0.011, 8, 8]} />
       </mesh>
 
       {/* the word that hops laptop to laptop */}
