@@ -10,7 +10,7 @@ import * as THREE from 'three'
 import * as core from '../../v5/core'
 
 const CSS = `
-.gj-i02-say{margin:0;max-width:240px;padding:9px 14px 10px;border-radius:18px;position:relative;background:color-mix(in srgb,var(--paper) 95%,transparent);color:var(--ink);font:400 15px/1.36 var(--serif);text-align:center;text-wrap:balance;box-shadow:0 8px 20px -10px rgba(60,45,30,.45);pointer-events:none;animation:gjI02Say .4s ease-out both}
+.gj-i02-say{margin:0;width:max-content;max-width:240px;padding:9px 14px 10px;border-radius:18px;position:relative;background:color-mix(in srgb,var(--paper) 95%,transparent);color:var(--ink);font:400 15px/1.36 var(--serif);text-align:center;text-wrap:balance;box-shadow:0 8px 20px -10px rgba(60,45,30,.45);pointer-events:none;animation:gjI02Say .4s ease-out both}
 .gj-i02-say:after{content:"";position:absolute;left:50%;bottom:-6px;width:12px;height:12px;margin-left:-6px;background:inherit;transform:rotate(45deg)}
 @keyframes gjI02Say{from{opacity:0;transform:translateY(6px)}}
 @media (prefers-reduced-motion:reduce){.gj-i02-say{animation:none}}`
