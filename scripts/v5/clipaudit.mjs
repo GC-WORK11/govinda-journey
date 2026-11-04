@@ -56,7 +56,7 @@ await withChrome(async (b) => {
       } catch {}
       return out
     }).catch((e) => ({ err: String(e).slice(0, 120) }))
-    if (st.island && st.walkables > 0) break
+    if (st.island && (st.walkables > 0 || t > 60)) break
     if (t > 150) { console.log('never ready:', JSON.stringify(st)); if (outdir) await p.screenshot({ path: path.join(outdir, `${AT}-notready.png`) }).catch(() => {}); process.exit(2) }
     if (t % 20 === 19) console.log('waiting:', JSON.stringify(st))
     await sleep(500)
