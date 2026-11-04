@@ -23,6 +23,25 @@ type V3T = [number, number, number]
 
 const HINT = LEVELS.find((l) => l.id === 'L06')?.hint ?? 'Board the helicopter'
 
+/* soft paper scrim behind the caption band — same trick as .v5::before, but
+   island-side so the shared chrome stays untouched. z 5 sits under .v5 (z 6). */
+let scrimCSSIn = false
+function useCapScrim(on: boolean) {
+  useEffect(() => {
+    if (!on || typeof document === 'undefined') return
+    if (!scrimCSSIn) {
+      scrimCSSIn = true
+      const s = document.createElement('style')
+      s.textContent = `.gjv5-l06-capscrim{position:fixed;top:110px;left:50%;transform:translateX(-50%);width:min(700px,94vw);height:150px;z-index:5;pointer-events:none;background:radial-gradient(ellipse 55% 60% at 50% 55%,color-mix(in srgb,var(--paper) 66%,transparent),color-mix(in srgb,var(--paper) 0%,transparent) 76%)}`
+      document.head.appendChild(s)
+    }
+    const el = document.createElement('div')
+    el.className = 'gjv5-l06-capscrim'
+    document.body.appendChild(el)
+    return () => { el.remove() }
+  }, [on])
+}
+
 /* ---------------------------------- layout ---------------------------------- */
 
 const PAD_HOME = new V3(1.7, 0.045, 2.6)                 // helipad on the island
@@ -44,10 +63,10 @@ const RINGS: V3T[] = [
  *  behind the caption is open sky. */
 const TOWERS: [number, number, number, number, number, string, number][] = [
   [2.95, 1.35, 1.35, 1.1, 2.2, C.facade1, 3],
-  [3.75, -0.7, 1.25, 1.25, 1.9, C.facade2, 7],
-  [3.5, -2.5, 1.15, 1.0, 1.3, C.facade3, 11],
-  [-3.4, -2.55, 1.45, 1.2, 1.35, C.facade1, 5],
-  [-3.75, -0.9, 1.25, 1.15, 1.9, C.facade2, 13],
+  [3.75, -0.7, 1.25, 1.25, 1.5, C.facade2, 7],
+  [3.5, -2.5, 1.15, 1.0, 1.0, C.facade3, 11],
+  [-3.4, -2.55, 1.45, 1.2, 1.0, C.facade1, 5],
+  [-3.75, -0.9, 1.25, 1.15, 1.5, C.facade2, 13],
   [-3.5, 1.75, 1.15, 1.05, 1.8, C.facade4, 17],
   [-2.6, 3.4, 1.0, 0.9, 1.3, C.facade3, 19],
   [4.35, 1.6, 0.9, 0.9, 1.5, C.facade4, 23],
@@ -59,6 +78,7 @@ const BOUND = 11.5, Y_MIN = 0.4, Y_MAX = 5.6
 /* ---------------------------------- obstacle ---------------------------------- */
 
 export default function Obstacle({ id, active, complete, done }: core.ObstacleProps) {
+  useCapScrim(active)
   const root = useRef<THREE.Group>(null)
   const heli = useRef<THREE.Group>(null)
   const rotor = useRef<THREE.Group>(null)
@@ -364,12 +384,12 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
         </group>
       ))}
       {/* rooftops */}
-      <Prop name="water_tower" position={[-3.75, 1.96, -0.9]} fit={0.9} />
+      <Prop name="water_tower" position={[-3.75, 1.54, -0.9]} fit={0.75} />
       <AcBox position={[2.95, 2.28, 1.1]} />
-      <AcBox position={[3.75, 1.98, -0.9]} s={1.2} />
-      <Antenna position={[3.5, 1.34, -2.5]} h={0.9} />
+      <AcBox position={[3.75, 1.58, -0.9]} s={1.2} />
+      <Antenna position={[3.5, 1.04, -2.5]} h={0.9} />
       <AcBox position={[-3.5, 1.86, 1.75]} s={0.9} />
-      <Antenna position={[-3.4, 1.4, -2.55]} h={0.7} />
+      <Antenna position={[-3.4, 1.06, -2.55]} h={0.7} />
       {/* street life */}
       <Prop name="streetlight" position={[-1.05, 0.03, 1.9]} fit={0.95} />
       <Prop name="streetlight" position={[-2.35, 0.03, -0.6]} fit={0.95} rotation={[0, Math.PI, 0]} />
