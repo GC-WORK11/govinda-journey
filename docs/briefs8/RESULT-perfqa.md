@@ -52,18 +52,26 @@ the tree; merged meshes opt out of raycast).
   interactive geometry.
 
 ## NOT verified (blocked)
-- **Per-view draw-call census and cold-load timing.** The shared headless
-  Chrome profile (`/tmp/gj-chrome-profile`) was held continuously by peer
-  sessions all evening (singleton lock; clip/play QA loops). My census
-  script (`/tmp/perf8/calls.mjs`, renderer-wrap + per-island frustum
-  census, incremental JSON output, 30 retries) queued for hours and did
-  not get a window. Numbers for <150 calls/view and <5 s cold are
-  therefore unconfirmed — V7 perfA's RESULT should be treated as the
-  baseline (L04 measured 480→374 there, plus this session's −12 calls
-  and upstream's own wraps).
-- **Full play.mjs run.** Same contention. No crash/softlock regressions
-  are expected from this diff (it only merges statics and fixes bake
-  churn), but it is unproven.
+- **Per-view draw-call census and cold-load timing on this tree.** The
+  shared headless Chrome profile (`/tmp/gj-chrome-profile`) was held
+  continuously by peer sessions all evening (singleton lock; clip/play
+  QA loops). My census script (`/tmp/perf8/calls.mjs`, renderer-wrap +
+  per-island frustum census, incremental JSON output, 30 retries)
+  queued for hours and did not get a window.
+  Best available numbers are V7 perfA's measured production-build
+  census (`docs/briefs7/RESULT-perfA.md`, `__journey.v5.stats()`):
+  L01 124, I01 145, L06 95, L09 125 under target; L02 217, L03 243,
+  L04 290, L05 247, L07 197, L08 269, I02 163 still over — dominated by
+  live gameplay meshes that must not be merged plus the i±1 mount
+  window rendering two neighbours. This diff adds ≈ −12 ambient calls
+  per view (island base + dressing) on top of that table, which flips
+  I02 close to/at target but does not bring L04/L05/L08 down — those
+  need instancing of animated gameplay meshes (L04 stones, L02
+  letters, L07 chips), perfA's own recommended next step, not
+  attempted here (unverifiable tonight).
+- **Full play.mjs run.** Same contention. No crash/softlock
+  regressions are expected from this diff (it only merges statics and
+  fixes bake churn), but it is unproven.
 
 ## Blocking bugs found
 None in this diff's scope. Known-risk notes for whoever runs QA next:
