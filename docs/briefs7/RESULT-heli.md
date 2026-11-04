@@ -18,24 +18,38 @@ flying) unchanged.
   ~2.8 m nose-to-tail, ~2.1 m rotor span; skids rest on y=0, nose faces +z.
   Optional `rotorRef`/`tailRef` props hand the pivots to a caller; otherwise
   the model self-spins — lazy idle, full throttle while `heli.flying`.
-- **`src/v5/player/Heli.tsx`** — `children ?? <HeliModel/>` default visual.
-  Controller, physics and the exported `heli` state untouched.
+- **`src/v5/player/Heli.tsx`** — `children ?? <HeliModel/>` default visual;
+  default `seatY` 0.62→0.24. Controller, physics and the exported `heli`
+  state untouched.
 - **`src/v5/player/Sandbox.tsx`** — demo drops its crude children (uses the
-  default model); pad lifted to skid level (0.02), seatY 0.6.
+  default model); pad lifted to skid level (0.02).
 - **`src/levels/L06/kit.v5.tsx`** — local `Heli` stub removed; now wraps
   `HeliModel` flipped π (keeps the stub's -z facing) with the same
   `rotorRef` API plus `tailRef`.
 - **`src/levels/L06/Obstacle.tsx`** — spins both rotor pivots (tail at 5×
-  main rate, same throttle curve); rider seat raised 0.32→0.62 for the
-  taller craft; boarding blocker widened to cover the longer fuselage.
+  main rate, same throttle curve); rider seat 0.32→0.24 (measured: the GLB
+  has an open passenger bay at craft centre — bay floor ≈0.23 m world —
+  which parks the rider's head ≈0.78 just under the 0.83 rotor disc with
+  shoulders above the bay rim; the old 0.62 put the blades through the
+  rider's chest); boarding blocker reshaped 0.62×1.0×0.5 → 0.7×1.0×1.8 and
+  shifted +0.4 z so the longer fuselage isn't clipped while the prompt
+  stays reachable.
 
 ## Verification
-- `tsc --noEmit` clean.
+- `tsc --noEmit` clean; `vite build` clean (6 s, static dist served on :5203).
 - GLB surgery verified offline: excise cut exactly the 24-tri tail disc;
   rotor pivot radius 0.01–2.03 m centred on the mast.
-- Screenshots `proofs/v7/heli/l06-{parked,flying}-1440.png` (+ 390 lite) —
-  see below for findings.
-- `play.mjs` L06 at 1440 and 390 `--lite` — see below.
+- Rider fit measured from the real assets: `Sit_Floor_Idle` head bone
+  +0.46/head top ≈+0.55 over the seat; rotor disc at 0.83 → seat 0.24 puts
+  the head just under the disc inside the model's open bay.
+- `proofs/v7/heli/dev-parked.png` — L06 dev harness render: model loads and
+  retints correctly, parked on the pad, main rotor idling.
+- `proofs/v7/heli/l06-{parked,flying}-{1440,390}.png` — queued on the shared
+  chrome lock (contention on the box is severe; results below when landed).
+- `play.mjs` L06 at 1440 and 390 `--lite` — queued behind the same lock.
 
 ## Still wrong / notes
-- (fill in after visual review)
+- Dev-server mode on the shared box was unusable for verification (Vite dep
+  optimizer 504s under disk pressure); screenshots run against the
+  production build instead — same code path minus HMR.
+- (visual findings appended after the proof run lands)

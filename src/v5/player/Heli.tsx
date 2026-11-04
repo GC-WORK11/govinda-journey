@@ -58,14 +58,15 @@ const _ray = new THREE.Raycaster(), _down = new THREE.Vector3(0, -1, 0)
 const _qb = new THREE.Box3(), _wb = new THREE.Box3()
 const _hit: THREE.Intersection[] = [], _cand: THREE.Object3D[] = []
 
-export function Heli({ id, pad, exit, seatY = 0.62, radius = 2.4, label = 'climb in', ceiling = 13, range = 30, onBoard, onLand, children }: {
+export function Heli({ id, pad, exit, seatY = 0.24, radius = 2.4, label = 'climb in', ceiling = 13, range = 30, onBoard, onLand, children }: {
   /** unique interactable id, e.g. 'L06-heli' */
   id: string
   /** home/landing spot, parent-local */
   pad: [number, number, number]
   /** where the rider steps off on landing, parent-local (default: beside pad) */
   exit?: [number, number, number]
-  /** seat height above the craft centre */
+  /** seat height above the craft centre — the GLB's open bay floor is ~0.23,
+      which parks the rider's head just under the main-rotor disc */
   seatY?: number
   /** board prompt radius */
   radius?: number

@@ -340,7 +340,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
     /* ----------------------------- rider + camera ----------------------------- */
     if (ph === 'fly' || ph === 'land') {
       // seat the traveller: teleport is the only external writer of player pos
-      _seat.copy(s.pos); _seat.y += 0.62
+      _seat.copy(s.pos); _seat.y += 0.24
       const sw = root.current ? root.current.localToWorld(_seat) : _seat
       J()?.player?.teleport?.(sw.x, sw.y, sw.z)
       // chase cam (world space)
