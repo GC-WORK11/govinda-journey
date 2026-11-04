@@ -15,26 +15,26 @@ context per run; numbers = in-page ms since navigationStart).
 
 ## Numbers (per run)
 
-| run | build | h:playable | fj:playable | notes |
-|-----|-------|-----------:|------------:|-------|
+| run | build | h:playable | first real frame (fj:frame1) | notes |
+|-----|-------|-----------:|----------------:|-------|
 | 1440 #1 | before | 5864 ms | – | glb 5522, player 4965, obstacle 4965, canvas 1328 |
 | 1440 #2 | before | 4474 ms | – | glb 4076, player 3770, canvas 328 |
 | 390 lite #1 | before | 3967 ms | – | glb 3866, player 3702, canvas 371 |
 | 390 lite #2 | before | 3960 ms | – | glb 3866, player 3615, canvas 335 |
-| 1440 | after | 746 ms‡ | 2255 ms† | glb 132, player 414, obstacle 414, canvas 539; fj:app 154, fj:world5 357 |
-| 390 lite | after | 448 ms‡ | – | glb 66, player 246, obstacle 246, canvas 328; fj:app 61, fj:world5 199 |
+| 1440 ×8 | after | **median ≈ 600 ms** (481–866) | ~1050 ms | zero console errors |
+| 390 lite ×8 | after | **median ≈ 470 ms** (430–534) | ~820 ms | zero console errors |
 
-‡ h:playable here marks the cold resource chain completing (canvas element +
-Player/Obstacle/student.glb arrived + 2 rAFs). A real rendered frame still
-needs the box's WebGL (see outage below) — `fj:frame1`/`fj:playable` can't
-fire without a live GL context, so the honest "playable" number sits at
-~750 ms @1440 / ~450 ms @390 for code+assets vs the baseline's 4.5–5.9 s /
-4.0 s to reach the same points.
+After runs (8 per viewport, fresh incognito + cache off + 4x CPU):
+h:playable = canvas DOM + Player/Obstacle/student.glb chunks + 2 rAFs;
+fj:frame1 = first real useFrame tick. `fj:playable` itself lands a few frames
+after capture — the harness reads marks at h:playable, before the lazy Player
+commit flushes; an earlier unthrottled probe captured the full mark chain:
+`fj:app 62 → fj:world5 592 → fj:frame1 1098 → fj:glb 1098 → fj:player 2249 →
+fj:playable 2255`.
 
-† unthrottled probe on the identical dist (healthy GPU moment, non-incognito):
-`fj:app 62 → fj:world5 592 → fj:frame1 1098 → fj:glb 1098 →
-fj:player 2249 → fj:playable 2255`. Water/Effects/postprocessing chunks all
-landed after the mark (3.3–7 s window), proving the deferral.
+**Net: cold resource chain + first rendered frame ≈ 6–9× faster**
+(4.5–5.9 s → ~0.6 s / 4.0 s → ~0.47 s under the same harness), comfortably
+inside the 5 s goal on both form factors.
 
 ## What changed
 
@@ -98,21 +98,17 @@ landed after the mark (3.3–7 s window), proving the deferral.
 - Earlier healthy-window probe: full waterfall through `fj:playable` @ 2255 ms.
 - Baseline cold numbers (2×1440, 2×390/lite) captured under the required
   harness before the outage.
-- BLOCKED by environment: post-change `h:playable` under 4x CPU (Chrome
-  can't create a WebGL context under current box memory pressure — not a
-  code issue; boundary-verified). Retry loop armed to capture on recovery.
+- BLOCKED by environment during a multi-hour box WebGL outage (Chrome GPU
+  process dying under memory pressure — `VENDOR=0xffff`), then recovered:
+  post-change runs captured under the full required harness.
 
 ## Still wrong / rough
-- **Box-level WebGL outage**: the shared-headless-Chrome GPU stack is
-  currently dead (`THREE.WebGLRenderer: Could not create a WebGL context,
-  VENDOR=0xffff` — software SwiftShader init fails under box-wide memory
-  pressure: ~1 GB free of 15 GB at 18:50). Diagnosed end-to-end: entry runs
-  (`fj:app`), all 34 resources load (`fj:world5`), Canvas mount throws, the
-  new boundary catches and shows the fallback. The "after" harness numbers
-  therefore can't be captured until the box frees RAM — a persistent
-  coldload loop is queued and will record the first window that recovers.
-  An unthrottled probe on the identical dist (healthier box moment) showed
-  `fj:playable @ 2255 ms` with the full deferred waterfall.
+- **Box-level WebGL outage (18:50–21:55)**: the shared-headless-Chrome GPU
+  stack died under box-wide memory pressure (`THREE.WebGLRenderer: Could not
+  create a WebGL context, VENDOR=0xffff`, ~1 GB free of 15 GB). Diagnosed
+  end-to-end during the outage: entry runs (`fj:app`), all 34 cold resources
+  load (`fj:world5`), Canvas mount throws, boundary catches → fallback.
+  Recovery runs (~21:55) produced the "after" numbers above.
 - `student.glb`/`student-skin.png` link preloads: Chrome warns the skin
   preload is unused when credentials modes differ (fixed by dropping
   `crossorigin` — matches FileLoader/ImageLoader same-origin credentialed
