@@ -16,6 +16,8 @@ import {
 import { Prop } from '../../v5/art/Dressing'
 import { Board, BoardCard } from './plaza.v5'
 import { Guardian } from './guardian.v5'
+import Play, { l08qa } from './Play'
+import { ISLAND_R } from '../../v5/world/layout'
 import { SpeakPrompt } from './voiceui.v5'
 import { SignPad, SIGN_V } from './signui.v5'
 import { has, interactables, useBlocker, useV5, type ObstacleProps } from '../../v5/core'
@@ -72,7 +74,24 @@ function GateStone({ x }: { x: number }) {
   )
 }
 
+/* paper scrim behind the caption band (same trick as L06), so the date line reads over the dome */
+let scrimCSSIn = false
+function useCapScrim(on: boolean) {
+  useEffect(() => {
+    if (!on || typeof document === 'undefined') return
+    if (!scrimCSSIn) {
+      scrimCSSIn = true
+      const st = document.createElement('style')
+      st.textContent = `body.gj-l08 .v5-cap{background:radial-gradient(ellipse 60% 70% at 50% 50%,color-mix(in srgb,var(--paper) 90%,transparent),color-mix(in srgb,var(--paper) 0%,transparent) 78%);padding:18px 48px}body.gj-l08 .v5-cap .eyebrow{opacity:1}`
+      document.head.appendChild(st)
+    }
+    document.body.classList.add('gj-l08')
+    return () => { document.body.classList.remove('gj-l08') }
+  }, [on])
+}
+
 export default function Obstacle({ active, complete, done }: ObstacleProps) {
+  useCapScrim(active)
   const frame = useIslandFrame<THREE.Group>()
   useCarryAnchor()
   const [stage, setStage] = useState<'approach' | 'shown' | 'aside'>(done ? 'aside' : 'approach')
@@ -109,17 +128,10 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
     id: 'l08-guardian',
     at: () => pos.current.clone().setY(1.3),
     radius: 2.3,
-    label: stage === 'approach' ? 'Speak to the guardian' : 'Show the guardian your sign',
+    label: 'Speak to the guardian',
     enabled: () => active && overlay === 'none' && stage !== 'aside',
 
-    use: () => {
-      if (stage === 'approach') {
-        if (!has('voice')) { caption('The guardian waits for a voice it knows.'); return }
-        setOverlay('speak')
-      } else if (stage === 'shown') {
-        setOverlay('sign')
-      }
-    },
+    use: () => { caption('Match the sign on the laptop first.') },
   })
 
   useLocalInteractable(frame, {
@@ -156,26 +168,11 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
   useEffect(() => {
     if (!isQa()) return
     installSolve('L08', async () => {
-      if (!has('voice')) useV5.getState().grant('voice')
-      teleportTo(frame, 0, 0, -1.7)
-      await sleep(450)
-      ;(await waitFor(() => interactables.get('l08-guardian'))).use()
-      const tb = await waitFor(() => document.querySelector<HTMLButtonElement>('[data-qa="speak-type"]'))
-      tb.click()
-      const input = await waitFor(() => document.querySelector<HTMLInputElement>('[data-qa="speak-input"]'))
-      fillInput(input, 'hello')
-      input.closest('form')!.requestSubmit()
-      await sleep(900)
-      // the guardian now shows its sign — ask it again to open the pad; retry a
-      // rejected trace a few times rather than stalling
-      for (let tries = 0; tries < 4 && !useV5.getState().done.includes('L08'); tries++) {
-        try {
-          ;(await waitFor(() => interactables.get('l08-guardian'))).use()
-          const cv = await waitFor(() => document.querySelector<HTMLCanvasElement>('[data-qa="sign-canvas"]'), 9000)
-          await sleep(350)
-          await tracePad(cv)
-          await sleep(3200)
-        } catch { /* pad never opened — try again */ }
+      teleportTo(frame, 0, 0, 2.9)
+      await sleep(600)
+      for (let i = 0; i < 40 && !useV5.getState().done.includes('L08'); i++) {
+        l08qa.tapTarget?.()
+        await sleep(700)
       }
     })
   }, [])
@@ -192,6 +189,13 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
       <GateStone x={-1.45} />
       <GateStone x={1.5} />
       <Tablet shown={stage !== 'approach'} />
+
+      {/* V4's matching game, as V4 played it: the laptop shows a sign, tap the hand that matches */}
+      {!done && (
+        <group scale={ISLAND_R / 3.2}>
+          <Play onWin={() => setStage('aside')} won={stage === 'aside'} />
+        </group>
+      )}
 
       {/* fallback: V4's island comes from WORLD's parity mount — this layer is
           the V5 obstacle on top: guardian gate, tablet, board, hint pill. */}

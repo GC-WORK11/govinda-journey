@@ -211,6 +211,9 @@ function WaveIn({ children }: { children: ReactNode }) {
   return <group ref={g}>{children}</group>
 }
 
+/** ?qa hook: taps the hand the laptop asks for (real tap path, no state poke). */
+export const l08qa = { tapTarget: null as null | (() => void) }
+
 export default function Play({ onWin, won }: PlayProps) {
   const [round, setRound] = useState(0)
   const [absorb, setAbsorb] = useState<Pose | null>(null)
@@ -245,6 +248,8 @@ export default function Play({ onWin, won }: PlayProps) {
       blip(0)
     }
   }
+
+  l08qa.tapTarget = () => tap(cfg.target)
 
   const arrived = () => {
     burst(toWorld(GHOST_POS.x, GHOST_POS.y + 0.35, GHOST_POS.z), '#f2b35e', 24, 0.9)
