@@ -24,7 +24,7 @@ const here = path.dirname(fileURLToPath(import.meta.url))
 const outdir = SHOTS ? path.resolve(here, '..', '..', SHOTS) : null
 if (outdir) mkdirSync(outdir, { recursive: true })
 
-setTimeout(() => { console.log('hard timeout'); process.exit(3) }, 1500000).unref()
+setTimeout(() => { console.log('hard timeout'); process.exit(3) }, 3700000).unref()
 
 // devtools hook: capture the R3F scene via the wrapped renderer (installed pre-load)
 const HOOK = () => {
@@ -39,6 +39,7 @@ const HOOK = () => {
 }
 
 await withChrome(async (b) => {
+
   const p = await b.newPage()
   await p.setViewport(DESKTOP)
   p.on('pageerror', (e) => console.log('pageerror:', e.message.slice(0, 200)))
@@ -167,11 +168,27 @@ await withChrome(async (b) => {
         const szB = B.box.getSize(V.clone()), vb = szB.x * szB.y * szB.z
         const cover = vol / Math.min(va, vb)
         if (vol < 0.0035 && cover < 0.12) continue
+        // merged meshes inflate boxes (picket runs, knolls, heaps) — count real
+        // vertices of each inside the other's box; box-only overlaps are noise
+        const vertsIn = (m, bx) => {
+          const pa = m.o.geometry.attributes?.position
+          if (!pa) return 0
+          let n = 0
+          const st = Math.max(1, Math.floor(pa.count / 250))
+          for (let k = 0; k < pa.count; k += st) {
+            V.fromBufferAttribute(pa, k).applyMatrix4(m.o.matrixWorld)
+            if (bx.containsPoint(V)) n++
+          }
+          return n
+        }
+        const aInB = vertsIn(A, B.box), bInA = vertsIn(B, A.box)
+        if (!aInB && !bInA) continue
         const isle = l.ISLAND_POS[A.i]
         pairs.push({
           a: A.path, b: B.path,
           at: [+((ib.min.x + ib.max.x) / 2 - isle.x).toFixed(2), +((ib.min.y + ib.max.y) / 2 - isle.y).toFixed(2), +((ib.min.z + ib.max.z) / 2 - isle.z).toFixed(2)],
           isle: A.i, d: [+dx.toFixed(2), +dy.toFixed(2), +dz.toFixed(2)], vol: +vol.toFixed(3), cover: +cover.toFixed(2),
+          aInB, bInA,
           la: [A.lx, A.lz], lb: [B.lx, B.lz],
         })
       }
@@ -256,6 +273,6 @@ await withChrome(async (b) => {
     await orbit('e', 620, 60, 0)
     await orbit('f', 620, 60, -300)          // back closer
   }
-})
+}, { maxWaitMs: 3600000 })
 
 process.exit(0)
