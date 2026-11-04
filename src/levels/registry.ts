@@ -110,7 +110,7 @@ export const LEVELS: LevelDef[] = [
     id: 'L08', kind: 'level', place: 'Oct 27 – 31, 2026', title: 'Sign-Flow',
     line: 'Teach the laptop your own hand signs.',
     task: 'Match each sign to what it does.', hint: 'Tap the hand that matches',
-    story: 'I teach my phone camera a few hand signs, then use them to type or control the laptop without touching it. Built for the #NoHandsChallenge.',
+    story: 'Sign-Flow lets me type or control my laptop without touching it. Built for the #NoHandsChallenge.',
     tech: 'The phone reads 21 points on your hand, and the laptop matches each sign against the takes you recorded.',
     links: [{ label: 'Live', href: 'https://sign-flow-eight.vercel.app' }, { label: 'GitHub', href: 'https://github.com/GC-WORK11/sign-wrap' }], badge: 'Hand signs',
     palette: { ground: '#9dbf88', accent: '#d07a5a' }, Play: g('L08'), Diorama: d('L08'),
