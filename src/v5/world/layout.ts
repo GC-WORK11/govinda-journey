@@ -20,9 +20,12 @@ export const ISLAND_POS: THREE.Vector3[] = V5_ORDER.map((_, i) => new THREE.Vect
 
 export const islandIndex = (id: IslandId) => V5_ORDER.indexOf(id)
 export const islandPos = (id: IslandId) => ISLAND_POS[islandIndex(id)]
+/** Bridge mouths sit on the rim lip (past the path's 4.2 marks) so deck ends
+ *  meet the island tops at the grass edge instead of tunnelling under it. */
+export const BRIDGE_R = 4.9
 /** World-space points where bridge i starts / lands. */
-export const exitWorld = (i: number) => ISLAND_POS[i].clone().add(EXIT)
-export const entryWorld = (i: number) => ISLAND_POS[i].clone().add(ENTRY)
+export const exitWorld = (i: number) => ISLAND_POS[i].clone().add(EXIT.clone().setLength(BRIDGE_R))
+export const entryWorld = (i: number) => ISLAND_POS[i].clone().add(ENTRY.clone().setLength(BRIDGE_R))
 
 /** Centre of the whole path — finale pull-back orbits around this. */
 export const PATH_MID = ISLAND_POS.reduce((a, c) => a.add(c), new THREE.Vector3()).multiplyScalar(1 / ISLAND_POS.length)
