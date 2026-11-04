@@ -1,12 +1,12 @@
-// node scripts/clip-audit.mjs <ID> [--shots] [--done] [baseUrl]
-// Collision/clipping audit for one V5 island: loads /?qa&fresh&at=<ID>&unlock,
+// node scripts/clip-audit.mjs <ID[,ID...]|all> [--shots] [--done] [baseUrl]
+// Collision/clipping audit for V5 islands: loads /?qa&fresh&at=<ID>&unlock,
 // captures the R3F scene via the __THREE_DEVTOOLS__ hook, and reports:
 //   pairs    — world Box3 intersections between visible meshes on this island
 //              (big merged meshes are voxelized per-triangle to kill AABB noise)
 //   rockHits — mesh vertices inside the island's rock body (ropes/props through rock)
 //   float    — mesh bottoms hovering above the island top
 //   sunk     — mesh bottoms buried deep under the island top
-// Plus optional orbit screenshots (input.camDX/camDY/zoom drive the follow-cam).
+// One browser session audits every listed island (the chrome lock is contended).
 import { writeFileSync, mkdirSync } from 'fs'
 import { fileURLToPath } from 'url'
 import path from 'path'
@@ -14,7 +14,7 @@ import { withChrome, DESKTOP } from './chrome.mjs'
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const argv = process.argv.slice(2).filter((a) => !a.startsWith('--'))
-const ID = argv[0] || 'I01'
+const IDS = (argv[0] || 'I01') === 'all' ? ['I01', 'L05', 'L04'] : argv[0].split(',')
 const BASE = argv.find((a) => a.startsWith('http')) || 'http://localhost:5205/'
 const SHOTS = process.argv.slice(2).includes('--shots')
 const DONE = process.argv.slice(2).includes('--done')
@@ -23,9 +23,8 @@ const here = path.dirname(fileURLToPath(import.meta.url))
 const outdir = path.join(here, '..', 'proofs', 'v7', 'clipB')
 mkdirSync(outdir, { recursive: true })
 
-setTimeout(() => { console.log('hard timeout'); process.exit(3) }, 900000).unref()
+setTimeout(() => { console.log('hard timeout'); process.exit(3) }, 1200000).unref()
 
-// capture the R3F scene: three devtools broadcasts the renderer on 'observe'
 const HOOK = () => {
   window.__scene = null
   window.__THREE_DEVTOOLS__ = new EventTarget()
@@ -43,7 +42,6 @@ const AUDIT = async ({ ID }) => {
   const c = await import('/src/v5/core.ts')
   let scene = window.__scene
   if (!scene) {
-    // fall back: climb from a walkable to the root
     for (const o of c.walkables) { let root = o; while (root.parent) root = root.parent; scene = root; break }
   }
   if (!scene || !scene.isScene) return { err: 'no scene' }
@@ -54,7 +52,6 @@ const AUDIT = async ({ ID }) => {
   const isleGrp = scene.getObjectByName(`island-${ID}`)
   if (!isleGrp) return { err: `island-${ID} not mounted` }
 
-  // island rock underside radius at local y (src/world/kit.tsx islandGeo prof, r=5)
   const PROF = [
     [0.0, 0.97], [-0.05, 1.0], [-0.18, 1.04], [-0.36, 0.98], [-0.46, 0.84], [-0.58, 0.9],
     [-0.72, 0.78], [-0.9, 0.83], [-1.05, 0.7], [-1.28, 0.74], [-1.46, 0.6], [-1.72, 0.65],
@@ -68,7 +65,6 @@ const AUDIT = async ({ ID }) => {
     }
     return 0
   }
-  // grass-cap top height at distance d (dome ~0.06 max, matches domeY/topY + margin)
   const topY = (d) => (d > R * 0.96 ? 0 : 0.06 * Math.max(0, 1 - (d / (R * 0.96)) ** 1.7))
 
   const chain = (o) => { const out = []; for (let q = o; q; q = q.parent) out.push(q); return out.reverse() }
@@ -108,7 +104,6 @@ const AUDIT = async ({ ID }) => {
     })
   }
 
-  // voxelize big/merged meshes: per-triangle cells so a huge AABB isn't "everything collides"
   const CS = 0.22
   function voxels(m) {
     const pos = m.o.geometry.attributes.position
@@ -144,9 +139,7 @@ const AUDIT = async ({ ID }) => {
       if (A.isBase && B.isBase) continue
       if (!A.box.intersectsBox(B.box)) continue
       const depth = lcp(A.o, B.o)
-      if (depth >= 4) continue // same prop subtree (clay assemblies self-overlap by design)
-      // AABB-only for small meshes; when either side is a merged/big mesh, demand
-      // a real shared voxel (not just the merged mesh's bounding box).
+      if (depth >= 4) continue
       ib.copy(A.box).intersect(B.box)
       const dx = ib.max.x - ib.min.x, dy = ib.max.y - ib.min.y, dz = ib.max.z - ib.min.z
       if (dx < 0.03 || dy < 0.03 || dz < 0.03) continue
@@ -154,27 +147,25 @@ const AUDIT = async ({ ID }) => {
       const szA = A.box.getSize(SZ.clone()), va = szA.x * szA.y * szA.z
       const szB = B.box.getSize(SZ.clone()), vb = szB.x * szB.y * szB.z
       const cover = vol / Math.min(va, vb)
+      const at = [+((ib.min.x + ib.max.x) / 2 - isle.x).toFixed(2), +((ib.min.y + ib.max.y) / 2 - isle.y).toFixed(2), +((ib.min.z + ib.max.z) / 2 - isle.z).toFixed(2)]
       if (A.big || B.big) {
         const big = A.big ? A : B
-        let hits = 0, yDeep = 0
+        let hits = 0
         const x0 = Math.floor(ib.min.x / CS), x1 = Math.floor(ib.max.x / CS)
         const y0 = Math.floor(ib.min.y / CS), y1 = Math.floor(ib.max.y / CS)
         const z0 = Math.floor(ib.min.z / CS), z1 = Math.floor(ib.max.z / CS)
         for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) for (let z = z0; z <= z1; z++)
           if (big.cells.get(`${x},${y},${z}`)) hits++
-        if (hits < 4) continue
-        yDeep = Math.min(dy, 1)
-        if (vol < 0.004 && cover < 0.1) continue
-        pairs.push({ kind: big.isBase ? 'into-island' : 'into-merged', a: A.path, b: B.path, hits, cover: +cover.toFixed(2), d: [+dx.toFixed(2), +dy.toFixed(2), +dz.toFixed(2)], at: [+((ib.min.x + ib.max.x) / 2 - isle.x).toFixed(2), +((ib.min.y + ib.max.y) / 2 - isle.y).toFixed(2), +((ib.min.z + ib.max.z) / 2 - isle.z).toFixed(2)], la: [A.lx, A.lz], lb: [B.lx, B.lz] })
+        if (hits < 4 || (vol < 0.004 && cover < 0.1)) continue
+        pairs.push({ kind: big.isBase ? 'into-island' : 'into-merged', a: A.path, b: B.path, hits, cover: +cover.toFixed(2), d: [+dx.toFixed(2), +dy.toFixed(2), +dz.toFixed(2)], at, la: [A.lx, A.lz], lb: [B.lx, B.lz] })
       } else {
         if (vol < 0.004 && cover < 0.12) continue
-        pairs.push({ kind: 'pair', a: A.path, b: B.path, cover: +cover.toFixed(2), d: [+dx.toFixed(2), +dy.toFixed(2), +dz.toFixed(2)], at: [+((ib.min.x + ib.max.x) / 2 - isle.x).toFixed(2), +((ib.min.y + ib.max.y) / 2 - isle.y).toFixed(2), +((ib.min.z + ib.max.z) / 2 - isle.z).toFixed(2)], la: [A.lx, A.lz], lb: [B.lx, B.lz] })
+        pairs.push({ kind: 'pair', a: A.path, b: B.path, cover: +cover.toFixed(2), d: [+dx.toFixed(2), +dy.toFixed(2), +dz.toFixed(2)], at, la: [A.lx, A.lz], lb: [B.lx, B.lz] })
       }
     }
   }
   pairs.sort((x, y) => (y.hits || 0) - (x.hits || 0) || y.cover - x.cover)
 
-  // ---- vertex-in-rock + float/sunk ----
   const rockHits = [], float = [], sunk = []
   for (const m of meshes) {
     if (m.isBase) continue
@@ -226,57 +217,67 @@ await withChrome(async (b) => {
   await p.setViewport(DESKTOP)
   p.on('pageerror', (e) => console.log('pageerror:', e.message.slice(0, 200)))
   await p.evaluateOnNewDocument(HOOK)
-  let ready = false
-  for (let attempt = 0; attempt < 3 && !ready; attempt++) {
-    await p.goto(`${BASE}?qa&fresh&at=${ID}&unlock`, { waitUntil: 'networkidle2', timeout: 90000 }).catch((e) => console.log('goto:', e.message.slice(0, 120)))
-    for (let t = 0; t < 90 && !ready; t++) {
-      ready = await p.evaluate(async () => {
-        try { const c = await import('/src/v5/core.ts'); return c.walkables.size > 0 } catch { return false }
-      }).catch(() => false)
-      if (!ready) await sleep(600)
+  for (const ID of IDS) {
+    let ready = false
+    for (let attempt = 0; attempt < 3 && !ready; attempt++) {
+      await p.goto(`${BASE}?qa&fresh&at=${ID}&unlock`, { waitUntil: 'networkidle2', timeout: 90000 }).catch((e) => console.log('goto:', e.message.slice(0, 120)))
+      for (let t = 0; t < 80 && !ready; t++) {
+        ready = await p.evaluate(async () => {
+          try { const c = await import('/src/v5/core.ts'); return c.walkables.size > 0 } catch { return false }
+        }).catch(() => false)
+        if (!ready) await sleep(600)
+      }
+    }
+    if (!ready) { console.log(`${ID}: never ready`); continue }
+    await sleep(4000)
+    const rep = await p.evaluate(AUDIT, { ID })
+    writeFileSync(path.join(outdir, `audit-${ID}.json`), JSON.stringify(rep, null, 1))
+    console.log(`=== ${ID} (${rep.meshes ?? '?'} meshes) ===`)
+    for (const k of ['pairs', 'rockHits', 'float', 'sunk']) {
+      const arr = rep[k] || []
+      console.log(` ${k} (${arr.length})`)
+      for (const it of arr.slice(0, 18)) console.log('   ', JSON.stringify(it))
+    }
+
+    if (DONE) {
+      await p.evaluate((id) => { try { window.__journey?.v5?.complete?.(id) } catch {} }, ID)
+      await sleep(2400)
+      const rep2 = await p.evaluate(AUDIT, { ID })
+      writeFileSync(path.join(outdir, `audit-${ID}-done.json`), JSON.stringify(rep2, null, 1))
+      console.log(`=== ${ID} DONE (${rep2.meshes ?? '?'} meshes) ===`)
+      for (const k of ['pairs', 'rockHits', 'float', 'sunk']) {
+        const arr = rep2[k] || []
+        console.log(` ${k} (${arr.length})`)
+        for (const it of arr.slice(0, 14)) console.log('   ', JSON.stringify(it))
+      }
+    }
+
+    if (SHOTS) {
+      await p.evaluate(async (id) => {
+        const c = await import('/src/v5/core.ts')
+        const l = await import('/src/v5/world/layout.ts')
+        const i = c.V5_ORDER.indexOf(id)
+        const pt = l.ISLAND_POS[i].clone().add(l.ENTRY)
+        window.__journey?.player?.teleport?.(pt.x, pt.y + 0.3, pt.z)
+        c.player.island = id
+      }, ID)
+      await sleep(900)
+      const orbit = async (name, dx, dy, zoom, wait = 1200) => {
+        await p.evaluate(async ([dx, dy, zoom]) => {
+          const { input } = await import('/src/v5/player/input.ts')
+          input.camDX += dx; input.camDY += dy; input.zoom += zoom
+        }, [dx, dy, zoom])
+        await sleep(wait)
+        await p.screenshot({ path: path.join(outdir, `${ID}-${name}.png`) })
+      }
+      await orbit('a', 0, 0, 800, 1500)
+      await orbit('b', 700, -100, 0)
+      await orbit('c', 700, -40, 0)
+      await orbit('d', 700, 0, 0)
+      await orbit('e', 700, 40, 0)
+      await orbit('f', 700, 60, -300)
+      await orbit('top', 0, -500, -600)
     }
   }
-  if (!ready) { console.log('never ready'); process.exit(2) }
-  await sleep(4500)
-
-  const rep = await p.evaluate(AUDIT, { ID })
-  writeFileSync(path.join(outdir, `audit-${ID}.json`), JSON.stringify(rep, null, 1))
-  console.log(JSON.stringify(rep, null, 1))
-
-  if (DONE) {
-    await p.evaluate((id) => { try { window.__journey?.v5?.complete?.(id) } catch {} }, ID)
-    await sleep(2600)
-    const rep2 = await p.evaluate(AUDIT, { ID })
-    writeFileSync(path.join(outdir, `audit-${ID}-done.json`), JSON.stringify(rep2, null, 1))
-    console.log('=== DONE state ===')
-    console.log(JSON.stringify(rep2, null, 1))
-  }
-
-  if (SHOTS) {
-    await p.evaluate(async (id) => {
-      const c = await import('/src/v5/core.ts')
-      const l = await import('/src/v5/world/layout.ts')
-      const i = c.V5_ORDER.indexOf(id)
-      const pt = l.ISLAND_POS[i].clone().add(l.ENTRY)
-      window.__journey?.player?.teleport?.(pt.x, pt.y + 0.3, pt.z)
-      c.player.island = id
-    }, ID)
-    await sleep(1000)
-    const orbit = async (name, dx, dy, zoom, wait = 1300) => {
-      await p.evaluate(async ([dx, dy, zoom]) => {
-        const { input } = await import('/src/v5/player/input.ts')
-        input.camDX += dx; input.camDY += dy; input.zoom += zoom
-      }, [dx, dy, zoom])
-      await sleep(wait)
-      await p.screenshot({ path: path.join(outdir, `${ID}-${name}.png`) })
-    }
-    await orbit('a', 0, 0, 800, 1600)
-    await orbit('b', 700, -100, 0)
-    await orbit('c', 700, -40, 0)
-    await orbit('d', 700, 0, 0)
-    await orbit('e', 700, 40, 0)
-    await orbit('f', 700, 60, -300)
-    await orbit('top', 0, -500, -600)
-  }
-})
+}, { maxWaitMs: 20 * 60000 })
 process.exit(0)
