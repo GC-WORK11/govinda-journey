@@ -37,14 +37,15 @@ same measured pivots (mast 0.02,−0.07; tail disc 0,0.77,−2.885 thin-XY; the
   ≤2.03 m about the mast); tail disc = thin XY at tail tip → `.z` pivot.
 - `npx tsc -p . --noEmit` clean; `pnpm build` clean (Heli chunk 73.6 kB /
   22 kB gz — GLTFLoader + decoder, code-split).
-- Visual: same craft assembly as V7's verified `dev-parked.png` render
-  (terracotta fuselage, blue canopy, ink rotors, skids on the pad) — my
-  change swaps per-material meshes for identical vertex-coloured merges,
-  no visual difference expected.
-- In-page screenshots `proofs/v8/heli/*` — attempted repeatedly since
-  ~17:40; the shared Chrome slot never stayed free long enough tonight
-  (back-to-back play.mjs runs across sessions). Best-effort queue left
-  running; honest status reported here rather than claimed.
+- In-page screenshots landed ~21:58 after hours of shared-Chrome
+  contention — `proofs/v8/heli/`:
+  - `l06-island.png` + `craft-a.png`/`craft-b.png`: the merged craft in
+    the live L06 island — terracotta fuselage, blue canopy, ink main
+    rotor cross, on the pad ring. Visually identical to V7's verified
+    `dev-parked.png`, now in 3 draw calls.
+  - `sandbox-parked.png`/`sandbox-flying.png`: sandbox route mounts
+    `<Heli>` with no children → default `HeliModel` path works (craft at
+    frame edge; sandbox cam doesn't centre the pad — cosmetic).
 
 ## Left / notes
 - The old `?sandbox` DemoHeli mounts `<Heli>` with no children → renders
