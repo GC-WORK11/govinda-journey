@@ -283,15 +283,15 @@ async function visitorRun(browser, { size, vp, wire, errorsFor }) {
     }
     await shot(page, `visitor-${size}-p1.png`)
 
-    // phase 1b — desk at local (2.35,-0.6): widening east↔west ping-pong (small
-    // legs first — the island rim is ~5m out and long east legs walk off it),
-    // pressing use whenever the prompt shows — the visitor's own discovery path.
-    const seq = [E,E,E, W,W,W,W, E,E,E,E,E, W,W,W,W,W,W, E,E,E,E,E,E, W,W,W,W,W,W, E,E,E,E]
+    // phase 1b — desk at local (2.35,-0.6), ~2.5m east + ~0.6m past the wall:
+    // short east legs first, then widening ping-pong — staying lateral (no
+    // constant north drift) and stopping dead when the use prompt shows so the
+    // press lands inside the 1.7m radius instead of sprinting through it.
+    const seq = [E,E, fwd, E,E, E,E, W,W,W, fwd, E,E,E,E, W,W,W,W, fwd, E,E,E,E, W,W,W,W, fwd, E,E,E]
     let cleared = false
     for (let t = 0; t < seq.length && !cleared; t++) {
-      const dir = t % 3 === 2 ? (seq[t] === E ? ED : WD) : seq[t] // mix in some forward
-      await drv.burst(dir, 400)
-      if (await promptOn()) await pressUseNow()
+      await drv.burst(seq[t], 340)
+      if (await promptOn()) { await drv.release(); await pressUseNow() }
       if (t % 2 === 1) cleared = await doneHas('L01')
       if (!cleared && t % 8 === 7 && !(await hintTxt()).includes('laptop')) break // hint gone → done or lost
     }
