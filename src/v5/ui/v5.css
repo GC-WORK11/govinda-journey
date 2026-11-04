@@ -101,6 +101,7 @@
   .v5-fin .projs { grid-template-columns: 1fr 1fr; text-align: left; }
 }
 .v5-fin .stack { margin-top: 16px; font: 500 11.5px var(--sans); letter-spacing: .1em; color: #efe0c8; opacity: .8; }
+.v5-fin .credit { margin-top: 18px; font: 400 11.5px/1.5 var(--sans); letter-spacing: .03em; color: #efe0c8; opacity: .6; }
 
 /* ---- how to play (before the walk begins) ---- */
 .v5-how { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; pointer-events: none; z-index: 9;

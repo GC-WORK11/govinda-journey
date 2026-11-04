@@ -68,6 +68,7 @@ export function Finale() {
             Keep walking
           </button>
         </div>
+        <p className="credit">Built with voice via Wispr Flow + vibe-coding tools</p>
       </div>
     </div>
   )
