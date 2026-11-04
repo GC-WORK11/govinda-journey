@@ -9,7 +9,6 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { createPortal } from 'react-dom'
 import * as THREE from 'three'
 import * as core from '../../v5/core'
 import { useV5 } from '../../v5/core'
@@ -533,15 +532,16 @@ function PuffSprite({ puff, clockRef }: { puff: Puff; clockRef: React.MutableRef
 /* ================= respawn blink ================= */
 
 function BlinkFx({ n }: { n: number }) {
-  if (typeof document === 'undefined' || n === 0) return null
-  return createPortal(
-    <>
-      <style>{`@keyframes l04blink { 0%{opacity:0} 28%{opacity:.82} 100%{opacity:0} }`}</style>
-      <div key={n} style={{
-        position: 'fixed', inset: 0, background: '#2a231d', pointerEvents: 'none', zIndex: 55,
-        animation: 'l04blink 0.85s ease forwards',
-      }} />
-    </>,
-    document.body,
-  )
+  // Rendered inside the R3F tree: react-dom portals here are reconciled by R3F
+  // (<style>/<div> -> "not part of the THREE namespace"), so drive the DOM imperatively.
+  useEffect(() => {
+    if (typeof document === 'undefined' || n === 0) return
+    const el = document.createElement('div')
+    Object.assign(el.style, { position: 'fixed', inset: '0', background: '#2a231d', pointerEvents: 'none', zIndex: '55', opacity: '0' })
+    document.body.appendChild(el)
+    const a = el.animate([{ opacity: 0 }, { opacity: 0.82, offset: 0.28 }, { opacity: 0 }], { duration: 850, easing: 'ease', fill: 'forwards' })
+    const t = window.setTimeout(() => el.remove(), 900)
+    return () => { a.cancel(); window.clearTimeout(t); el.remove() }
+  }, [n])
+  return null
 }
