@@ -26,11 +26,13 @@ export const SCREEN_YAW = -Math.PI / 2
 export const MIC_BASE = new THREE.Vector3(1.1, 0, 1.5)
 export const MIC_HEAD = new THREE.Vector3(1.1, 0.92, 1.5)
 
-/** Word chips in a row across the path, front and centre. */
+/** Word chips in a row across the path, front and centre. Play (V4) uses these. */
 export const CHIP_IDLE = [
   new THREE.Vector3(-0.6, 1.35, 1.5), new THREE.Vector3(-0.2, 1.35, 1.5),
   new THREE.Vector3(0.2, 1.35, 1.5), new THREE.Vector3(0.6, 1.35, 1.5),
 ]
+/** The V5 obstacle stages the chips nearer and lower, so the row sits below the caption band. */
+export const CHIP_STAGE = CHIP_IDLE.map((p) => new THREE.Vector3(p.x, 0.83, 1.28))
 /** A landing chip stops just in front of the screen, which faces -x. */
 export const SCREEN_FRONT = SCREEN.clone().add(new THREE.Vector3(-0.06, 0, 0))
 

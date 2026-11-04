@@ -3,6 +3,7 @@
  * path. Tap the next chip (E, or the use button on mobile) and its word flies to the laptop;
  * or press E at the mic to speak, which opens a sheet that listens for the next word. All four
  * land in order: the studio door swings open (Diorama, `done`) and complete() grants `voice`.
+ * The hint is the standard bottom pill (PillHint), as in the other levels.
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
@@ -11,20 +12,19 @@ import * as THREE from 'three'
 import * as core from '../../v5/core'
 import { EXIT } from '../../v5/world/layout'
 import { LEVELS } from '../registry'
+import { PillHint } from '../L01/shared.v5'
 import VoiceUI from './VoiceUI.v5'
 import { clay, chipTexture } from './kit.v5'
-import { WORDS, CHIP_IDLE, MIC_BASE, SCREEN_FRONT, K, onIsland } from './layout'
+import { WORDS, CHIP_STAGE, MIC_BASE, SCREEN_FRONT, K, onIsland } from './layout'
 import { studio } from './studio'
 
 const FLY_MS = 1000
 const GAP_MS = 420
-const CHIP = CHIP_IDLE.map(onIsland)
-const GROUND = CHIP_IDLE.map((p) => onIsland(new THREE.Vector3(p.x, 0, p.z)))
+const CHIP = CHIP_STAGE.map(onIsland)
+const GROUND = CHIP_STAGE.map((p) => onIsland(new THREE.Vector3(p.x, 0, p.z)))
 const LAND = onIsland(SCREEN_FRONT)
 const MIC = onIsland(MIC_BASE)
-const HINT_AT = onIsland(new THREE.Vector3(0, CHIP_IDLE[0].y + 0.5, CHIP_IDLE[0].z))
 const HINT = LEVELS.find((l) => l.id === 'L07')?.hint ?? ''
-const HINT_CSS = '.gj-hint{font:500 13px Inter,system-ui,sans-serif;color:#3b3330;background:rgba(251,246,238,.92);padding:7px 16px;border-radius:999px;box-shadow:0 8px 22px -12px rgba(47,41,37,.45);white-space:nowrap;pointer-events:none}'
 const ALIAS: Record<string, string[]> = { hello: ['hallo'], my: ['mai'], phone: ['fone'] }
 const heardAs = (tok: string, word: string) => tok === word || !!ALIAS[word]?.includes(tok)
 const smooth = (k: number) => k * k * (3 - 2 * k)
@@ -196,12 +196,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
           </group>
         </group>
       ))}
-      {active && !done && !open && HINT && (
-        <Html position={HINT_AT} center zIndexRange={[60, 0]}>
-          <style>{HINT_CSS}</style>
-          <div className="gj-hint" data-qa="l07-hint">{HINT}</div>
-        </Html>
-      )}
+      <PillHint text={active && !done && !open && HINT ? HINT : null} />
       {open && (
         <Html fullscreen zIndexRange={[200, 0]}>
           <VoiceUI next={next} onSpoken={accept} onClose={() => setOpen(false)} />
