@@ -8,11 +8,13 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import * as core from '../../v5/core'
-import { Gate, LowWall, PathStones, PillHint, Prop, Rock, tpLocal, sleep, useLocalPlayer, useSolver, BloomField, Merged, type Prim } from './shared.v5'
+import { Gate, LowWall, PathStones, PillHint, Prop, Rock, say, tpLocal, sleep, useLocalPlayer, useSolver, BloomField, Merged, type Prim } from './shared.v5'
 import { BigTree, CampusBlock, LaptopDesk } from './campus.v5'
+import { LEVELS } from '../registry'
 
 const DESK = new THREE.Vector3(2.35, 0, -0.6)
 const WALL_Z = 0.55
+const LREG = LEVELS.find((l) => l.id === 'L01')!
 
 export default function Obstacle({ id, active, complete, done }: core.ObstacleProps) {
   const root = useRef<THREE.Group>(null)
@@ -60,7 +62,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
     // approach = was ever on the near side; tracked independently of `moved` so a slow-frame
     // visitor who only registers as moving after reaching the wall can't get stuck
     if (!approached.current && local.z > WALL_Z + 0.45) approached.current = true
-    if (approached.current && moved.current && !crossed.current && local.z < WALL_Z - 0.35) crossed.current = true
+    if (approached.current && moved.current && !crossed.current && local.z < WALL_Z - 0.35) { crossed.current = true; say(LREG.story, 5200) }
     // the one quiet line at the bottom of the screen
     const h = !active || done ? null
       : !moved.current ? 'Use WASD or the stick to walk'

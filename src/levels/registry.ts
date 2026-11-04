@@ -18,7 +18,7 @@ export const LEVELS: LevelDef[] = [
     id: 'L01', kind: 'level', place: 'IIT Patna', title: 'The first step',
     line: 'I study Computer Science and Data Analytics at IIT Patna, and I build software and ML systems.',
     task: 'Light the lamps to wake the campus.', hint: 'Tap each lamp to light it',
-    story: 'I am an undergraduate at IIT Patna. For four years I have built things people can open.',
+    story: 'For four years I have built things people can open. I love sharing what I learn.',
     tech: 'This world is a game about my projects. Each project island opens after a short game that shows how the project works.',
     links: [{ label: 'Résumé', href: RESUME }], badge: 'Arrival',
     palette: { ground: '#9cbf74', accent: '#d9825b' }, Play: g('L01'), Diorama: d('L01'),
@@ -46,7 +46,7 @@ export const LEVELS: LevelDef[] = [
     line: 'Small web products, built on weekends and shipped online.',
     task: 'Snap the pieces of a page into place.', hint: 'Drag the pieces onto the frame',
     story: 'CEO Hunt, Flow Pitch, Delegators Workbench and Doorway IDE are weekend builds you can open today.',
-    tech: 'React front ends, shipped on Vercel. Doorway, a desktop app, is a cockpit for visible terminal agents, with git worktrees and review flows.',
+    tech: 'All four are React front ends, shipped on Vercel. Doorway IDE: several AI models side by side, from one thin page.',
     links: [
       { label: 'CEO Hunt', href: 'https://ceohunt.vercel.app/' },
       { label: 'Flow Pitch', href: 'https://flow-pitch.vercel.app' },
