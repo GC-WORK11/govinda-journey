@@ -13,6 +13,7 @@ import { C, clay, paint, clayVC } from '../../world/kit'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { Prop } from '../../v5/art/Dressing'
 import { topY } from '../../v5/art/IslandBase'
+import { AutoMerge, NoMerge } from '../../v5/world/AutoMerge'
 
 export { C, clay, Prop }
 
@@ -251,6 +252,7 @@ export function Gate({ position, yaw = 0, open, instant, width = 2.0, height = 1
   const hw = width / 2
   return (
     <group position={position} rotation={[0, yaw, 0]}>
+      <AutoMerge>
       {[-1, 1].map((s) => (
         <group key={s} position={[s * (hw + 0.16), 0, 0]}>
           <RoundedBox args={[0.3, height + 0.4, 0.3]} radius={0.06} position={[0, (height + 0.4) / 2, 0]}
@@ -260,14 +262,17 @@ export function Gate({ position, yaw = 0, open, instant, width = 2.0, height = 1
           </mesh>
         </group>
       ))}
+      <RoundedBox args={[width + 0.7, 0.06, 0.5]} radius={0.03} position={[0, 0.03, 0]}
+        material={clay(C.sand)} receiveShadow castShadow />
+      </AutoMerge>
+      <NoMerge>
       <group ref={L} position={[-hw, 0, 0]}>
         <GateLeaf w={hw} h={height} side={1} />
       </group>
       <group ref={R} position={[hw, 0, 0]}>
         <GateLeaf w={hw} h={height} side={-1} />
       </group>
-      <RoundedBox args={[width + 0.7, 0.06, 0.5]} radius={0.03} position={[0, 0.03, 0]}
-        material={clay(C.sand)} receiveShadow castShadow />
+      </NoMerge>
       <mesh ref={blk} position={[0, height / 2 + 0.1, 0]} visible={false}>
         <boxGeometry args={[width + 0.7, height + 0.9, 0.2]} />
       </mesh>
