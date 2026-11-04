@@ -18,12 +18,8 @@ const N = V5_ORDER.length
 /** Blended position 0..1 along the rail. */
 export const tickPos = (i: number) => 0.55 * (i / (N - 1)) + 0.45 * ((T[V5_ORDER[i]] - T0) / (T1 - T0))
 
-const YEARS: [string, number][] = [
-  ['2023', (tickPos(0) + tickPos(1)) / 2],
-  ['2024', (tickPos(2) + tickPos(3)) / 2],
-  ['2025', (tickPos(3) + tickPos(4)) / 2],
-  ['2026', (tickPos(4) + tickPos(10)) / 2],
-]
+// Year ticks removed (FACTS: 2023/2024/2025 and the I02 span have no source).
+const YEARS: [string, number][] = []
 
 export function Ribbon() {
   const idx = useWorldUI((s) => s.idx)
