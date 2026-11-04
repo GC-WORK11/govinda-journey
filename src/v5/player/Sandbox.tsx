@@ -5,7 +5,7 @@ import * as THREE from 'three'
 import { Island, C, clay } from '../../world/kit'
 import { player, useBlocker, useInteractable, useWalkable } from '../core'
 import Player from './Player'
-import { Heli, heli } from './Heli'
+import { Heli } from './Heli'
 import Controls from './Controls'
 import { carryAnchor, carryQuat } from './anchor'
 
@@ -79,10 +79,8 @@ function Lamp() {
   )
 }
 
-/** V6 heli testbed: a clay toy craft on a marked pad — same contract ISL-E gets. */
+/** V6 heli testbed: the CC0 helicopter on a marked pad — same contract ISL-E gets. */
 function DemoHeli() {
-  const rotor = useRef<THREE.Group>(null)
-  useFrame((_, dt) => { if (rotor.current) rotor.current.rotation.y += dt * (heli.flying ? 16 : 2.2) })
   return (
     <group>
       {/* pad marker */}
@@ -92,25 +90,7 @@ function DemoHeli() {
       <mesh position={[4.3, 0.017, 2.9]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[0.78, 0.95, 28]} /><meshStandardMaterial color={C.terracotta} roughness={0.9} />
       </mesh>
-      <Heli id="sandbox-heli" pad={[4.3, 0.24, 2.9]} exit={[4.3, 0.02, 4.4]} seatY={0.5}>
-        {/* skids */}
-        {[-0.28, 0.28].map((x) => (
-          <mesh key={x} position={[x, -0.24, 0]} rotation={[Math.PI / 2, 0, 0]} material={clay(C.ink)} castShadow>
-            <cylinderGeometry args={[0.035, 0.035, 1.25, 7]} />
-          </mesh>
-        ))}
-        {/* body + tail + fin */}
-        <RoundedBox args={[0.68, 0.46, 1.3]} radius={0.12} position={[0, 0, 0]} material={clay(C.terracotta)} castShadow />
-        <RoundedBox args={[0.2, 0.16, 0.9]} radius={0.05} position={[0, 0.06, -1.0]} material={clay(C.terracotta)} castShadow />
-        <mesh position={[0, 0.22, -1.38]} material={clay(C.cream)} castShadow><boxGeometry args={[0.05, 0.34, 0.2]} /></mesh>
-        {/* canopy */}
-        <RoundedBox args={[0.5, 0.28, 0.55]} radius={0.1} position={[0, 0.28, 0.28]} material={clay('#7d8fa8')} castShadow />
-        <group ref={rotor} position={[0, 0.36, 0]}>
-          <mesh material={clay(C.ink)} castShadow><boxGeometry args={[2.4, 0.03, 0.12]} /></mesh>
-          <mesh material={clay(C.ink)} castShadow><boxGeometry args={[0.12, 0.03, 2.4]} /></mesh>
-          <mesh material={clay(C.ink)}><cylinderGeometry args={[0.05, 0.05, 0.14, 8]} /></mesh>
-        </group>
-      </Heli>
+      <Heli id="sandbox-heli" pad={[4.3, 0.02, 2.9]} exit={[4.3, 0.02, 4.4]} />
     </group>
   )
 }

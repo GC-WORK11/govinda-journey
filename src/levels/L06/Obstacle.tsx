@@ -130,6 +130,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   const root = useRef<THREE.Group>(null)
   const heli = useRef<THREE.Group>(null)
   const rotor = useRef<THREE.Group>(null)
+  const tailRotor = useRef<THREE.Group>(null)
   const ringsG = useRef<THREE.Group>(null)
   const bridgeG = useRef<THREE.InstancedMesh>(null)
   const bridgeWalk = useRef<THREE.Mesh>(null)
@@ -214,6 +215,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       h.rotation.z = Math.cos(s.yaw) * s.vel.dot(_r) * 0.03
     }
     if (rotor.current) rotor.current.rotation.y += dt * (4 + s.rotor * 34)
+    if (tailRotor.current) tailRotor.current.rotation.z -= dt * (4 + s.rotor * 34) * 5
 
     /* ------------------------------- flying ------------------------------- */
     if (ph === 'fly') {
@@ -338,7 +340,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
     /* ----------------------------- rider + camera ----------------------------- */
     if (ph === 'fly' || ph === 'land') {
       // seat the traveller: teleport is the only external writer of player pos
-      _seat.copy(s.pos); _seat.y += 0.32
+      _seat.copy(s.pos); _seat.y += 0.24
       const sw = root.current ? root.current.localToWorld(_seat) : _seat
       J()?.player?.teleport?.(sw.x, sw.y, sw.z)
       // chase cam (world space)
@@ -460,10 +462,10 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       {/* ------- home helipad + parked helicopter ------- */}
       <HeliPad position={PAD_HOME.toArray()} r={0.95} />
       <group ref={heli} position={PAD_HOME.toArray()}>
-        <Heli rotorRef={rotor} />
+        <Heli rotorRef={rotor} tailRef={tailRotor} />
       </group>
       <object3D ref={boardMarker} position={PAD_HOME.clone().add(new V3(0, 0.3, 0))} />
-      <BlockBox position={[PAD_HOME.x, 0.5, PAD_HOME.z]} args={[0.62, 1.0, 0.5]} kind="block" />
+      <BlockBox position={[PAD_HOME.x, 0.5, PAD_HOME.z + 0.4]} args={[0.7, 1.0, 1.8]} kind="block" />
 
       {/* ------- route rings ------- */}
       <group ref={ringsG}>

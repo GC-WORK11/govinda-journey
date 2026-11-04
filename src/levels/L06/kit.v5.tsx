@@ -3,11 +3,11 @@
  * V6: voxel modern city + a clay helicopter the player boards and flies.
  */
 import { useMemo, useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import * as THREE from 'three'
 import * as core from '../../v5/core'
 import { toon } from '../../v5/art/material'
+import { HeliModel } from '../../v5/player/HeliModel'
 
 export const C = {
   cream: '#f3e9da', paper: '#fbf6ee', sand: '#e8d6b8', terracotta: '#d9825b', brick: '#b5654a',
@@ -157,41 +157,13 @@ export const PHONE_P: BPart[] = [
   { g: 'box', p: [0, 0.263, -0.024], s: [0.21, 0.38, 0.003], r: [0.36, 0, 0], c: '#e6ddc8' },
 ]
 
-/** The clay helicopter — stub visual until PLAYER's src/v5/player/Heli.tsx lands.
- * Exposes rotor refs so the obstacle can spin up/down. Faces -z.
- * Body+skids+tail bake to ONE mesh; each rotor is one baked mesh too (3 total). */
-const HELI_BODY: BPart[] = [
-  { g: 'box', p: [0, 0.34, 0], s: [0.5, 0.34, 0.9], c: C.terracotta },
-  { g: 'sph', p: [0, 0.44, -0.28], s: [0.42, 0.42, 0.42], c: C.glass },
-  { g: 'box', p: [0, 0.2, 0.05], s: [0.34, 0.1, 0.6], c: C.brick },
-  { g: 'cyl', p: [0, 0.38, 0.9], s: [0.09, 0.62, 0.14], r: [Math.PI / 2, 0, 0], c: C.terracotta },
-  { g: 'box', p: [0, 0.51, 1.18], s: [0.05, 0.3, 0.12], c: C.brick },
-  { g: 'cyl', p: [0, 0.56, 0], s: [0.06, 0.12, 0.08], c: C.ink2 },
-  { g: 'box', p: [-0.2, 0.1, -0.02], s: [0.035, 0.035, 0.85], c: C.ink2 },
-  { g: 'box', p: [0.2, 0.1, -0.02], s: [0.035, 0.035, 0.85], c: C.ink2 },
-  { g: 'box', p: [-0.2, 0.19, -0.27], s: [0.03, 0.18, 0.03], r: [-0.25, 0, 0], c: C.ink2 },
-  { g: 'box', p: [-0.2, 0.19, 0.26], s: [0.03, 0.18, 0.03], r: [0.25, 0, 0], c: C.ink2 },
-  { g: 'box', p: [0.2, 0.19, -0.27], s: [0.03, 0.18, 0.03], r: [-0.25, 0, 0], c: C.ink2 },
-  { g: 'box', p: [0.2, 0.19, 0.26], s: [0.03, 0.18, 0.03], r: [0.25, 0, 0], c: C.ink2 },
-]
-const ROTOR_P: BPart[] = [
-  { g: 'box', p: [0, 0, 0], s: [1.7, 0.018, 0.09], c: C.ink2 },
-  { g: 'box', p: [0, 0, 0], s: [0.09, 0.018, 1.7], c: C.ink2 },
-  { g: 'sph', p: [0, 0.015, 0], s: [0.1, 0.1, 0.1], c: C.brick },
-]
-const TAIL_P: BPart[] = [
-  { g: 'box', p: [0, 0, 0], s: [0.012, 0.24, 0.03], c: C.ink2 },
-  { g: 'box', p: [0, 0, 0], s: [0.012, 0.03, 0.24], c: C.ink2 },
-]
-
-export function Heli({ rotorRef, ...p }: P & { rotorRef?: React.Ref<THREE.Group> }) {
-  const tailRotor = useRef<THREE.Group>(null)
-  useFrame((_, dt) => { if (tailRotor.current) tailRotor.current.rotation.z += dt * 30 })
+/** The helicopter — PLAYER's CC0 HeliModel (poly.pizza/kazuma, citykit pack),
+ * flipped to face -z like the old stub so the flight code is unchanged.
+ * `rotorRef`/`tailRef` let the obstacle spin the two pivots itself. */
+export function Heli({ rotorRef, tailRef, ...p }: P & { rotorRef?: React.Ref<THREE.Group>; tailRef?: React.Ref<THREE.Group> }) {
   return (
-    <group {...p}>
-      <Baked parts={HELI_BODY} />
-      <group ref={rotorRef} position={[0, 0.64, 0]}><Baked parts={ROTOR_P} /></group>
-      <group ref={tailRotor} position={[0.05, 0.48, 1.18]}><Baked parts={TAIL_P} /></group>
+    <group {...p} rotation={[0, Math.PI, 0]}>
+      <HeliModel rotorRef={rotorRef} tailRef={tailRef} />
     </group>
   )
 }

@@ -4,7 +4,7 @@
  * Mount inside an island/obstacle group (it must live under the R3F Canvas):
  *
  *   <Heli id="L06-heli" pad={[1.6, 0, 2.4]} exit={[0, 0, 1.4]}>
- *     <VoxelHeliModel />   // your craft, modelled around the group origin
+ *     <VoxelHeliModel />   // optional override — defaults to <HeliModel/>
  *   </Heli>
  *
  * `pad` is the home/landing spot in PARENT-LOCAL space (parents may translate
@@ -26,6 +26,7 @@ import * as THREE from 'three'
 import { cinematic, interactables, playerEmote, walkables, type Interactable } from '../core'
 import { input, isDown, now } from './input'
 import { usePlayerUI } from './uiState'
+import { HeliModel } from './HeliModel'
 
 export const heli = {
   /** Craft centre, world space — updated every frame while mounted. */
@@ -57,14 +58,15 @@ const _ray = new THREE.Raycaster(), _down = new THREE.Vector3(0, -1, 0)
 const _qb = new THREE.Box3(), _wb = new THREE.Box3()
 const _hit: THREE.Intersection[] = [], _cand: THREE.Object3D[] = []
 
-export function Heli({ id, pad, exit, seatY = 0.62, radius = 2.4, label = 'climb in', ceiling = 13, range = 30, onBoard, onLand, children }: {
+export function Heli({ id, pad, exit, seatY = 0.24, radius = 2.4, label = 'climb in', ceiling = 13, range = 30, onBoard, onLand, children }: {
   /** unique interactable id, e.g. 'L06-heli' */
   id: string
   /** home/landing spot, parent-local */
   pad: [number, number, number]
   /** where the rider steps off on landing, parent-local (default: beside pad) */
   exit?: [number, number, number]
-  /** seat height above the craft centre */
+  /** seat height above the craft centre — the GLB's open bay floor is ~0.23,
+      which parks the rider's head just under the main-rotor disc */
   seatY?: number
   /** board prompt radius */
   radius?: number
@@ -210,5 +212,5 @@ export function Heli({ id, pad, exit, seatY = 0.62, radius = 2.4, label = 'climb
     r.quaternion.setFromEuler(_e)
   })
 
-  return <group ref={rig}>{children}</group>
+  return <group ref={rig}>{children ?? <HeliModel />}</group>
 }
