@@ -256,22 +256,34 @@ await withChrome(async (browser) => {
   if (!(await ready())) { console.log('never ready'); process.exit(2) }
   console.log('[audit] world ready')
 
+  const NAV_DEAD = /Execution context was destroyed|Cannot find name|Session closed/
   for (const id of ids) {
     const t0 = Date.now()
-    await gotoIsland(id)
-    await settle(4200) // lazy obstacle/diorama chunks + dressing
-    const pre = await audit(page, `${id}-pre`)
-    results.push(pre)
-    console.log(`${id} pre : clips=${pre.clips?.length ?? '-'} pairs=${pre.pairs?.length ?? '-'} meshes=${pre.meshCount}`)
-    for (const cl of (pre.clips || [])) console.log(`   CLIP ${pre.phase} ${cl.island}: ${cl.owner}::${cl.mesh} inside=${cl.inside} depth=${cl.maxDepth} @${cl.at}`)
-    await shootFindings(pre)
-    await page.evaluate(async ({ src, id }) => { const c = await import(src); c.useV5.getState().complete(id) }, { src: CORE, id }).catch(() => {})
-    await settle(3800) // bridge build anim + scaffold drop
-    const post = await audit(page, `${id}-post`)
-    results.push(post)
-    console.log(`${id} post: clips=${post.clips?.length ?? '-'} pairs=${post.pairs?.length ?? '-'} meshes=${post.meshCount} (${Date.now() - t0}ms)`)
-    for (const cl of (post.clips || [])) console.log(`   CLIP ${post.phase} ${cl.island}: ${cl.owner}::${cl.mesh} inside=${cl.inside} depth=${cl.maxDepth} @${cl.at}`)
-    await shootFindings(post)
+    let done = false
+    for (let attempt = 0; attempt < 3 && !done; attempt++) {
+      try {
+        if (attempt) { console.log(`${id}: retry ${attempt} after reload`); await ready(); await settle(2500) }
+        await gotoIsland(id)
+        await settle(4200) // lazy obstacle/diorama chunks + dressing
+        const pre = await audit(page, `${id}-pre`)
+        results.push(pre)
+        console.log(`${id} pre : clips=${pre.clips?.length ?? '-'} pairs=${pre.pairs?.length ?? '-'} meshes=${pre.meshCount}`)
+        for (const cl of (pre.clips || [])) console.log(`   CLIP ${pre.phase} ${cl.island}: ${cl.owner}::${cl.mesh} inside=${cl.inside} depth=${cl.maxDepth} @${cl.at}`)
+        await shootFindings(pre)
+        await page.evaluate(async ({ src, id }) => { const c = await import(src); c.useV5.getState().complete(id) }, { src: CORE, id })
+        await settle(3800) // bridge build anim + scaffold drop
+        const post = await audit(page, `${id}-post`)
+        results.push(post)
+        console.log(`${id} post: clips=${post.clips?.length ?? '-'} pairs=${post.pairs?.length ?? '-'} meshes=${post.meshCount} (${Date.now() - t0}ms)`)
+        for (const cl of (post.clips || [])) console.log(`   CLIP ${post.phase} ${cl.island}: ${cl.owner}::${cl.mesh} inside=${cl.inside} depth=${cl.maxDepth} @${cl.at}`)
+        await shootFindings(post)
+        done = true
+      } catch (e) {
+        if (!NAV_DEAD.test(String(e))) throw e
+        // vite HMR reload mid-audit — wait for the world and re-do this island
+      }
+    }
+    if (!done) console.log(`${id}: SKIPPED (reload loop)`)
     if (id === 'L09') break
   }
 
