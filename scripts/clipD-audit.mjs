@@ -20,14 +20,17 @@ const outdir = path.resolve(here, '..', 'proofs', 'v7', 'clipD')
 mkdirSync(outdir, { recursive: true })
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
-setTimeout(() => { console.log('clipD-audit hard timeout'); process.exit(3) }, 900000).unref()
+const T0 = Date.now()
+const log = (m) => console.log(`[${((Date.now() - T0) / 1000).toFixed(0)}s]`, m)
+setTimeout(() => { log('clipD-audit hard timeout'); process.exit(3) }, 1500000).unref()
 
 // ---- in-page audit (plain JS — geometry.boundingBox and matrixWorld come from
 //      the app's own objects; no three import needed) -------------------------
 const AUDIT_FN = String.raw`(id) => {
   const lay = window.__clipLay
   const scene = window.__clipScene
-  const i = lay.V5_ORDER.indexOf(id)
+  const ORDER = window.__clipCore.V5_ORDER
+  const i = ORDER.indexOf(id)
   const C = lay.ISLAND_POS[i]
   const R = lay.ISLAND_R
   const topY = (d) => d > R * 0.96 ? 0 : 0.04 * Math.max(0, 1 - (d / (R * 0.96)) ** 1.7)
@@ -173,7 +176,7 @@ const AUDIT_FN = String.raw`(id) => {
           const P = lay.ISLAND_POS[ii]
           const d = Math.hypot(wx - P.x, wz - P.z)
           if (d < R * 0.97 && wy < P.y + topY(d) - 0.06) {
-            insideIsle.push({ bridge: rootName, isle: lay.V5_ORDER[ii], mesh: o.name || o.geometry.type, at: [wx, wy, wz].map((v) => +v.toFixed(2)), d: +d.toFixed(2), below: +(P.y + topY(d) - wy).toFixed(2) })
+            insideIsle.push({ bridge: rootName, isle: ORDER[ii], mesh: o.name || o.geometry.type, at: [wx, wy, wz].map((v) => +v.toFixed(2)), d: +d.toFixed(2), below: +(P.y + topY(d) - wy).toFixed(2) })
           }
         }
       }
@@ -194,18 +197,23 @@ const AUDIT_FN = String.raw`(id) => {
 }`
 
 async function bootPage(browser, url, vp = DESKTOP) {
+  log('boot ' + url)
   const page = await browser.newPage()
   await page.setViewport(vp)
   page.setDefaultTimeout(90000)
+  page.on('pageerror', (e) => log('  pageerror: ' + String(e).slice(0, 160)))
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 })
+  log('  goto done')
   for (let t = 0; t < 60; t++) {
     const ok = await page.evaluate(() => {
       const j = window.__journey
       return !!(j && j.v5 && j.player && document.querySelector('canvas'))
     }).catch(() => false)
     if (ok) break
+    if (t === 59) log('  warn: app never ready, continuing anyway')
     await sleep(750)
   }
+  log('  app ready')
   await page.evaluate(async () => {
     const core = await import('/src/v5/core.ts')
     const lay = await import('/src/v5/world/layout.ts')
@@ -219,6 +227,7 @@ async function bootPage(browser, url, vp = DESKTOP) {
     // defeat the ?at re-pin: a far-future synthetic key counts as live input
     inp.input.synth.set('KeyQ', performance.now() + 1e9)
   })
+  log('  scene hooked')
   // let lazy chunks, GLB props and merges settle — poll mesh count stability
   let last = -1, stable = 0
   for (let t = 0; t < 40 && stable < 3; t++) {
@@ -226,6 +235,7 @@ async function bootPage(browser, url, vp = DESKTOP) {
     if (n === last) stable++; else { stable = 0; last = n }
     await sleep(700)
   }
+  log(`  settled (${last} meshes)`)
   await sleep(1200)
   return page
 }
@@ -251,7 +261,7 @@ async function auditAndOrbit(page, id, tag, orbits = true) {
   console.log(`  audit ${tag}: meshes=${rep.n} pairs=${rep.pairs.length} sunk=${rep.sunk.length} hover=${rep.hover.length} insideIsle=${rep.insideIsle.length} overVoid=${rep.overVoid.length} roots=${rep.roots.join(',')}`)
   const C = await page.evaluate((lid) => {
     const lay = window.__clipLay
-    const i = lay.V5_ORDER.indexOf(lid)
+    const i = window.__clipCore.V5_ORDER.indexOf(lid)
     return { x: lay.ISLAND_POS[i].x, y: lay.ISLAND_POS[i].y, z: lay.ISLAND_POS[i].z }
   }, id)
   if (!orbits) return rep
@@ -269,7 +279,9 @@ async function auditAndOrbit(page, id, tag, orbits = true) {
 
 const report = {}
 const jobs = JOBS.split(',')
+log('waiting for chrome...')
 await withChrome(async (browser) => {
+  log('chrome acquired')
   for (const job of jobs) {
     const t0 = Date.now()
     if (job === 'L08-unsolved') {
@@ -306,7 +318,7 @@ await withChrome(async (browser) => {
       await sleep(800)
       const C = await page.evaluate(() => {
         const lay = window.__clipLay
-        const i = lay.V5_ORDER.indexOf('L09')
+        const i = window.__clipCore.V5_ORDER.indexOf('L09')
         return { x: lay.ISLAND_POS[i].x, y: lay.ISLAND_POS[i].y, z: lay.ISLAND_POS[i].z }
       })
       await page.evaluate(([x, y, z]) => window.__journey.player.teleport(x, y, z), [C.x, C.y + 1, C.z])

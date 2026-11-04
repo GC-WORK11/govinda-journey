@@ -27,7 +27,7 @@ import { PillHint } from '../L01/shared.v5'
 const L08H = LEVELS.find((l) => l.id === 'L08')!
 
 const HOME = new THREE.Vector3(0, 0, -1.95)
-const ASIDE = new THREE.Vector3(1.95, 0, -3.7)
+const ASIDE = new THREE.Vector3(2.2, 0, -4.0)
 
 /** A standing stone tablet that rises and shows the engraved sign once the guardian wakes. */
 function Tablet({ shown }: { shown: boolean }) {
@@ -53,7 +53,7 @@ function Tablet({ shown }: { shown: boolean }) {
     }
   })
   return (
-    <group ref={g} position={[1.15, -0.85, -1.5]}>
+    <group ref={g} position={[-0.8, -0.85, -1.55]}>
       <RoundedBox args={[0.5, 0.85, 0.13]} radius={0.05} position={[0, 0.42, 0]} rotation={[0.04, 0, 0.03]} material={M('#c9bfb0')} castShadow />
       <mesh position={[0, 0.45, 0.068]} rotation={[0.04, 0, 0.03]}>
         <planeGeometry args={[0.36, 0.5]} />
@@ -205,7 +205,7 @@ export default function Obstacle({ active, complete, done }: ObstacleProps) {
         <group position={[-1.25, 0, 2.55]} rotation={[0, 0.5, 0]}>
           <Board />
         </group>
-        <Prop name="bench" position={[-2.6, 0, -0.5]} rotation={[0, 0.9, 0]} scale={0.85} />
+        <Prop name="bench" position={[-2.4, 0, -1.0]} rotation={[0, 0.9, 0]} scale={0.85} />
         <Prop name="rock_large_b" position={[-3.7, -0.08, 1.1]} rotation={[0, 0.7, 0]} scale={0.38} />
         <Prop name="plant_bush" position={[-3.3, -0.04, -0.9]} rotation={[0, 2.1, 0]} scale={0.8} />
         <Prop name="plant_bush_detailed" position={[-3.55, -0.04, -1.95]} rotation={[0, 1.2, 0]} scale={0.85} />

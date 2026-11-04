@@ -126,7 +126,7 @@ function Plank({ frame, carried, placing, placed, instant, onPlaced }: {
   })
 
   return (
-    <group ref={g} position={instant ? RAMP.pos.toArray() : PLANK_HOME.toArray()} rotation={instant ? [RAMP.rx, 0, 0] : [0, 0.35, 0.06]}>
+    <group ref={g} position={instant ? RAMP.pos.toArray() : [PLANK_HOME.x, 0.08, PLANK_HOME.z]} rotation={instant ? [RAMP.rx, 0, 0] : [0, 0.35, 0.06]}>
       <RoundedBox ref={walk} args={[0.86, 0.1, 1.16]} material={M(C.woodLight)} castShadow receiveShadow />
       <mesh position={[0, 0.052, 0]} material={M('#b98a5f')}><boxGeometry args={[0.88, 0.012, 0.05]} /></mesh>
       <mesh position={[0, 0.052, 0.3]} material={M('#b98a5f')}><boxGeometry args={[0.88, 0.012, 0.05]} /></mesh>
