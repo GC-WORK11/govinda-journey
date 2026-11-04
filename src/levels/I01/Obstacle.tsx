@@ -14,6 +14,7 @@ import {
   C, clay, REDUCED, useLocalPlayer, tpLocal, tpWorld, useSolver, useAt, Hint,
   PathStones, Rock, Mound, StoneLantern, Prop, sleep, waitTp,
 } from '../L03/shared.v5'
+import { LEVELS } from '../registry'
 
 /* --------------------------------- layout --------------------------------- */
 
@@ -22,6 +23,7 @@ const POND_RX = 2.05, POND_RZ = 1.5
 const BENCH = new THREE.Vector3(-1.72, 0, -0.35)
 const BENCH_YAW = Math.PI / 2 // faces +x, toward the pond
 const WILLOW = new THREE.Vector3(2.7, 0, 1.45)
+const LREG = LEVELS.find((l) => l.id === 'I01')!
 
 export default function Obstacle({ id, active, complete, done }: core.ObstacleProps) {
   const root = useRef<THREE.Group>(null)
@@ -29,6 +31,14 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
   useLocalPlayer(root, lp)
   const doneRef = useRef(done)
   const [sitting, setSitting] = useState(false)
+  const note = useRef(0)
+  const say = (s: string) => {
+    core.useV5.getState().setCaption(s)
+    const tok = ++note.current
+    setTimeout(() => {
+      if (note.current === tok && core.useV5.getState().caption === s) core.useV5.getState().setCaption(doneRef.current ? null : LREG.line)
+    }, 4600)
+  }
 
   /* ------------------------------ bench sit -------------------------------- */
 
@@ -53,6 +63,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       const em = (core as any).playerEmote
       if (em) em.name = 'sit'
       setSitting(true)
+      say(LREG.story)
     },
   }), [benchAt, backLocal])
   core.useInteractable(sitIt)
