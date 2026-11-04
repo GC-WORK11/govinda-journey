@@ -13,6 +13,7 @@ import * as core from '../../v5/core'
 import { C, clay, PathStones, sleep, tpLocal, useIslandFrame } from '../L04/shared.v5'
 import { Bush, ClayPot, Tree, Rock } from '../../world/kit'
 import { Bench, Churn, Luggage, Nameboard, Platform, Siding, StationLamp, TeaStall, Train, useTrack } from './station.v5'
+import Speech from './speech.v5'
 
 /** Causeway behind the island's right shoulder — kept x>=2.2 clear of the exit-bridge corridor. */
 const TRACK_PTS: [number, number, number][] = [
@@ -21,6 +22,7 @@ const TRACK_PTS: [number, number, number][] = [
 const CYCLE = 22 // seconds between passes
 const PASS_AT = 3.5 // when in the cycle the train enters
 const PASS_LEN = 8 // crossing duration
+const SAY = ['The little train comes past every so often.', 'A calm stop here, then on to the next island.']
 
 /* ---------------------------------------------------------- QA solve hook
  * Module-scope like L04: __journey.solve.I02 exists as soon as this chunk
@@ -95,6 +97,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       <Luggage position={[-1.2, 0.13, -2.12]} />
       <StationLamp position={[-0.55, 0, -2.75]} lit={lit} />
       <Churn position={[-2.45, 0, -1.5]} />
+      <Speech root={root} near={[-1.3, -2]} reach={2.6} lines={SAY} on={active} />
 
       {/* tea stall at the front-left corner */}
       <TeaStall position={[-2.15, 0, 1.7]} yaw={0.5} lit={lit} />

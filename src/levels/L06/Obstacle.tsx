@@ -14,14 +14,15 @@ import * as THREE from 'three'
 import * as core from '../../v5/core'
 import { input, isDown, now } from '../../v5/player/input'
 import { Prop } from '../../v5/art/Dressing'
-import { LEVELS } from '../registry'
 import { PillHint } from '../L01/shared.v5'
 import { C, clay, CityTowers, Baked, Heli, RouteRing, HeliPad, PadRock, BlockBox, DESK_P, LAPTOP_P, PHONE_P, type BPart } from './kit.v5'
+import Speech from './speech.v5'
 
 const V3 = THREE.Vector3
 type V3T = [number, number, number]
 
-const HINT = LEVELS.find((l) => l.id === 'L06')?.hint ?? 'Board the helicopter'
+const HINT = 'Board the helicopter on the pad'
+const SAY = ['My coding agents run on my laptop.', 'Remote lets me drive them from my phone.', 'It works over Wi-Fi or Tailscale.']
 
 /* soft paper scrim behind the caption band — same trick as .v5::before, but
    island-side so the shared chrome stays untouched. z 5 sits under .v5 (z 6). */
@@ -464,6 +465,7 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       </group>
       <object3D ref={boardMarker} position={PAD_HOME.clone().add(new V3(0, 0.3, 0))} />
       <BlockBox position={[PAD_HOME.x, 0.5, PAD_HOME.z]} args={[0.62, 1.0, 0.5]} kind="block" />
+      <Speech root={root} near={[PAD_HOME.x, PAD_HOME.z]} reach={3.4} lines={SAY} on={active && phase === 'walk'} />
 
       {/* ------- route rings ------- */}
       <group ref={ringsG}>

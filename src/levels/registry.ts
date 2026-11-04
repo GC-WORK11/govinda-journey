@@ -90,10 +90,10 @@ export const LEVELS: LevelDef[] = [
   },
   {
     id: 'L06', kind: 'level', place: 'Oct 2026', title: 'Remote',
-    line: 'Coding agents run on my laptop, and I steer them from my phone.',
+    line: 'Zero-dependency C++20 daemon on the laptop, Expo app on the phone.',
     task: 'Send a task from the phone and watch the laptop do it.', hint: 'Tap a task on the phone',
-    story: 'Remote lets me drive the coding agents on my laptop from my phone, over Wi-Fi or Tailscale.',
-    tech: 'A zero-dependency C++20 daemon runs on the laptop and an Expo app runs on the phone. Prompts go to the agent, and text, screenshots and approvals stream back.',
+    story: 'Coding agents run on my laptop. Remote lets me drive them from my phone, over Wi-Fi or Tailscale.',
+    tech: 'Prompts go to the agent, and text, screenshots and approvals stream back.',
     links: [{ label: 'Live', href: 'https://remote-01.vercel.app' }, { label: 'GitHub', href: 'https://github.com/GC-WORK11/remote' }], badge: 'Long reach',
     palette: { ground: '#9fc07e', accent: '#5f86a8' }, Play: g('L06'), Diorama: d('L06'),
   },
