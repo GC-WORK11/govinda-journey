@@ -60,19 +60,29 @@ under `proofs/v7/clipB/`.
   (table/tree/cables) and the obstacle field (laptop plinths, desk, rack,
   lift, deck, shard) were laid out complementarily. Ground cables passing
   under plinths are intentional (they read as roots running under the pads).
-- Verified in-browser by the audit run (results below); nothing required
-  repositioning.
+- Ground cables passing under plinths are intentional; nothing required
+  repositioning on static inspection.
 
 ## Verification
 - `tsc --noEmit -p .` — clean.
-- Audit JSON: `proofs/v7/clipB/audit-{I01,L05,L04}[-done].json`
-- Screenshots: `proofs/v7/clipB/<ID>-[a-f,top].png` (+ `<ID>-solved.png`)
-- play.mjs — see notes below.
+- `scripts/clip-audit.mjs` (Box3 + rock-profile + float/sunk audit, one
+  Chrome session for all three islands, orbit screenshots, and a
+  solve-check fallback: real `goto` + `teleport` + the island's own
+  `solve()` + `done` flag) — built and queued, but the shared Chrome lock
+  was saturated by sibling sprints for the entire session: three queued
+  runs (`audit`, `play.mjs 1440`, `play.mjs 390 --lite`) each hit their
+  15–20 min lock-wait timeouts without ever winning a slot. Fixes above
+  are therefore verified by static coordinate audit (every moved prop
+  distance-checked against all neighbours) and typecheck; browser
+  screenshots/JSON could not be produced before 14:15.
+- The audit/play jobs were relaunched and remain queued; if a slot frees,
+  proofs land in `proofs/v7/clipB/` automatically.
 
 ## Known remaining items
 - L04 safe/decoy stone pair (-0.62,-1.62)/(-0.3,-1.58) sit ~0.32 apart and
   visually fuse — left in place; they are gameplay-critical positions.
-- Chrome lock was heavily contended all sprint; each queued job raced for
-  slots. Where a real `play.mjs` slot couldn't be won, the audit session's
-  solve-check (real `goto` + `teleport` + the island's own `solve()` +
-  `done` verification) covers passability as a fallback.
+- L04's new greenhouse and rooftops stand on the street's east verge /
+  shoulders — deliberate "buildings swallowed by the collapsed road" read,
+  but worth one visual pass when a browser slot is available.
+- No browser-based verification completed (lock contention); static fixes
+  are distance-verified but unconfirmed visually.
