@@ -11,6 +11,7 @@ import * as THREE from 'three'
 import * as core from '../../v5/core'
 import { C, clay, Prop, REDUCED, Merged, mergePrims, type Prim } from './shared.v5'
 import { NoMerge } from '../../v5/world/AutoMerge'
+import { StorySign } from './sign.v5'
 
 const winLit = new THREE.MeshStandardMaterial({ color: '#ffd489', emissive: '#ffb04e', emissiveIntensity: 0.9, roughness: 0.5 })
 const winDark = new THREE.MeshStandardMaterial({ color: '#9db6b3', roughness: 0.92 })
@@ -58,6 +59,8 @@ export function CampusBlock({ position, yaw = 0, warm }: {
   return (
     <group position={position} rotation={[0, yaw, 0]}>
       <Merged items={statics} />
+      <StorySign position={[0, 0, 0.83]} stake={false} y={1.06} w={0.8} h={0.34} title="IIT Patna"
+        lines={['BS, Computer Science & Data Analytics', 'For four years I have built things people can open.']} />
       <NoMerge><mesh geometry={winGeo} material={win} /></NoMerge>
       {[0, 1, 2].map((i) => (
         <mesh key={i} position={[0.78, 2.34, -0.2]} material={puffMats[i]}

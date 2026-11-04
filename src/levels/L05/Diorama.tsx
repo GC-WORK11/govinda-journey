@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import { C, clay, Scaffold } from '../../world/kit'
 import type { DioramaProps } from '../types'
 import { put, frame, merged, useVcMat } from './parts.v5'
+import { useSignTex } from '../L01/sign.v5'
 
 /* Ent: four laptops around a round table under a big tree, cables running into the soil like roots.
  * All static props are painted + merged into ONE vertex-coloured mesh; only the
@@ -141,6 +142,18 @@ function useStaticGeo() {
   }, [])
 }
 
+function Note() {
+  const tex = useSignTex(512, 384, 'Four laptops.\nOne 27B model.', false)
+  return (
+    <group position={[TABLE[0] - 0.28, TOP + 0.0265, TABLE[2] - 0.52]} rotation={[0, 0.45, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[0.2, 0.15]} />
+        <meshBasicMaterial map={tex} />
+      </mesh>
+    </group>
+  )
+}
+
 export default function Diorama({ unlocked }: DioramaProps) {
   const token = useRef<THREE.Mesh>(null)
   const staticGeo = useStaticGeo()
@@ -219,6 +232,7 @@ export default function Diorama({ unlocked }: DioramaProps) {
     <group>
       {/* every static prop in one draw call */}
       <mesh geometry={staticGeo ?? undefined} material={vc} castShadow receiveShadow />
+      <Note />
 
       {/* the four screens — one instanced draw call */}
       <instancedMesh ref={scrIM} args={scrArgs as unknown as [THREE.BufferGeometry, THREE.Material, number]} frustumCulled={false} />

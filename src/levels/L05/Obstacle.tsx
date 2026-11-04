@@ -17,6 +17,7 @@ import {
 } from './parts.v5'
 import { LEVELS } from '../registry'
 import EntLinks from './card.v5'
+import { useSignTex } from '../L01/sign.v5'
 
 const LREG = LEVELS.find((l) => l.id === 'L05')!
 
@@ -173,6 +174,7 @@ export default function Obstacle({ id, active, complete, done }: ObstacleProps) 
   const reading = useRef({ on: false, done: false, tok: 0 })
   const linksOn = useRef(false)
   const [links, setLinks] = useState(false)
+  const lecternTex = useSignTex(512, 361, 'Ent\nFour ordinary laptops, one 27B model, over Wi-Fi.', false)
   const [poweredUI, setPoweredUI] = useState(done)
   const [completedUI, setCompletedUI] = useState(done)
   const [, force] = useState(0)
@@ -560,6 +562,14 @@ export default function Obstacle({ id, active, complete, done }: ObstacleProps) 
       <LiftPad padRef={padRef} trimMat={mats.trim} segMat={basicSeg} segRef={segsIM} />
       <object3D ref={callMark} position={[1.25, 0.75, -3.3]} />
       <object3D ref={storyMark} position={[STORY_P[0], STORY_P[1] + 0.85, STORY_P[2]]} />
+      <group position={STORY_P} rotation={[0, -2.5, 0]}>
+        <group position={[0, 0.86, 0]} rotation={[-0.42, 0, 0]}>
+          <mesh position={[0, 0.0225, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[0.34, 0.24]} />
+            <meshBasicMaterial map={lecternTex} />
+          </mesh>
+        </group>
+      </group>
       {active && !completedUI && (
         <Html fullscreen zIndexRange={[90, 0]} style={{ pointerEvents: 'none' }}>
           <div

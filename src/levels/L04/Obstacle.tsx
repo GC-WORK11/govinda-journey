@@ -21,6 +21,7 @@ import { ClayPot, Bush } from '../../world/kit'
 import { AutoMerge } from '../../v5/world/AutoMerge'
 import { AqiPost, aqiTagTex, CableSpan, Rooftop, SensorPost, SensorTower, STREET_Y, StreetLamp, StreetTree, useStreetGeo, type Lit } from './street.v5'
 import { LEVELS } from '../registry'
+import { StorySign } from '../L01/sign.v5'
 
 /* ---------- layout (island-local; entry +z, exit -z) ---------- */
 const STRIP_Z0 = 0.55, STRIP_Z1 = -2.75, STRIP_W = 4.95
@@ -277,6 +278,8 @@ export default function Obstacle({ id, active, complete, done }: core.ObstaclePr
       {/* the smog volume — fades off as the tower breathes */}
       {!done && <Smog clearT={clearT} pulses={pulses} clockRef={clockRef} />}
 
+      <StorySign position={[2.5, 0, 2.5]} rotation={[0, -1.107, 0]} y={1.0} w={1.0} h={0.5} title="ALive"
+        lines={['240,027 Delhi places', 'Ground monitors and a CAMS model grid, rebuilt every 15 minutes.']} />
       {/* sensor hardware */}
       <group ref={postRef} position={POST}><SensorPost powered={poweredUi} shakeT={shakeT} /></group>
       <AutoMerge><group ref={towerRef} position={TOWER}><SensorTower lit={lit} /></group></AutoMerge>

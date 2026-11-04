@@ -20,6 +20,7 @@ import {
   PathStones, Rock, Mound, RopeFence, StoneLantern, Prop, carryWorld, sleep, waitTp,
   Merged, type Prim,
 } from './shared.v5'
+import { StorySign } from '../L01/sign.v5'
 
 /* --------------------------------- layout --------------------------------- */
 
@@ -636,12 +637,6 @@ function SiteFence() {
     s: [0.07, p.h, 0.05] as [number, number, number],
     c: i % 3 ? C.wood : C.woodLight,
   }))], [runs, gates])
-  const sign = useMemo<Prim[]>(() => [
-    { g: 'cyl', p: [0, 0.3, 0], s: [0.05, 0.6, 0.064], c: C.wood },
-    { g: 'box', p: [0, 0.62, 0], s: [0.5, 0.26, 0.035], r: [0, 0, -0.06], c: '#f4e6c4' },
-    { g: 'box', p: [0.05, 0.62, 0.025], s: [0.22, 0.045, 0.012], c: C.terracotta },
-    { g: 'box', p: [0.17, 0.62, 0.025], s: [0.1, 0.045, 0.012], r: [0, 0, -Math.PI / 4], c: C.terracotta },
-  ], [])
   return (
     <group>
       <Merged items={pickets} />
@@ -661,9 +656,8 @@ function SiteFence() {
       <Rock position={[3.1, 0.1, -3.0]} s={0.35} yaw={0.3} />
       <Rock position={[4.15, 0.08, -3.55]} s={0.32} yaw={2.4} />
       {/* a little leaning site sign by the path — ONE merged mesh */}
-      <group position={[3.15, 0, -2.45]} rotation={[0, -0.5, 0.04]}>
-        <Merged items={sign} />
-      </group>
+      <StorySign position={[3.15, 0, -2.45]} rotation={[0, -0.5, 0.04]} y={0.62} w={0.72} h={0.36}
+        title="Doorway" lines={['A desktop cockpit for visible terminal agents.', 'Git worktrees, review and merge.']} />
     </group>
   )
 }
@@ -738,6 +732,8 @@ function Studio({ position, yaw = 0 }: { position: [number, number, number]; yaw
   return (
     <group position={position} rotation={[0, yaw, 0]}>
       <Merged items={studio} />
+      <StorySign position={[0, 0, 0.84]} stake={false} y={1.2} w={1.9} h={0.3} res={1024} title="Weekend builds"
+        lines={['CEO Hunt · Flow Pitch · Delegators Workbench · Doorway IDE']} />
       {/* a small laptop + book stack — the weekend shipping rig */}
       <Prop name="laptop" position={[-0.04, 0.615, 0.07]} rotation={[0, -0.4, 0]} fit={0.14} />
       <Prop name="book_set" position={[-0.8, 0.615, 0.27]} rotation={[0, 0.5, 0]} fit={0.1} />
