@@ -1,9 +1,13 @@
-/** L05 Ent — shared layout constants + presentational pieces for the V5 obstacle. */
+/** L05 Ent — shared layout constants + presentational pieces for the V5 obstacle.
+ *  Draw-call budget: every static piece is painted + merged into ONE vertex-coloured
+ *  mesh (<Statics>, <WalkStatics>, the pad's merged shell). Only pieces with animated
+ *  materials or that move with the lift stay separate meshes. */
 import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
-import { RoundedBox } from '@react-three/drei'
-import { C, clay } from '../../world/kit'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
+import { C, clay, clayVC, paint } from '../../world/kit'
 import { useBlocker, useWalkable } from '../../v5/core'
 
 export const DECK_Y = 2.0
@@ -36,8 +40,6 @@ export const PLANK_B = new THREE.Vector3(7.3, -0.66, 0.55)
 export const DESK_P: [number, number, number] = [-2.75, 0, -0.3]
 export const DESK_YAW = 1.85
 
-/* ------- V6 compute yard: rack, crates, work light, story lectern ------- */
-
 /** Where the story lectern stands — just east of the entry path. */
 export const STORY_P: [number, number, number] = [1.28, 0, 3.35]
 
@@ -54,57 +56,241 @@ export const dockLocal = (lap: (typeof LAPTOPS)[number], size: number) =>
   new THREE.Vector3(lap.p[0], PLINTH_TOP + 0.34 * LAP_SCALE[lap.size] + CHUNK_T[size] / 2 + 0.06, lap.p[2] + 0.04)
 
 /* ------------------------------------------------------------------ */
+/* merged-geometry helpers — one draw call for all static pieces        */
+/* ------------------------------------------------------------------ */
 
-/** One laptop on its stone plinth. Screen glows the slab's hue once loaded. */
-export function PlinthLaptop({
-  lap,
-  screenMat,
-}: {
-  lap: (typeof LAPTOPS)[number]
-  screenMat: THREE.Material
-}) {
-  const s = LAP_SCALE[lap.size]
-  const block = useRef<THREE.Mesh>(null)
-  useBlocker(block)
-  const ledMat = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: '#efe4d2', roughness: 0.5, emissive: HUES[lap.size], emissiveIntensity: 0.55 }),
-    [lap.size],
-  )
-  const w = 0.42 * s
-  return (
-    <group position={lap.p} rotation={[0, lap.yaw, 0]}>
-      <mesh ref={block} position={[0, PLINTH_TOP / 2 - 0.03, 0]} material={clay(C.stone)} castShadow receiveShadow>
-        <cylinderGeometry args={[0.2 * s + 0.09, 0.24 * s + 0.11, PLINTH_TOP, 14]} />
-      </mesh>
-      <mesh position={[0, PLINTH_TOP + 0.008, 0]} material={clay(C.stoneLight)} receiveShadow>
-        <cylinderGeometry args={[0.21 * s + 0.09, 0.21 * s + 0.09, 0.016, 14]} />
-      </mesh>
-      <group position={[0, PLINTH_TOP + 0.016, 0]}>
-        <RoundedBox args={[w, 0.032 * s, 0.3 * s]} radius={0.012} position={[0, 0.016 * s, 0.02]} material={clay('#e2cdaa')} castShadow />
-        <group position={[0, 0.034 * s, -0.115 * s]} rotation={[-0.34, 0, 0]}>
-          <RoundedBox args={[w, 0.28 * s, 0.02]} radius={0.01} position={[0, 0.14 * s, 0]} material={clay(C.paper)} castShadow />
-          <RoundedBox args={[w * 0.86, 0.22 * s, 0.021]} radius={0.008} position={[0, 0.145 * s, 0.004]} material={screenMat} />
-        </group>
-        <mesh position={[0, 0.036 * s, 0.15 * s]} material={ledMat}>
-          <sphereGeometry args={[0.013, 8, 8]} />
-        </mesh>
-      </group>
-    </group>
-  )
+const _e = new THREE.Euler()
+const _q = new THREE.Quaternion()
+const _p = new THREE.Vector3()
+const _s = new THREE.Vector3()
+const _m = new THREE.Matrix4()
+const _pre = new THREE.Matrix4()
+
+export type PutBag = THREE.BufferGeometry[]
+
+/** transformed + painted geo pushed into `bag`; `pre` = parent frame baked in first. */
+export function put(
+  bag: PutBag,
+  g0: THREE.BufferGeometry,
+  hex: string,
+  x: number, y: number, z: number,
+  o: { rx?: number; ry?: number; rz?: number; s?: number | [number, number, number]; pre?: THREE.Matrix4 } = {},
+) {
+  const g = g0.index ? g0.toNonIndexed() : g0
+  if (!g.attributes.uv) g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2))
+  const [sx, sy, sz] = Array.isArray(o.s) ? o.s : [o.s ?? 1, o.s ?? 1, o.s ?? 1]
+  _e.set(o.rx ?? 0, o.ry ?? 0, o.rz ?? 0)
+  _q.setFromEuler(_e)
+  _p.set(x, y, z)
+  _s.set(sx, sy, sz)
+  _m.compose(_p, _q, _s)
+  if (o.pre) _m.premultiply(o.pre)
+  g.applyMatrix4(_m)
+  paint(g, hex, undefined, 0.04)
+  bag.push(g)
 }
 
-/** Glowing translucent model slab. */
-export function ChunkSlab({ size, mat }: { size: number; mat: THREE.Material }) {
+/** frame matrix for a positioned+rotated group (so sub-specs stay in local coords). */
+export const frame = (x: number, y: number, z: number, ry = 0) =>
+  new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, ry, 0)), new THREE.Vector3(1, 1, 1))
+
+export function merged(specs: PutBag) {
+  const g = mergeGeometries(specs, false)
+  specs.forEach((x) => x.dispose())
+  return g
+}
+
+/** The single vertex-coloured material for every merged static. */
+export const useVcMat = () => useMemo(() => clayVC(), [])
+
+/** Shared invisible material for colliders + the pad walk mesh — zero draw calls. */
+export const INVIS = new THREE.MeshBasicMaterial({ visible: false })
+
+/* ------------------------------------------------------------------ */
+/* the giant static merge — desk, plinths, lift shell, deck, shard,     */
+/* yard, lectern, entry disc: ONE mesh, ONE draw call                   */
+/* ------------------------------------------------------------------ */
+
+export const STAIR: { p: [number, number, number]; yaw: number; w: number }[] = [
+  { p: [1.42, 1.7, -4.62], yaw: 0.1, w: 0.62 },
+  { p: [1.62, 1.4, -4.4], yaw: -0.15, w: 0.6 },
+  { p: [1.8, 1.1, -4.14], yaw: 0.12, w: 0.6 },
+  { p: [1.92, 0.8, -3.86], yaw: -0.08, w: 0.58 },
+  { p: [2.0, 0.5, -3.55], yaw: 0.1, w: 0.58 },
+  { p: [2.02, 0.2, -3.24], yaw: -0.05, w: 0.6 },
+]
+
+function deskSpecs(bag: PutBag) {
+  const pre = frame(DESK_P[0], DESK_P[1], DESK_P[2], DESK_YAW)
+  put(bag, new THREE.BoxGeometry(1.5, 0.06, 0.72), C.woodLight, 0, 0.59, 0, { pre })
+  for (const [x, z] of [[-0.66, -0.28], [0.66, -0.28], [-0.66, 0.28], [0.66, 0.28]] as const)
+    put(bag, new THREE.CylinderGeometry(0.035, 0.045, 0.56, 7), C.wood, x, 0.28, z, { pre })
+  put(bag, new THREE.BoxGeometry(1.2, 0.04, 0.5), C.wood, 0, 0.3, 0, { pre })
+  // router
+  put(bag, new RoundedBoxGeometry(0.3, 0.07, 0.2, 2, 0.015), C.cream, -0.3, 0.655, -0.05, { pre })
+  put(bag, new THREE.CylinderGeometry(0.007, 0.007, 0.2, 6), C.ink, -0.39, 0.78, -0.11, { rz: 0.3, pre })
+  put(bag, new THREE.CylinderGeometry(0.007, 0.007, 0.2, 6), C.ink, -0.21, 0.78, -0.11, { rz: -0.3, pre })
+  // desk lamp
+  put(bag, new THREE.CylinderGeometry(0.07, 0.08, 0.03, 10), C.terracotta, 0.45, 0.635, -0.1, { pre })
+  put(bag, new THREE.CylinderGeometry(0.014, 0.014, 0.24, 6), C.terracotta, 0.47, 0.76, -0.1, { rz: -0.25, pre })
+  put(bag, new THREE.ConeGeometry(0.07, 0.09, 10, 1, true), C.terracotta, 0.41, 0.88, -0.08, { rx: 0.5, rz: 0.35, pre })
+  // mug
+  put(bag, new THREE.CylinderGeometry(0.045, 0.038, 0.08, 10), '#b5654a', 0.12, 0.66, 0.18, { pre })
+  put(bag, new THREE.TorusGeometry(0.03, 0.009, 6, 12, Math.PI), '#b5654a', 0.17, 0.665, 0.18, { ry: Math.PI / 2, pre })
+  // folded note + stool
+  put(bag, new RoundedBoxGeometry(0.24, 0.03, 0.18, 2, 0.01), C.paper, 0.02, 0.635, -0.22, { ry: 0.4, pre })
+  put(bag, new THREE.CylinderGeometry(0.05, 0.06, 0.55, 8), C.wood, 0.15, 0.3, 0.75, { pre })
+  put(bag, new THREE.CylinderGeometry(0.2, 0.17, 0.08, 12), '#c9875f', 0.15, 0.6, 0.75, { pre })
+}
+
+function plinthSpecs(bag: PutBag) {
+  LAPTOPS.forEach((lap) => {
+    const s = LAP_SCALE[lap.size]
+    const pre = frame(lap.p[0], lap.p[1], lap.p[2], lap.yaw)
+    const w = 0.42 * s
+    put(bag, new THREE.CylinderGeometry(0.2 * s + 0.09, 0.24 * s + 0.11, PLINTH_TOP, 14), C.stone, 0, PLINTH_TOP / 2 - 0.03, 0, { pre })
+    put(bag, new THREE.CylinderGeometry(0.21 * s + 0.09, 0.21 * s + 0.09, 0.016, 14), C.stoneLight, 0, PLINTH_TOP + 0.008, 0, { pre })
+    put(bag, new RoundedBoxGeometry(w, 0.032 * s, 0.3 * s, 2, 0.012), '#e2cdaa', 0, PLINTH_TOP + 0.016 + 0.016 * s, 0.02, { pre })
+    const lid = frame(0, PLINTH_TOP + 0.016 + 0.034 * s, -0.115 * s, 0)
+    lid.premultiply(pre)
+    lid.multiply(_pre.makeRotationX(-0.34))
+    put(bag, new RoundedBoxGeometry(w, 0.28 * s, 0.02, 2, 0.01), C.paper, 0, 0.14 * s, 0, { pre: lid })
+    // the hue-coded size LED — painted, not emissive (screens carry the glow)
+    put(bag, new THREE.SphereGeometry(0.013, 8, 8), HUES[lap.size], 0, PLINTH_TOP + 0.016 + 0.036 * s, 0.15 * s, { pre })
+  })
+}
+
+function liftStatics(bag: PutBag) {
+  // the dark "cradle" slot the lift rises out of — stays on the ground
+  put(bag, new THREE.BoxGeometry(PAD_W + 0.12, 0.024, PAD_D + 0.12), '#57504b', LIFT_C.x, 0.012, LIFT_C.z, { ry: 0.02 })
+}
+
+function deckStatics(bag: PutBag) {
+  put(bag, new THREE.CylinderGeometry(0.5, 0.82, 2.35, 12), '#9d8469', 0, 0.72, -5.3)
+  put(bag, new THREE.CylinderGeometry(0.86, 1.02, 0.5, 12), '#8c7055', 0, 0.22, -5.3)
+  for (const z of [-4.55, -5.15, -5.75])
+    put(bag, new THREE.CylinderGeometry(0.028, 0.034, 0.4, 7), C.wood, -1.12, DECK_Y + 0.2, z)
+  for (const x of [-1.12, 1.12])
+    put(bag, new THREE.CylinderGeometry(0.028, 0.034, 0.4, 7), C.wood, x, DECK_Y + 0.2, -5.9)
+  for (const z of [-5.5, -5.9])
+    put(bag, new THREE.CylinderGeometry(0.028, 0.034, 0.4, 7), C.wood, 1.12, DECK_Y + 0.2, z)
+  put(bag, new THREE.CylinderGeometry(0.03, 0.03, 1.55, 7), C.woodLight, -1.12, DECK_Y + 0.4, -5.15, { rx: Math.PI / 2 })
+  put(bag, new THREE.CylinderGeometry(0.03, 0.03, 2.4, 7), C.woodLight, 0, DECK_Y + 0.4, -5.9, { rz: Math.PI / 2 })
+  put(bag, new THREE.CylinderGeometry(0.03, 0.03, 0.62, 7), C.woodLight, 1.12, DECK_Y + 0.4, -5.68, { rx: Math.PI / 2 })
+  // lantern pole + cap (bulb stays an animated mesh)
+  put(bag, new THREE.CylinderGeometry(0.024, 0.034, 0.92, 7), C.wood, -1.02, DECK_Y + 0.46, -5.62)
+  put(bag, new THREE.ConeGeometry(0.09, 0.08, 8), C.terracotta, -1.02, DECK_Y + 1.04, -5.62)
+}
+
+function shardStatics(bag: PutBag) {
+  const { c, r } = SHARD
+  const rnd = (n: number) => { const x = Math.sin(n * 12.9898) * 43758.5453; return x - Math.floor(x) }
+  put(bag, new THREE.ConeGeometry(r * 0.92, 1.15, 12), '#9d8469', c.x, c.y - 0.62, c.z, { rx: Math.PI })
+  put(bag, new THREE.TorusGeometry(r * 0.86, 0.05, 6, 22), '#b19d82', c.x, c.y - 0.14, c.z, { rx: Math.PI / 2 })
+  for (let i = 0; i < 5; i++) {
+    const a = rnd(i) * Math.PI * 2
+    const d = r * (0.45 + rnd(i + 9) * 0.4)
+    const k = rnd(i + 4)
+    put(bag, new THREE.ConeGeometry(0.05 + k * 0.03, 0.16 + k * 0.1, 5), i % 2 ? C.leafDark : C.moss,
+      c.x + Math.cos(a) * d, c.y + 0.05, c.z + Math.sin(a) * d,
+      { rx: (k - 0.5) * 0.4, ry: k * 3, rz: (k - 0.5) * 0.4 })
+  }
+}
+
+function callStatics(bag: PutBag) {
+  put(bag, new THREE.CylinderGeometry(0.045, 0.06, 0.64, 8), '#4a423d', 1.25, 0.32, -3.3)
+}
+
+function rackStatics(bag: PutBag) {
+  const pre = frame(-3.3, 0, -1.85, 0.62)
+  for (const x of [-0.34, 0.34])
+    put(bag, new THREE.BoxGeometry(0.05, 1.04, 0.44), C.wood, x, 0.52, 0, { pre })
+  for (const y of [0.14, 0.5, 0.86])
+    put(bag, new THREE.BoxGeometry(0.72, 0.035, 0.44), C.woodLight, 0, y, 0, { pre })
+  for (const y of [0.22, 0.58, 0.94])
+    put(bag, new RoundedBoxGeometry(0.52, 0.09, 0.34, 2, 0.02), '#4a4340', 0, y, 0.01, { pre })
+  put(bag, new THREE.BoxGeometry(0.2, 0.012, 0.14), C.paper, 0, 1.1, -0.06, { rx: 0.25, pre })
+}
+
+function crateStatics(bag: PutBag) {
+  const pre = frame(-1.85, 0, -3.8, -0.2)
+  put(bag, new RoundedBoxGeometry(0.62, 0.34, 0.62, 2, 0.03), '#b39872', 0, 0.17, 0, { pre })
+  put(bag, new RoundedBoxGeometry(0.44, 0.26, 0.44, 2, 0.025), '#c4a87e', 0.14, 0.47, 0.08, { ry: 0.35, pre })
+  put(bag, new RoundedBoxGeometry(0.3, 0.2, 0.3, 2, 0.02), '#a98c68', -0.38, 0.1, 0.3, { ry: -0.3, pre })
+  put(bag, new THREE.BoxGeometry(0.16, 0.012, 0.11), C.paper, 0.02, 0.34, 0.32, { rx: 0.4, ry: 0.1, pre })
+  put(bag, new THREE.CylinderGeometry(0.09, 0.09, 0.2, 10), '#8c7055', 0.32, 0.1, -0.34, { ry: 0.2, rz: Math.PI / 2, pre })
+}
+
+function lightStatics(bag: PutBag) {
+  const pre = frame(-1.55, 0, -3.1, 0.5)
+  put(bag, new THREE.CylinderGeometry(0.035, 0.055, 1.2, 8), C.wood, 0, 0.6, 0, { pre })
+  put(bag, new THREE.CylinderGeometry(0.025, 0.032, 0.4, 7), C.wood, 0.16, 1.18, 0, { rz: -0.85, pre })
+  put(bag, new THREE.ConeGeometry(0.1, 0.11, 12, 1, true), '#c9875f', 0.3, 1.14, 0, { pre })
+  put(bag, new THREE.CylinderGeometry(0.14, 0.17, 0.12, 10), '#8c7055', 0, 0.06, 0, { pre })
+}
+
+function storyStatics(bag: PutBag) {
+  const pre = frame(STORY_P[0], STORY_P[1], STORY_P[2], -2.5)
+  put(bag, new THREE.CylinderGeometry(0.045, 0.065, 0.84, 8), C.wood, 0, 0.42, 0, { pre })
+  const board = frame(0, 0.86, 0, 0)
+  board.premultiply(pre)
+  board.multiply(_pre.makeRotationX(-0.42))
+  put(bag, new RoundedBoxGeometry(0.44, 0.03, 0.32, 2, 0.015), C.woodLight, 0, 0, 0, { pre: board })
+  put(bag, new RoundedBoxGeometry(0.34, 0.008, 0.24, 2, 0.006), '#efe3cd', 0, 0.018, 0, { pre: board })
+  put(bag, new THREE.CylinderGeometry(0.13, 0.16, 0.1, 10), '#8c7055', 0, 0.05, 0, { pre })
+}
+
+/** One merged mesh for every static, non-walkable piece — a single draw call. */
+export function Statics() {
+  const g = useMemo(() => {
+    const bag: PutBag = []
+    deskSpecs(bag)
+    plinthSpecs(bag)
+    liftStatics(bag)
+    deckStatics(bag)
+    shardStatics(bag)
+    callStatics(bag)
+    rackStatics(bag)
+    crateStatics(bag)
+    lightStatics(bag)
+    storyStatics(bag)
+    put(bag, new THREE.CircleGeometry(0.5, 20), '#d6cab4', 0, 0.02, 4.2, { rx: -Math.PI / 2 })
+    return merged(bag)
+  }, [])
+  const mat = useVcMat()
+  return <mesh geometry={g ?? undefined} material={mat} castShadow receiveShadow />
+}
+
+/** Walkable statics: deck slab + the six stair slabs + the shard top — one mesh. */
+export function WalkStatics() {
+  const walk = useRef<THREE.Mesh>(null)
+  useWalkable(walk)
+  const g = useMemo(() => {
+    const bag: PutBag = []
+    put(bag, new RoundedBoxGeometry(2.4, 0.26, 1.7, 2, 0.06), C.stoneLight, 0, DECK_Y - 0.13, -5.1)
+    for (const s of STAIR)
+      put(bag, new RoundedBoxGeometry(s.w, 0.14, 0.52, 2, 0.05), '#b8ab97', s.p[0], s.p[1], s.p[2], { ry: s.yaw })
+    put(bag, new THREE.CylinderGeometry(SHARD.r, SHARD.r * 0.96, 0.14, 22), '#8fae6d', SHARD.c.x, SHARD.c.y - 0.055, SHARD.c.z)
+    return merged(bag)
+  }, [])
+  const mat = useVcMat()
+  return <mesh ref={walk} geometry={g ?? undefined} material={mat} castShadow receiveShadow />
+}
+
+/* ------------------------------------------------------------------ */
+/* small pieces that stay separate (animated mats / moving parts)       */
+/* ------------------------------------------------------------------ */
+
+/** Glowing translucent model slab — two boxes merged into one geometry. */
+export const chunkGeo = (size: number) => {
   const w = CHUNK_W[size]
-  return (
-    <group>
-      <RoundedBox args={[w, CHUNK_T[size], w * 1.25]} radius={0.03} material={mat} castShadow />
-      <RoundedBox args={[w * 0.82, CHUNK_T[size] + 0.008, w]} radius={0.02} position={[0, 0.002, 0]} material={mat} />
-    </group>
-  )
+  const bag: PutBag = []
+  put(bag, new RoundedBoxGeometry(w, CHUNK_T[size], w * 1.25, 2, 0.03), '#ffffff', 0, 0, 0)
+  put(bag, new RoundedBoxGeometry(w * 0.82, CHUNK_T[size] + 0.008, w, 2, 0.02), '#ffffff', 0, 0.002, 0)
+  return merged(bag)!
 }
 
-/** Dark lift platform: charcoal pad, rust trim, mast with the 4-segment balance dial, cable hub. */
+/** Dark lift pad: merged shell (walkable) + trim ring + the 4-segment dial. */
 export function LiftPad({
   trimMat,
   segMats,
@@ -116,170 +302,98 @@ export function LiftPad({
 }) {
   const walk = useRef<THREE.Mesh>(null)
   useWalkable(walk)
+  const vc = useVcMat()
+  const padGeo = useMemo(() => {
+    const bag: PutBag = []
+    put(bag, new THREE.BoxGeometry(PAD_W, 0.14, PAD_D), '#46403c', 0, PAD_TOP - 0.07, 0)
+    put(bag, new RoundedBoxGeometry(PAD_W - 0.18, 0.02, PAD_D - 0.18, 2, 0.01), '#524a45', 0, PAD_TOP + 0.004, 0)
+    put(bag, new THREE.BoxGeometry(0.5, 0.07, 0.12), '#3b3533', 0, 0.035, PAD_D / 2 + 0.02)
+    put(bag, new THREE.CylinderGeometry(0.028, 0.038, 1.1, 8), '#3b3533', -PAD_W / 2 + 0.18, 0.55, -PAD_D / 2 + 0.2)
+    put(bag, new THREE.SphereGeometry(0.035, 10, 8), '#3b3533', -PAD_W / 2 + 0.18, 1.18, -PAD_D / 2 + 0.22)
+    return merged(bag)!
+  }, [])
+  const trimGeo = useMemo(() => {
+    const bag: PutBag = []
+    put(bag, new THREE.BoxGeometry(PAD_W, 0.02, 0.05), '#ffffff', 0, PAD_TOP + 0.002, PAD_D / 2 - 0.045)
+    put(bag, new THREE.BoxGeometry(PAD_W, 0.02, 0.05), '#ffffff', 0, PAD_TOP + 0.002, -PAD_D / 2 + 0.045)
+    put(bag, new THREE.BoxGeometry(0.05, 0.02, PAD_D - 0.1), '#ffffff', PAD_W / 2 - 0.045, PAD_TOP + 0.002, 0)
+    put(bag, new THREE.BoxGeometry(0.05, 0.02, PAD_D - 0.1), '#ffffff', -PAD_W / 2 + 0.045, PAD_TOP + 0.002, 0)
+    return merged(bag)!
+  }, [])
   return (
     <group ref={padRef} position={LIFT_C}>
-      <mesh ref={walk} position={[0, PAD_TOP - 0.07, 0]} material={clay('#46403c')} castShadow receiveShadow>
+      <mesh ref={walk} position={[0, PAD_TOP - 0.07, 0]} material={INVIS}>
         <boxGeometry args={[PAD_W, 0.14, PAD_D]} />
       </mesh>
-      <RoundedBox args={[PAD_W - 0.18, 0.02, PAD_D - 0.18]} radius={0.01} position={[0, PAD_TOP + 0.004, 0]} material={clay('#524a45')} receiveShadow />
-      {([
-        [0, PAD_D / 2 - 0.045, PAD_W, 0.05],
-        [0, -PAD_D / 2 + 0.045, PAD_W, 0.05],
-        [PAD_W / 2 - 0.045, 0, 0.05, PAD_D - 0.1],
-        [-PAD_W / 2 + 0.045, 0, 0.05, PAD_D - 0.1],
-      ] as const).map(([x, z, w, d], i) => (
-        <mesh key={i} position={[x, PAD_TOP + 0.002, z]} material={trimMat}>
-          <boxGeometry args={[w, 0.02, d]} />
-        </mesh>
-      ))}
-      <mesh position={[0, 0.035, PAD_D / 2 + 0.02]} material={clay('#3b3533')} castShadow>
-        <boxGeometry args={[0.5, 0.07, 0.12]} />
-      </mesh>
-      <group position={[-PAD_W / 2 + 0.18, 0, -PAD_D / 2 + 0.2]}>
-        <mesh position={[0, 0.55, 0]} material={clay('#3b3533')} castShadow>
-          <cylinderGeometry args={[0.028, 0.038, 1.1, 8]} />
-        </mesh>
-        <group position={[0, 1.18, 0.02]}>
-          {segMats.map((m, i) => (
-            <mesh key={i} rotation={[0, 0, i * (Math.PI / 2) + 0.07]} material={m}>
-              <torusGeometry args={[0.3, 0.026, 6, 14, Math.PI / 2 - 0.14]} />
-            </mesh>
-          ))}
-          <mesh material={clay('#3b3533')}>
-            <sphereGeometry args={[0.035, 10, 8]} />
+      <mesh geometry={padGeo} material={vc} castShadow receiveShadow />
+      <mesh geometry={trimGeo} material={trimMat} />
+      <group position={[-PAD_W / 2 + 0.18, 1.18, -PAD_D / 2 + 0.22]}>
+        {segMats.map((m, i) => (
+          <mesh key={i} rotation={[0, 0, i * (Math.PI / 2) + 0.07]} material={m}>
+            <torusGeometry args={[0.3, 0.026, 6, 14, Math.PI / 2 - 0.14]} />
           </mesh>
-        </group>
+        ))}
       </group>
     </group>
   )
 }
 
-/** Slim call post beside the lift so it can be brought back down. */
-export function CallPost({ litMat }: { litMat: THREE.Material }) {
-  const block = useRef<THREE.Mesh>(null)
-  useBlocker(block)
-  return (
-    <group position={[1.25, 0, -3.3]}>
-      <mesh ref={block} position={[0, 0.32, 0]} material={clay('#4a423d')} castShadow>
-        <cylinderGeometry args={[0.045, 0.06, 0.64, 8]} />
-      </mesh>
-      <mesh position={[0, 0.68, 0]} material={litMat}>
-        <sphereGeometry args={[0.05, 12, 10]} />
-      </mesh>
-    </group>
-  )
-}
-
-/** High exit deck on a stone pier at the back rim, with chunky slab steps
- *  winding down its east face to the exit pad. Lantern warms once the lift docks. */
-export const STAIR: { p: [number, number, number]; yaw: number; w: number }[] = [
-  { p: [1.42, 1.7, -4.62], yaw: 0.1, w: 0.62 },
-  { p: [1.62, 1.4, -4.4], yaw: -0.15, w: 0.6 },
-  { p: [1.8, 1.1, -4.14], yaw: 0.12, w: 0.6 },
-  { p: [1.92, 0.8, -3.86], yaw: -0.08, w: 0.58 },
-  { p: [2.0, 0.5, -3.55], yaw: 0.1, w: 0.58 },
-  { p: [2.02, 0.2, -3.24], yaw: -0.05, w: 0.6 },
-]
-export function ExitDeck({ lanternMat }: { lanternMat: THREE.Material }) {
-  const walk = useRef<THREE.Mesh>(null)
+/** The invisible colliders — same footprint as the merged visuals, zero draws. */
+export function Colliders() {
+  const desk = useRef<THREE.Mesh>(null)
+  const rack = useRef<THREE.Mesh>(null)
+  const crates = useRef<THREE.Mesh>(null)
+  const light = useRef<THREE.Mesh>(null)
+  const post = useRef<THREE.Mesh>(null)
+  const call = useRef<THREE.Mesh>(null)
   const rW = useRef<THREE.Mesh>(null)
   const rB = useRef<THREE.Mesh>(null)
   const rE = useRef<THREE.Mesh>(null)
-  useWalkable(walk)
-  useBlocker(rW)
-  useBlocker(rB)
-  useBlocker(rE)
-  const posts = (x: number, zs: number[]) =>
-    zs.map((z, i) => (
-      <mesh key={i} position={[x, DECK_Y + 0.2, z]} material={clay(C.wood)} castShadow>
-        <cylinderGeometry args={[0.028, 0.034, 0.4, 7]} />
-      </mesh>
-    ))
+  useBlocker(desk); useBlocker(rack); useBlocker(crates); useBlocker(light); useBlocker(post)
+  useBlocker(call); useBlocker(rW); useBlocker(rB); useBlocker(rE)
+  const inv = INVIS
   return (
     <group>
-      {/* stone pier */}
-      <mesh position={[0, 0.72, -5.3]} material={clay('#9d8469')} castShadow>
-        <cylinderGeometry args={[0.5, 0.82, 2.35, 12]} />
+      <mesh ref={desk} position={[DESK_P[0], 0.59, DESK_P[2]]} rotation={[0, DESK_YAW, 0]} material={inv}>
+        <boxGeometry args={[1.5, 1.18, 0.72]} />
       </mesh>
-      <mesh position={[0, 0.22, -5.3]} material={clay('#8c7055')} castShadow>
-        <cylinderGeometry args={[0.86, 1.02, 0.5, 12]} />
+      <mesh ref={rack} position={[-3.3, 0.52, -1.85]} rotation={[0, 0.62, 0]} material={inv}>
+        <boxGeometry args={[0.72, 1.04, 0.44]} />
       </mesh>
-      {/* top slab */}
-      <RoundedBox ref={walk} args={[2.4, 0.26, 1.7]} radius={0.06} position={[0, DECK_Y - 0.13, -5.1]} material={clay(C.stoneLight)} castShadow receiveShadow />
-      {/* west rail */}
-      {posts(-1.12, [-4.55, -5.15, -5.75])}
-      <mesh ref={rW} position={[-1.12, DECK_Y + 0.4, -5.15]} rotation={[Math.PI / 2, 0, 0]} material={clay(C.woodLight)} castShadow>
+      <mesh ref={crates} position={[-1.77, 0.3, -3.78]} material={inv}>
+        <boxGeometry args={[0.95, 0.6, 0.95]} />
+      </mesh>
+      <mesh ref={light} position={[-1.55, 0.6, -3.1]} material={inv}>
+        <cylinderGeometry args={[0.035, 0.055, 1.2, 8]} />
+      </mesh>
+      <mesh ref={post} position={[STORY_P[0], 0.42, STORY_P[2]]} material={inv}>
+        <cylinderGeometry args={[0.045, 0.065, 0.84, 8]} />
+      </mesh>
+      <mesh ref={call} position={[1.25, 0.32, -3.3]} material={inv}>
+        <cylinderGeometry args={[0.045, 0.06, 0.64, 8]} />
+      </mesh>
+      <mesh ref={rW} position={[-1.12, DECK_Y + 0.4, -5.15]} rotation={[Math.PI / 2, 0, 0]} material={inv}>
         <cylinderGeometry args={[0.03, 0.03, 1.55, 7]} />
       </mesh>
-      {/* back rail */}
-      {[-1.12, 1.12].map((x, i) => (
-        <mesh key={i} position={[x, DECK_Y + 0.2, -5.9]} material={clay(C.wood)} castShadow>
-          <cylinderGeometry args={[0.028, 0.034, 0.4, 7]} />
-        </mesh>
-      ))}
-      <mesh ref={rB} position={[0, DECK_Y + 0.4, -5.9]} rotation={[0, 0, Math.PI / 2]} material={clay(C.woodLight)} castShadow>
+      <mesh ref={rB} position={[0, DECK_Y + 0.4, -5.9]} rotation={[0, 0, Math.PI / 2]} material={inv}>
         <cylinderGeometry args={[0.03, 0.03, 2.4, 7]} />
       </mesh>
-      {/* short east rail over the stair head */}
-      {posts(1.12, [-5.5, -5.9])}
-      <mesh ref={rE} position={[1.12, DECK_Y + 0.4, -5.68]} rotation={[Math.PI / 2, 0, 0]} material={clay(C.woodLight)} castShadow>
+      <mesh ref={rE} position={[1.12, DECK_Y + 0.4, -5.68]} rotation={[Math.PI / 2, 0, 0]} material={inv}>
         <cylinderGeometry args={[0.03, 0.03, 0.62, 7]} />
       </mesh>
-      {/* slab steps down the east face */}
-      {STAIR.map((s, i) => (
-        <StairSlab key={i} p={s.p} yaw={s.yaw} w={s.w} />
-      ))}
-      {/* lantern warms when the lift has docked */}
-      <group position={[-1.02, DECK_Y, -5.62]}>
-        <mesh position={[0, 0.46, 0]} material={clay(C.wood)} castShadow>
-          <cylinderGeometry args={[0.024, 0.034, 0.92, 7]} />
-        </mesh>
-        <mesh position={[0, 0.95, 0]} material={lanternMat} castShadow>
-          <sphereGeometry args={[0.075, 12, 10]} />
-        </mesh>
-        <mesh position={[0, 1.04, 0]} material={clay(C.terracotta)}>
-          <coneGeometry args={[0.09, 0.08, 8]} />
-        </mesh>
-      </group>
     </group>
   )
 }
 
-function StairSlab({ p, yaw, w }: { p: [number, number, number]; yaw: number; w: number }) {
-  const walk = useRef<THREE.Mesh>(null)
-  useWalkable(walk)
+/** Per-laptop invisible plinth collider. */
+export function PlinthBlock({ lap }: { lap: (typeof LAPTOPS)[number] }) {
+  const block = useRef<THREE.Mesh>(null)
+  useBlocker(block)
+  const s = LAP_SCALE[lap.size]
   return (
-    <RoundedBox ref={walk} args={[w, 0.14, 0.52]} radius={0.05} position={p} rotation={[0, yaw, 0]} material={clay('#b8ab97')} castShadow receiveShadow />
-  )
-}
-
-/** Little floating ledge beyond the east gap — one slab sits here. */
-export function Shard() {
-  const walk = useRef<THREE.Mesh>(null)
-  useWalkable(walk)
-  const { c, r } = SHARD
-  const rnd = (n: number) => { const x = Math.sin(n * 12.9898) * 43758.5453; return x - Math.floor(x) }
-  const tufts = useMemo(
-    () => [...Array(5)].map((_, i) => { const a = rnd(i) * Math.PI * 2, d = r * (0.45 + rnd(i + 9) * 0.4); return [Math.cos(a) * d, Math.sin(a) * d, rnd(i + 4)] as const }),
-    [r],
-  )
-  return (
-    <group position={c}>
-      <mesh ref={walk} position={[0, -0.055, 0]} material={clay('#8fae6d')} receiveShadow castShadow>
-        <cylinderGeometry args={[r, r * 0.96, 0.14, 22]} />
-      </mesh>
-      <mesh position={[0, -0.62, 0]} rotation={[Math.PI, 0, 0]} material={clay('#9d8469')} castShadow>
-        <coneGeometry args={[r * 0.92, 1.15, 12]} />
-      </mesh>
-      <mesh position={[0, -0.14, 0]} rotation={[Math.PI / 2, 0, 0]} material={clay('#b19d82')}>
-        <torusGeometry args={[r * 0.86, 0.05, 6, 22]} />
-      </mesh>
-      {tufts.map(([x, z, k], i) => (
-        <mesh key={i} position={[x, 0.05, z]} rotation={[(k - 0.5) * 0.4, k * 3, (k - 0.5) * 0.4]} material={clay(i % 2 ? C.leafDark : C.moss)}>
-          <coneGeometry args={[0.05 + k * 0.03, 0.16 + k * 0.1, 5]} />
-        </mesh>
-      ))}
-    </group>
+    <mesh ref={block} position={[lap.p[0], PLINTH_TOP / 2 - 0.03, lap.p[2]]} material={INVIS}>
+      <cylinderGeometry args={[0.2 * s + 0.09, 0.24 * s + 0.11, PLINTH_TOP, 14]} />
+    </mesh>
   )
 }
 
@@ -315,83 +429,6 @@ export function Plank() {
   )
 }
 
-/** Home desk landmark: router with antennae, rust desk lamp, mug, stool. */
-export function HomeDesk({
-  ledMat,
-  lampMat,
-  wifiMat,
-}: {
-  ledMat: THREE.MeshStandardMaterial
-  lampMat: THREE.MeshStandardMaterial
-  wifiMat: THREE.MeshStandardMaterial
-}) {
-  const block = useRef<THREE.Mesh>(null)
-  useBlocker(block)
-  return (
-    <group position={DESK_P} rotation={[0, DESK_YAW, 0]}>
-      <mesh ref={block} position={[0, 0.59, 0]} material={clay(C.woodLight)} castShadow receiveShadow>
-        <boxGeometry args={[1.5, 0.06, 0.72]} />
-      </mesh>
-      {[[-0.66, -0.28], [0.66, -0.28], [-0.66, 0.28], [0.66, 0.28]].map(([x, z], i) => (
-        <mesh key={i} position={[x, 0.28, z]} material={clay(C.wood)} castShadow>
-          <cylinderGeometry args={[0.035, 0.045, 0.56, 7]} />
-        </mesh>
-      ))}
-      <mesh position={[0, 0.3, 0]} material={clay(C.wood)}>
-        <boxGeometry args={[1.2, 0.04, 0.5]} />
-      </mesh>
-      <group position={[-0.3, 0.62, -0.05]}>
-        <RoundedBox args={[0.3, 0.07, 0.2]} radius={0.015} position={[0, 0.035, 0]} material={clay(C.cream)} castShadow />
-        <mesh position={[-0.09, 0.16, -0.06]} rotation={[0, 0, 0.3]} material={clay(C.ink)}>
-          <cylinderGeometry args={[0.007, 0.007, 0.2, 6]} />
-        </mesh>
-        <mesh position={[0.09, 0.16, -0.06]} rotation={[0, 0, -0.3]} material={clay(C.ink)}>
-          <cylinderGeometry args={[0.007, 0.007, 0.2, 6]} />
-        </mesh>
-        <mesh position={[0.11, 0.05, 0.08]} material={ledMat}>
-          <sphereGeometry args={[0.012, 8, 8]} />
-        </mesh>
-        {[0.09, 0.15, 0.21].map((rr, i) => (
-          <mesh key={i} position={[0, 0.1, -0.02]} rotation={[0, 0, Math.PI * 0.2]} material={wifiMat}>
-            <torusGeometry args={[rr, 0.008, 6, 16, Math.PI * 0.6]} />
-          </mesh>
-        ))}
-      </group>
-      <group position={[0.45, 0.62, -0.1]}>
-        <mesh position={[0, 0.015, 0]} material={clay(C.terracotta)} castShadow>
-          <cylinderGeometry args={[0.07, 0.08, 0.03, 10]} />
-        </mesh>
-        <mesh position={[0.02, 0.14, 0]} rotation={[0, 0, -0.25]} material={clay(C.terracotta)} castShadow>
-          <cylinderGeometry args={[0.014, 0.014, 0.24, 6]} />
-        </mesh>
-        <mesh position={[-0.04, 0.26, 0.02]} rotation={[0.5, 0, 0.35]} material={clay(C.terracotta)} castShadow>
-          <coneGeometry args={[0.07, 0.09, 10, 1, true]} />
-        </mesh>
-        <mesh position={[-0.045, 0.235, 0.028]} material={lampMat}>
-          <sphereGeometry args={[0.02, 8, 8]} />
-        </mesh>
-      </group>
-      <group position={[0.12, 0.62, 0.18]}>
-        <mesh position={[0, 0.04, 0]} material={clay('#b5654a')} castShadow>
-          <cylinderGeometry args={[0.045, 0.038, 0.08, 10]} />
-        </mesh>
-        <mesh position={[0.05, 0.045, 0]} rotation={[0, Math.PI / 2, 0]} material={clay('#b5654a')}>
-          <torusGeometry args={[0.03, 0.009, 6, 12, Math.PI]} />
-        </mesh>
-      </group>
-      <RoundedBox args={[0.24, 0.03, 0.18]} radius={0.01} position={[0.02, 0.635, -0.22]} rotation={[0, 0.4, 0]} material={clay(C.paper)} castShadow />
-      <group position={[0.15, 0, 0.75]}>
-        <mesh position={[0, 0.3, 0]} material={clay(C.wood)} castShadow>
-          <cylinderGeometry args={[0.05, 0.06, 0.55, 8]} />
-        </mesh>
-        <mesh position={[0, 0.6, 0]} material={clay('#c9875f')} castShadow>
-          <cylinderGeometry args={[0.2, 0.17, 0.08, 12]} />
-        </mesh>
-      </group>
-    </group>
-  )
-}
-
 /** Cable curve from a plinth to the lift hub, hugging the ground. */
 export function cableCurve(lap: (typeof LAPTOPS)[number]) {
   const a = new THREE.Vector3(lap.p[0], 0.035, lap.p[2])
@@ -400,116 +437,72 @@ export function cableCurve(lap: (typeof LAPTOPS)[number]) {
   return new THREE.CatmullRomCurve3([a, mid, b])
 }
 
-/* ------- V6 compute yard pieces ------- */
+/* ------- small animated-material props (each = 1 draw call) -------- */
 
-/** One matte server slab with two tiny ember status lights. */
-function ServerBox({ p, w = 0.52, ledMats }: { p: [number, number, number]; w?: number; ledMats: THREE.MeshStandardMaterial[] }) {
+/** Router LED + desk-lamp bulb + the three wifi arcs (one merged geo). */
+export function DeskFx({ ledMat, lampMat, wifiMat }: { ledMat: THREE.Material; lampMat: THREE.Material; wifiMat: THREE.Material }) {
+  const pre = useMemo(() => frame(DESK_P[0], DESK_P[1], DESK_P[2], DESK_YAW), [])
+  const ledP = useMemo(() => new THREE.Vector3(-0.19, 0.67, 0.03).applyMatrix4(pre), [pre])
+  const lampP = useMemo(() => new THREE.Vector3(0.405, 0.855, -0.072).applyMatrix4(pre), [pre])
+  const wifiGeo = useMemo(() => {
+    const bag: PutBag = []
+    for (const rr of [0.09, 0.15, 0.21])
+      put(bag, new THREE.TorusGeometry(rr, 0.008, 6, 16, Math.PI * 0.6), '#ffffff', -0.3, 0.72, -0.07, { rz: Math.PI * 0.2, pre })
+    return merged(bag)!
+  }, [pre])
   return (
-    <group position={p}>
-      <RoundedBox args={[w, 0.09, 0.34]} radius={0.02} material={clay('#4a4340')} castShadow receiveShadow />
-      {ledMats.map((m, i) => (
-        <mesh key={i} position={[-w / 2 + 0.07 + i * 0.09, 0.012, 0.18]} rotation={[Math.PI / 2, 0, 0]} material={m}>
-          <circleGeometry args={[0.014, 8]} />
-        </mesh>
-      ))}
-    </group>
-  )
-}
-
-/** Open rack shelf with stacked matte servers — the "no GPU cluster" kit. */
-export function YardRack({ ledMats }: { ledMats: THREE.MeshStandardMaterial[] }) {
-  const block = useRef<THREE.Mesh>(null)
-  useBlocker(block)
-  return (
-    <group position={[-3.3, 0, -1.85]} rotation={[0, 0.62, 0]}>
-      {[-0.34, 0.34].map((x, i) => (
-        <mesh key={i} position={[x, 0.52, 0]} material={clay(C.wood)} castShadow>
-          <boxGeometry args={[0.05, 1.04, 0.44]} />
-        </mesh>
-      ))}
-      <mesh ref={block} position={[0, 0.52, 0]}>
-        <boxGeometry args={[0.72, 1.04, 0.4]} />
-        <meshBasicMaterial visible={false} />
+    <group>
+      <mesh geometry={wifiGeo} material={wifiMat} />
+      <mesh position={ledP} material={ledMat}>
+        <sphereGeometry args={[0.012, 8, 8]} />
       </mesh>
-      {[0.14, 0.5, 0.86].map((y, i) => (
-        <mesh key={i} position={[0, y, 0]} material={clay(C.woodLight)} castShadow receiveShadow>
-          <boxGeometry args={[0.72, 0.035, 0.44]} />
-        </mesh>
-      ))}
-      <ServerBox p={[0, 0.22, 0.01]} ledMats={ledMats.slice(0, 2)} />
-      <ServerBox p={[0, 0.58, 0.01]} ledMats={ledMats.slice(2, 4)} />
-      <ServerBox p={[0, 0.94, 0.01]} ledMats={ledMats.slice(4, 6)} />
-      <mesh position={[0, 1.1, -0.06]} rotation={[0.25, 0, 0]} material={clay(C.paper)} castShadow>
-        <boxGeometry args={[0.2, 0.012, 0.14]} />
+      <mesh position={lampP} material={lampMat}>
+        <sphereGeometry args={[0.02, 8, 8]} />
       </mesh>
     </group>
   )
 }
 
-/** Shipping/packing crates stacked beside the lift — the compute yard feel. */
-export function YardCrates() {
-  const block = useRef<THREE.Mesh>(null)
-  useBlocker(block)
+/** Six ember status lights on the rack — one shared mat, one merged geo. */
+export function RackLeds({ mat }: { mat: THREE.Material }) {
+  const geo = useMemo(() => {
+    const pre = frame(-3.3, 0, -1.85, 0.62)
+    const bag: PutBag = []
+    const ys = [0.22, 0.58, 0.94]
+    ys.forEach((y) => {
+      for (let i = 0; i < 2; i++)
+        put(bag, new THREE.CircleGeometry(0.014, 8), '#ffffff', -0.26 + 0.07 + i * 0.09, y + 0.012, 0.19, { rx: Math.PI / 2, pre })
+    })
+    return merged(bag)!
+  }, [])
+  return <mesh geometry={geo} material={mat} />
+}
+
+/** Warm work-light bulb (pole lives in the statics merge). */
+export function YardBulb({ mat }: { mat: THREE.Material }) {
+  const pre = useMemo(() => frame(-1.55, 0, -3.1, 0.5), [])
+  const p = useMemo(() => new THREE.Vector3(0.3, 1.08, 0).applyMatrix4(pre), [pre])
   return (
-    <group position={[-1.85, 0, -3.8]} rotation={[0, -0.2, 0]}>
-      <mesh ref={block} position={[0.08, 0.3, 0.02]}>
-        <boxGeometry args={[0.95, 0.6, 0.95]} />
-        <meshBasicMaterial visible={false} />
-      </mesh>
-      <RoundedBox args={[0.62, 0.34, 0.62]} radius={0.03} position={[0, 0.17, 0]} material={clay('#b39872')} castShadow receiveShadow />
-      <RoundedBox args={[0.44, 0.26, 0.44]} radius={0.025} position={[0.14, 0.47, 0.08]} rotation={[0, 0.35, 0]} material={clay('#c4a87e')} castShadow />
-      <RoundedBox args={[0.3, 0.2, 0.3]} radius={0.02} position={[-0.38, 0.1, 0.3]} rotation={[0, -0.3, 0]} material={clay('#a98c68')} castShadow />
-      <mesh position={[0.02, 0.34, 0.32]} rotation={[0.4, 0.1, 0]} material={clay(C.paper)}>
-        <boxGeometry args={[0.16, 0.012, 0.11]} />
-      </mesh>
-      <mesh position={[0.32, 0.1, -0.34]} rotation={[0, 0.2, Math.PI / 2]} material={clay('#8c7055')} castShadow>
-        <cylinderGeometry args={[0.09, 0.09, 0.2, 10]} />
-      </mesh>
-    </group>
+    <mesh position={p} material={mat}>
+      <sphereGeometry args={[0.055, 12, 10]} />
+    </mesh>
   )
 }
 
-/** Tall work light with a warm bulb — always on, the yard's hearth. */
-export function YardLight({ lampMat }: { lampMat: THREE.Material }) {
-  const block = useRef<THREE.Mesh>(null)
-  useBlocker(block)
+/** Call-post bulb (pole lives in the statics merge). */
+export function CallBulb({ mat }: { mat: THREE.Material }) {
   return (
-    <group position={[-1.55, 0, -3.1]} rotation={[0, 0.5, 0]}>
-      <mesh ref={block} position={[0, 0.6, 0]} material={clay(C.wood)} castShadow>
-        <cylinderGeometry args={[0.035, 0.055, 1.2, 8]} />
-      </mesh>
-      <mesh position={[0.16, 1.18, 0]} rotation={[0, 0, -0.85]} material={clay(C.wood)} castShadow>
-        <cylinderGeometry args={[0.025, 0.032, 0.4, 7]} />
-      </mesh>
-      <mesh position={[0.3, 1.14, 0]} material={clay('#c9875f')} castShadow>
-        <coneGeometry args={[0.1, 0.11, 12, 1, true]} />
-      </mesh>
-      <mesh position={[0.3, 1.08, 0]} material={lampMat}>
-        <sphereGeometry args={[0.055, 12, 10]} />
-      </mesh>
-      <mesh position={[0, 0.06, 0]} material={clay('#8c7055')}>
-        <cylinderGeometry args={[0.14, 0.17, 0.12, 10]} />
-      </mesh>
-    </group>
+    <mesh position={[1.25, 0.68, -3.3]} material={mat}>
+      <sphereGeometry args={[0.05, 12, 10]} />
+    </mesh>
   )
 }
 
-/** Wooden lectern with a paper inset — the story plaque beside the entry. */
-export function StoryPost({ paperMat }: { paperMat: THREE.Material }) {
-  const block = useRef<THREE.Mesh>(null)
-  useBlocker(block)
+/** Deck lantern bulb (pole + cap live in the statics merge). */
+export function LanternBulb({ mat }: { mat: THREE.Material }) {
   return (
-    <group position={STORY_P} rotation={[0, -2.5, 0]}>
-      <mesh ref={block} position={[0, 0.42, 0]} material={clay(C.wood)} castShadow>
-        <cylinderGeometry args={[0.045, 0.065, 0.84, 8]} />
-      </mesh>
-      <group position={[0, 0.86, 0]} rotation={[-0.42, 0, 0]}>
-        <RoundedBox args={[0.44, 0.03, 0.32]} radius={0.015} material={clay(C.woodLight)} castShadow />
-        <RoundedBox args={[0.34, 0.008, 0.24]} radius={0.006} position={[0, 0.018, 0]} material={paperMat} />
-      </group>
-      <mesh position={[0, 0.05, 0]} material={clay('#8c7055')}>
-        <cylinderGeometry args={[0.13, 0.16, 0.1, 10]} />
-      </mesh>
-    </group>
+    <mesh position={[-1.02, DECK_Y + 0.95, -5.62]} material={mat} castShadow>
+      <sphereGeometry args={[0.075, 12, 10]} />
+    </mesh>
   )
 }

@@ -5,15 +5,15 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import { player, interactables, useInteractable, has, useV5 } from '../../v5/core'
 import type { Interactable, ObstacleProps } from '../../v5/core'
 import { carryAnchor, carryQuat } from '../../v5/player/anchor'
-import { clay } from '../../world/kit'
 import {
-  LAPTOPS, CHUNKS, HUES, CHUNK_T,
+  LAPTOPS, CHUNKS, HUES, CHUNK_T, LAP_SCALE, PLINTH_TOP,
   PAD_W, PAD_D, PAD_TOP, DECK_Y, GAP_EDGE, STORY_P,
-  PlinthLaptop, ChunkSlab, LiftPad, CallPost, ExitDeck, Shard, Plank, HomeDesk, cableCurve, dockLocal,
-  YardRack, YardCrates, YardLight, StoryPost,
+  Statics, WalkStatics, Colliders, PlinthBlock, LiftPad, Plank, chunkGeo,
+  DeskFx, RackLeds, YardBulb, CallBulb, LanternBulb, cableCurve, dockLocal,
 } from './parts.v5'
 import EntCard from './card.v5'
 
@@ -108,9 +108,10 @@ function ChunkNode({ rt, st, mat }: { rt: Rt; st: React.MutableRefObject<St>; ma
     [rt, st],
   )
   useInteractable(it)
+  const geo = useMemo(() => chunkGeo(rt.size), [rt.size])
   return (
     <group ref={rt.ref} position={rt.home}>
-      <ChunkSlab size={rt.size} mat={mat} />
+      <mesh geometry={geo} material={mat} castShadow />
     </group>
   )
 }
@@ -148,10 +149,18 @@ function LapNode({ i, st, screenMat }: { i: number; st: React.MutableRefObject<S
     [i, lap, st],
   )
   useInteractable(it)
+  const s = LAP_SCALE[lap.size]
+  const screenGeo = useMemo(() => new RoundedBoxGeometry(0.42 * s * 0.86, 0.22 * s, 0.021, 2, 0.008), [s])
   return (
     <group>
       <object3D ref={mark} position={stand} />
-      <PlinthLaptop lap={lap} screenMat={screenMat} />
+      <PlinthBlock lap={lap} />
+      {/* the screen is the only piece with an animated material — shell is in <Statics> */}
+      <group position={lap.p} rotation={[0, lap.yaw, 0]}>
+        <group position={[0, PLINTH_TOP + 0.016 + 0.034 * s, -0.115 * s]} rotation={[-0.34, 0, 0]}>
+          <mesh position={[0, 0.145 * s, 0.004]} material={screenMat} geometry={screenGeo} />
+        </group>
+      </group>
     </group>
   )
 }
@@ -201,8 +210,7 @@ export default function Obstacle({ id, active, complete, done }: ObstacleProps) 
       led: mk('#e9dfcf', '#8fb36b', 0.8),
       lamp: mk('#f0e3cc', '#e8b34e', 0.75),
       workLamp: mk('#f0e3cc', '#e8a34e', 1.0),
-      leds: Array.from({ length: 6 }, () => mk('#e9dfcf', '#e8a34e', 0.6)),
-      paper: mk('#efe3cd', '#efe3cd', 0.04),
+      rackLed: mk('#e9dfcf', '#e8a34e', 0.6),
       wifi: mk('#efe4d2', '#e08a4e', 0, { transparent: true, opacity: 0 }),
     }
   }, [])
@@ -409,7 +417,7 @@ export default function Obstacle({ id, active, complete, done }: ObstacleProps) 
       m.emissiveIntensity += (target - m.emissiveIntensity) * Math.min(1, dtm * 6)
       m.emissive.lerp(S2.loaded[i] ? SCREEN_HUES[i] : SCREEN_WARM, Math.min(1, dtm * 3))
     })
-    mats.leds.forEach((m, i) => { m.emissiveIntensity = 0.35 + (Math.sin(t * 3.1 + i * 2.4) > 0.2 ? 0.5 : 0.05) })
+    mats.rackLed.emissiveIntensity = 0.35 + (Math.sin(t * 6.3 + 1.7) > 0.1 ? 0.5 : 0.05)
     mats.segs.forEach((m, i) => {
       const target = S2.loaded[i] ? 1.2 : 0.05
       m.emissiveIntensity += (target - m.emissiveIntensity) * Math.min(1, dtm * 5)
@@ -452,7 +460,14 @@ export default function Obstacle({ id, active, complete, done }: ObstacleProps) 
 
   return (
     <group ref={grp}>
-      <HomeDesk ledMat={mats.led} lampMat={mats.lamp} wifiMat={mats.wifi} />
+      <Statics />
+      <WalkStatics />
+      <Colliders />
+      <DeskFx ledMat={mats.led} lampMat={mats.lamp} wifiMat={mats.wifi} />
+      <RackLeds mat={mats.rackLed} />
+      <YardBulb mat={mats.workLamp} />
+      <CallBulb mat={mats.callLit} />
+      <LanternBulb mat={mats.lantern} />
       {LAPTOPS.map((_, i) => (
         <LapNode key={i} i={i} st={st} screenMat={mats.screens[i]} />
       ))}
@@ -467,29 +482,16 @@ export default function Obstacle({ id, active, complete, done }: ObstacleProps) 
           <sphereGeometry args={[0.045, 10, 8]} />
         </mesh>
       ))}
-      <Shard />
       {S.plank && <Plank />}
       <object3D ref={gapMark} position={GAP_EDGE} />
-      <mesh position={[0, 0.012, -3.42]} rotation={[0, 0.02, 0]} material={clay('#57504b')} receiveShadow>
-        <boxGeometry args={[PAD_W + 0.12, 0.024, PAD_D + 0.12]} />
-      </mesh>
       <LiftPad padRef={padRef} trimMat={mats.trim} segMats={mats.segs} />
-      <CallPost litMat={mats.callLit} />
       <object3D ref={callMark} position={[1.25, 0.75, -3.3]} />
-      <ExitDeck lanternMat={mats.lantern} />
-      <YardRack ledMats={mats.leds} />
-      <YardCrates />
-      <YardLight lampMat={mats.workLamp} />
-      <StoryPost paperMat={mats.paper} />
       <object3D ref={storyMark} position={[STORY_P[0], STORY_P[1] + 0.85, STORY_P[2]]} />
       {cardOpen && (
         <Html fullscreen zIndexRange={[200, 0]}>
           <EntCard open onClose={closeCard} />
         </Html>
       )}
-      <mesh position={[0, 0.02, 4.2]} rotation={[-Math.PI / 2, 0, 0]} material={clay('#d6cab4')} receiveShadow>
-        <circleGeometry args={[0.5, 20]} />
-      </mesh>
     </group>
   )
 }
