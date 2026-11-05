@@ -129,7 +129,9 @@ export function bridgeLampSpots(from: THREE.Vector3, to: THREE.Vector3): Spot[] 
   const dir = to.clone().sub(from).setY(0).normalize()
   const lat = new THREE.Vector3(-dir.z, 0, dir.x).multiplyScalar(0.42)
   const spots: Spot[] = []
+  // glass height is RELATIVE to the mouth anchor — setY(0.68) absolute buried
+  // every lamp inside the island cone on all but the lowest islands
   for (const end of [from, to]) for (const s of [-1, 1])
-    spots.push({ p: end.clone().addScaledVector(lat, s).setY(0.68), tall: 0 })
+    spots.push({ p: end.clone().addScaledVector(lat, s).setY(end.y + 0.68), tall: 0 })
   return spots
 }
