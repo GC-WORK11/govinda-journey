@@ -9,6 +9,7 @@ spec.shots = spec.shots.filter((s) => !existsSync(s.out) || statSync(s.out).size
 if (!spec.shots.length) { console.log('all shots present'); process.exit(0) }
 setTimeout(() => { console.log('timeout'); process.exit(3) }, 20 * 60000).unref()
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+let notReady = 0
 await withChrome(async (b) => {
   const errs = []
   const p = await b.newPage()
@@ -32,7 +33,7 @@ await withChrome(async (b) => {
       await p.setViewport(s.size === 'mobile' ? MOBILE : DESKTOP)
       await p.goto(s.url, { waitUntil: 'networkidle2', timeout: 90000 })
       const ok = await ready(s.probe)
-      if (!ok) console.log('not-ready', s.out)
+      if (!ok) { notReady++; console.log('not-ready', s.out) }
       await sleep(s.wait ?? 2800)
       if (s.walk || s.run) {
         if (s.run) await p.keyboard.down('ShiftLeft')
@@ -49,4 +50,7 @@ await withChrome(async (b) => {
   for (const e of errs.slice(0, 8)) console.log(e)
   if (!errs.length) console.log('no console errors')
 })
-process.exit(0)
+// not-ready usually means this Chrome's GPU process came up dead
+// ("Could not create a WebGL context") — exit nonzero so the caller
+// can re-queue and draw a fresh launch.
+process.exit(notReady ? 2 : 0)
