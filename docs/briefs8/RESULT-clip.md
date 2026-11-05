@@ -53,16 +53,34 @@ geometry replica + down-raycast inside test):
 - `npx tsc -p . --noEmit` — clean.
 - `node scripts/v5/clip-offline.mjs` — 0 findings, all 10 bridge spans.
 - `node scripts/v5/clip-deep.mjs http://localhost:5304/ --shots` —
-  see `proofs/v5/clip-audit.json` + JPEGs (results below).
-- `node scripts/v5/play.mjs http://localhost:5304/ ...` — see below.
+  full-run output `proofs/v5/clip-audit.json` + `clip-*.png` (queued).
+- `node scripts/v5/clip-spot.mjs http://localhost:5304/` —
+  `proofs/v5/clip-spot-L06-mouth.png` (queued).
 
-## Audit results (fill after run)
+## Verification status
 
-TBD
+- `npx tsc -p . --noEmit` — clean. `pnpm build` — clean (twice).
+- `node scripts/v5/clip-offline.mjs` — **0 embedded vertices** across all
+  10 bridge spans (upstream sin² baseline: 410; original sag: worse).
+- Branch `devin8/clip` merged to `main` at 57a52ae (fast-forward,
+  `pnpm build` passing).
+- In-browser evidence: `scripts/v5/clip-deep.mjs` (full Box3 + vertex
+  audit, all islands + finale, `--shots`) and `scripts/v5/clip-spot.mjs`
+  (90 s single-shot of the L06 mouth) are armed behind the shared-Chrome
+  queue with `env -u DISPLAY` — this box exports `DISPLAY=:2`, which makes
+  SwiftShader fail context creation; that was the cause of every
+  "never ready" earlier. The shared profile additionally suffers a
+  launch race between the file lock and Chrome's SingletonLock, so runs
+  queue on `readlink SingletonLock` liveness. Results land in
+  `proofs/v5/` (clip-audit.json + clip-*.png / clip-spot-L06-mouth.png)
+  and will be appended if a slot opens.
+- A partial earlier run did reach the world and produced one screenshot
+  set before being stopped for filter tuning; the only real-depth finding
+  was a bridge-0 post planted 0.11 m into L02 — intended anchoring.
 
 ## Remaining known items
 
-- Shared Chrome was saturated all session (9+ agents on one lock); the
-  in-browser audit/play evidence is appended as slots allow.
+- Full in-browser audit + play.mjs verification still pending a Chrome
+  slot (box was saturated all session — 9+ agents, one browser profile).
 - V7 clip sessions already fixed prop placements (L01–L09, I01/02); this
   pass re-audits rather than re-does their work.
