@@ -15,17 +15,29 @@ function stale() {
     return Date.now() - statSync(LOCK).mtimeMs > 20 * 60000 // no heartbeat for 20 min
   } catch { try { return Date.now() - statSync(LOCK).mtimeMs > 120000 } catch { return false } } // legacy lock without owner
 }
+const profileFree = () => {
+  try { const pid = +readlinkSync(PROFILE + '/SingletonLock').split('-').pop(); return !pid || !alive(pid) } catch { return true }
+}
 export async function acquire(maxWaitMs = 15 * 60000) {
   const t0 = Date.now()
   for (;;) {
     try { mkdirSync(LOCK); writeFileSync(LOCK + '/owner', String(process.pid)); break } catch {}
     if (stale()) { try { rmSync(LOCK, { recursive: true, force: true }) } catch {}; continue }
     if (Date.now() - t0 > maxWaitMs) throw new Error('chrome lock wait timeout')
-    await new Promise((r) => setTimeout(r, 3000))
+    await new Promise((r) => setTimeout(r, 1000))
   }
   const beat = setInterval(() => { try { const n = new Date(); utimesSync(LOCK, n, n) } catch {} }, 30000); beat.unref()
   const release = () => { clearInterval(beat); try { if (+readFileSync(LOCK + '/owner', 'utf8') === process.pid) rmSync(LOCK, { recursive: true, force: true }) } catch {} }
   process.on('exit', release)
+  // A Chrome launched outside this lock can still hold the profile's
+  // SingletonLock. Wait inside the dir lock (tight poll) so we launch in the
+  // gap between that Chrome's exit and any relaunch; give up + requeue if a
+  // foreign Chrome keeps the profile for too long.
+  const t1 = Date.now()
+  while (!profileFree()) {
+    if (Date.now() - t1 > 90000) { release(); return acquire(Math.max(1000, maxWaitMs - (Date.now() - t0))) }
+    await new Promise((r) => setTimeout(r, 200))
+  }
   // Chrome's own SingletonLock left by a dead Chrome: link target is "host-pid"
   try { const pid = +readlinkSync(PROFILE + '/SingletonLock').split('-').pop(); if (pid && !alive(pid)) for (const f of ['SingletonLock', 'SingletonCookie', 'SingletonSocket']) rmSync(PROFILE + '/' + f, { force: true }) } catch {}
   return release

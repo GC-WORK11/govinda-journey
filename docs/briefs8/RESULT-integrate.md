@@ -37,41 +37,45 @@ Dropped: `.devin-prompt.md` dupes, `vite.light.config.ts` (session-local).
   first 7 merges; remaining 8 verified in one build, conflicts resolved
   by hand + `tsc --noEmit` clean).
 - `scripts/v5/play.mjs http://localhost:5301/ --size=1440 --lite` —
-  BLOCKED by box environment, not code. Two separate issues found:
+  **PASS, all 11 stops, 0 failures** (L01–L03, I01, L05, L04, I02, L06–L09;
+  canvas mounted, world built, every mini-game solved, bridges crossed).
+  fps≈2–6 is swiftshader software GL, not a code issue.
+  Took real debugging of three separate environment problems:
   1. **Shared `node_modules/.vite` cache collision** — every session's dev
      server fights over the dep cache → duplicate @react-three/fiber →
      "Hooks can only be used within the Canvas component" crash in Player.
      Fixed for this run: dev server on private cacheDir
      (`vite.integrate.config.ts`, kept uncommitted — session-local).
-  2. **DISPLAY=:2 points at a dead X server.** Chrome 156 GPU process
+  2. **DISPLAY=:2 points at a dead X server.** Chrome's GPU process
      (SwANGLE) does `xcb_connect()` when DISPLAY is set → fails →
      `THREE.WebGLRenderer: A WebGL context could not be created
      (VENDOR=0xffff, DEVICE=0xffff)` → Canvas mount throws → boundary
-     fallback → no canvas/walkables/solvers. Confirmed box-wide: char
-     session's screenshot batch produced identical blanks the same window.
-     WebGL worked at ~22:00 IST, died after. Workaround for any session:
-     launch Chrome with DISPLAY unset (`env -u DISPLAY node …`) — verified
-     via chrome error log; SwANGLE headless doesn't need X.
+     fallback → no canvas/walkables/solvers. Box-wide — char session's
+     screenshot batch produced identical blanks in the same window.
+     Fix: launch with DISPLAY unset (`env -u DISPLAY node …`) — this is
+     what finally produced the PASS above.
+  3. **Chrome slot stolen by off-protocol launchers.** Some scripts poll
+     `SingletonLock` directly and launch without the dir lock — holding a
+     live foreign Chrome while `/tmp/gj-chrome.lock` sits free, so every
+     legit acquirer dies at launch. Fixed in `scripts/chrome.mjs`:
+     `acquire()` now also waits inside the dir lock for the profile's
+     SingletonLock to be free (200 ms poll, wins the exit→relaunch gap;
+     90 s cap then releases + requeues) and polls the dir lock at 1 s.
 - `play.mjs` hard timeout bumped 25→55 min (lock queue on this box can eat
   half of it) — committed.
-- Chrome time was repeatedly lost to lock races (`SingletonLock` held by a
-  live foreign Chrome while the dir lock was free). Last state: play run
-  queued with `env -u DISPLAY`; see "left" below.
 
 ## Deploy
 
-- Preview (NOT production): https://govinda-journey-f5ubogfmp-govindasince2004-6895s-projects.vercel.app
-- `● Ready`, built remotely 26s from main tip. Behind team Vercel SSO like
-  previous previews.
+- Preview (NOT production): https://govinda-journey-hswh6flib-govindasince2004-6895s-projects.vercel.app
+- `● Ready`, built remotely from this commit (main tip — includes the
+  later clip/Bridge5 deck + AutoMerge/perfqa/heli/storyB V8 commits).
+  Behind team Vercel SSO like previous previews.
 
 ## Left / caveats
 
-- Full end-to-end playthrough still pending Chrome availability at write
-  time; the environment fixes are in place (private vite cache +
-  DISPLAY-unset launch + 55min budget). If the run lands clean it needs no
-  code change; if not, first check for new console errors — the app boot
-  itself is verified (domcontentloaded 90ms, __journey.v5 up, prog header
-  renders).
-- Other sessions should: `git rebase origin/main`, then run dev servers
-  with a private `cacheDir` (see `vite.integrate.config.ts`) and launch
-  Chrome with `env -u DISPLAY` until :2 is fixed or unset box-wide.
+- Playthrough verified at 1440 only; a 390 (mobile) pass wasn't run —
+  same code path, but touch layout is unverified tonight.
+- Other sessions should: `git rebase origin/main` (chrome.mjs acquire fix
+  helps against profile stealers), run dev servers with a private
+  `cacheDir` (see `vite.integrate.config.ts`) and launch Chrome with
+  `env -u DISPLAY` until :2 is fixed or unset box-wide.
