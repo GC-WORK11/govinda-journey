@@ -31,7 +31,16 @@ geometry replica + down-raycast inside test):
 - upstream `sin²` profile: **410 embedded vertices** across the 10 spans
 - boardwalk profile: **0**
 
-### 2. Audit tooling
+### 2. bridgeLampSpots — mouth lamps were world-absolute height (in-browser finding)
+
+`bridgeLampSpots` placed the four mouth lamp globes at `setY(0.68)` —
+an **absolute** world height. On every island above y≈0.7 (all but L01)
+the lamps were inside the island's rock cone: invisible, and the audit
+flagged their frames/glass at 0.44–2.39 m deep inside L04/L05/I02/L09
+mouths. Fixed to `end.y + 0.68` (globe hovering just above each post
+finial, as the doc comment intends). `src/world/Lanterns.tsx`.
+
+### 3. Audit tooling
 
 - `scripts/v5/clip-deep.mjs` — one `?qa&fresh&nomerge&lite` session,
   teleports island-to-island, audits unsolved + solved + finale states:
@@ -59,28 +68,39 @@ geometry replica + down-raycast inside test):
 
 ## Verification status
 
-- `npx tsc -p . --noEmit` — clean. `pnpm build` — clean (twice).
+- `npx tsc -p . --noEmit` — clean. `pnpm build` — clean.
 - `node scripts/v5/clip-offline.mjs` — **0 embedded vertices** across all
   10 bridge spans (upstream sin² baseline: 410; original sag: worse).
-- Branch `devin8/clip` merged to `main` at 57a52ae (fast-forward,
-  `pnpm build` passing).
-- In-browser evidence: `scripts/v5/clip-deep.mjs` (full Box3 + vertex
-  audit, all islands + finale, `--shots`) and `scripts/v5/clip-spot.mjs`
-  (90 s single-shot of the L06 mouth) are armed behind the shared-Chrome
-  queue with `env -u DISPLAY` — this box exports `DISPLAY=:2`, which makes
-  SwiftShader fail context creation; that was the cause of every
-  "never ready" earlier. The shared profile additionally suffers a
-  launch race between the file lock and Chrome's SingletonLock, so runs
-  queue on `readlink SingletonLock` liveness. Results land in
-  `proofs/v5/` (clip-audit.json + clip-*.png / clip-spot-L06-mouth.png)
-  and will be appended if a slot opens.
-- A partial earlier run did reach the world and produced one screenshot
-  set before being stopped for filter tuning; the only real-depth finding
-  was a bridge-0 post planted 0.11 m into L02 — intended anchoring.
+- Merged to `main`: boardwalk fix at 57a52ae, lamp fix at 0ab3b0d
+  (fast-forward, `pnpm build` passing each time).
+- `scripts/v5/clip-spot.mjs` — **`proofs/v5/clip-spot-L06-mouth.png`**:
+  the boardwalk visibly lies flat across L06's rim, sag beginning only
+  past the lip; ropes hang free.
+- `scripts/v5/clip-deep.mjs` ran all 11 islands × pre+post (118 shots in
+  `proofs/v5/clip-*.png`) before a vite-HMR reload killed the finale
+  page — island coverage complete, finale not reached. Remaining
+  findings after triage:
+  - bridge mouth lamps inside cones → **fixed** (item 2)
+  - L05 table/plinth columns, I02/L09 lantern poles (0.6–3.5 m) and L03
+    rim rocks (~1 m) — planted anchors, the established half-buried clay
+    look; shots confirm nothing visibly wrong
+  - L05 diorama root-cable tubes ~0.5 m — intentional "roots into soil"
+    (clipB documented this design)
+  - `Scene::Rogue_Leg*` 0.37–0.45 m on every island — the traveller's
+    feet sit below the grass dome; the known broken-player issue, other
+    brief's domain
+  - note: detector picks each island's deepest mesh as its body — on L05
+    the satellite shard rock may win, so deep hits near the shard can be
+    attributed loosely
+- Environment note for everyone: this box exports `DISPLAY=:2`; under it
+  SwiftShader fails WebGL context creation → all "never ready" stalls.
+  Always `env -u DISPLAY` on the shared chrome (integrate learned the
+  same — `env -u DISPLAY node scripts/v5/play.mjs`).
 
 ## Remaining known items
 
-- Full in-browser audit + play.mjs verification still pending a Chrome
-  slot (box was saturated all session — 9+ agents, one browser profile).
-- V7 clip sessions already fixed prop placements (L01–L09, I01/02); this
-  pass re-audits rather than re-does their work.
+- Finale-state in-browser audit (all islands + pull-back) not yet run —
+  the audit crashed on the `?finale` navigation after completing every
+  island; the harness retries and is rerunnable.
+- play.mjs verification runs were out-competed for the shared Chrome all
+  session; integrate's own 1440+390 suite covers the merged main.
