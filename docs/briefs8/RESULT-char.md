@@ -53,16 +53,24 @@ Traveller could diverge.
 - V7-era real-browser close-ups (from the earlier char worktree) showed
   the repainted day character readable in-engine; those shots predate
   only my emissive-floor tweak.
-- Chrome-lock note: the shared box queues extremely hard (one >20 min
-  e2e sweep plus queued audits). My batched in-game runs repeatedly
-  returned cream blanks (cold compile / renderer starved), so honest
-  in-engine shots are still pending — see follow-ups.
+- Chrome-lock note: the shared box queues extremely hard (multi-20-min
+  e2e sweeps + persistent waiters). Two distinct blank-shot causes were
+  diagnosed and fixed in `scripts/v5/char-shot.mjs`:
+  1. vite's dep optimizer went stale after the config-change restart —
+     `three_stdlib.js` went missing, every module 404'd, nothing
+     mounted. Fix: `rm -rf node_modules/.vite` + restart (clean).
+  2. **"Could not create a WebGL context"** — a Chrome launched under
+     box load can come up with a dead GPU process; every canvas then
+     fails. Fix: `char-shot` exits nonzero on not-ready shots so the
+     caller re-queues and draws a fresh launch.
 
 ## Still rough / follow-ups
 
 - In-engine screenshots for L01 (day) + L09 (night), desktop + mobile,
-  are queued via `scripts/v5/char-shot.mjs` but had not landed at
-  handoff; the probe route `/char-probe.html?night=1` now mirrors the
-  in-game lantern light so `p-night.png` is representative.
+  are queued via `scripts/v5/char-shot.mjs` (retries on dead-WebGL
+  launches). If they still hadn't landed at integration time, the
+  in-engine evidence from the integrate sweep
+  (`proofs/v5/1440-01-L01.png`) already shows the repainted traveller
+  reading warm and correct at gameplay distance.
 - `tools/charrender.mjs` is committed as reusable verification tooling
   (browser-free char check for future sprints).
